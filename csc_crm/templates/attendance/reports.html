@@ -1,0 +1,468 @@
+{% extends 'attendance/base.html' %}
+
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/attendance_css/reports.css' %}">
+
+<div class="main-content">
+
+
+
+
+
+    <div class="reports-page">
+
+        <!-- TOPBAR -->
+
+        <div class="reports-topbar">
+
+            <div>
+
+                <h5>
+
+                    Reports & Analytics
+
+                </h5>
+
+            </div>
+
+            <div class="topbar-actions">
+
+                <a href="{% url 'analytics_pdf' %}" class="export-btn pdf-btn">
+                    <i class="fas fa-file-pdf"></i>
+                    Analytics PDF
+                </a>
+
+                <a href="{% url 'analytics_excel' %}" class="export-btn excel-btn">
+                    <i class="fas fa-file-excel"></i>
+                    Analytics Excel
+                </a>
+
+            </div>
+
+        </div>
+        <div class="filter-container">
+
+
+            <select id="courseFilter" class="filter-input">
+
+                <option value="">
+                    Course
+                </option>
+
+                {% for course in courses %}
+
+                <option value="{{ course.course_name|lower }}">
+                    {{ course.course_name }}
+                </option>
+
+                {% endfor %}
+
+            </select>
+            <select id="batchFilter" class="filter-input">
+
+                <option value="">
+                    Batch
+                </option>
+
+                {% for batch in batches %}
+
+                <option value="{{ batch.id }}">
+                    {{ batch.batch_name }}
+                    ({{ batch.course.course_name }})
+                </option>
+
+                {% endfor %}
+
+            </select>
+
+            <select id="statusFilter" class="filter-input">
+
+                <option value="">
+                    Status
+                </option>
+
+                <option value="excellent">
+                    Excellent
+                </option>
+
+                <option value="good">
+                    Good
+                </option>
+
+                <option value="warning">
+                    Warning
+                </option>
+
+                <option value="critical">
+                    Critical
+                </option>
+
+            </select>
+
+
+            <div class="date-range-group">
+                <label for="dateFromFilter" class="date-range-label">From</label>
+                <input type="date" id="dateFromFilter" class="filter-input"
+                    value="{{ date_from_filter }}">
+
+                <label for="dateToFilter" class="date-range-label">To</label>
+                <input type="date" id="dateToFilter" class="filter-input"
+                    value="{{ date_to_filter }}">
+            </div>
+
+            <input type="number" id="distributionPercentageFilter" class="filter-input"
+                placeholder=" 60-70 %" min="0" max="100"
+                value="{{ distribution_percentage_filter }}">
+
+            <button id="clearFilters" class="clear-btn">
+
+                <i class="bi bi-x-circle"></i>
+
+                Clear
+
+            </button>
+
+            <button id="showAllBtn" class="clear-btn">
+                Apply Filter
+            </button>
+
+            <!-- filter-container close -->
+            <div class="filter-message">
+
+                {% if attendance_status == "not_started" %}
+
+                <div class="alert alert-danger attendance-toast">
+                    Today's attendance has not been started yet.
+                </div>
+
+                {% elif attendance_status == "in_progress" %}
+
+                <div class="alert alert-warning attendance-toast">
+                    Today's attendance is in progress.
+                    {{ today_marked_count }} of {{ total_students }} students have been marked.
+                    {{ pending_count }} students are pending.
+                </div>
+
+                {% else %}
+
+                <div class="alert alert-success attendance-toast">
+                    Today's attendance has been completed successfully.
+                    Attendance records updated for all {{ total_students }} students.
+                </div>
+
+                {% endif %}
+            </div>
+        </div>
+
+
+
+        <div id="noResultsMessage" style="display:none;text-align:center;padding:20px;font-weight:bold;">
+
+            No records found
+
+        </div>
+
+
+        <!-- CHART SECTION -->
+
+
+        <div class="row g-4 mb-4">
+
+            <!-- BAR CHART -->
+
+            <div class="col-lg-12">
+
+                <div class="chart-card">
+
+                    <div class="chart-header">
+
+                        <h4>
+
+                            {{ monthly_chart_title }}
+
+                        </h4>
+
+                    </div>
+
+                    <div class="chart-container">
+
+                        <canvas id="attendanceChart"></canvas>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+<div class="charts-row">
+
+    <!-- ATTENDANCE DISTRIBUTION DONUT -->
+    <div class="chart-card">
+
+        <div class="chart-header">
+            <h4>
+                Attendance Distribution
+            </h4>
+        </div>
+
+        <div class="pie-chart-container">
+            <canvas id="distributionChart"></canvas>
+        </div>
+
+    </div>
+
+    <!-- BATCH-WISE ATTENDANCE (dropdown selector) -->
+    <div class="chart-card">
+
+        <div class="chart-header">
+
+            <h4>
+                Batch-wise Attendance
+            </h4>
+
+            <select id="batchWiseSelector" class="filter-input" style="max-width:220px;">
+                <option value="">All Batches</option>
+            </select>
+
+            <div class="text-muted">
+                Attendance Updated On : {{ attendance_date }}
+            </div>
+
+        </div>
+
+        {% if show_batch_chart %}
+
+        <div class="pie-chart-container">
+            <canvas id="batchChart"></canvas>
+        </div>
+
+        {% else %}
+
+        <div class="chart-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+
+            <h5>Attendance Not Available</h5>
+
+            <p>{{ warning_message }}</p>
+        </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+        <!-- REPORT TABLE -->
+
+        <div class="report-table-card">
+
+            <div class="report-table-header">
+
+                <h4>
+
+                    Student Performance Report
+
+                </h4>
+
+                <div class="table-actions">
+
+                    <a href="{% url 'report_pdf' %}" class="export-btn pdf-btn">
+                        <i class="fas fa-file-pdf"></i>
+                        Report PDF
+                    </a>
+
+                    <a href="{% url 'report_excel' %}" class="export-btn excel-btn">
+                        <i class="fas fa-file-excel"></i>
+                        Report Excel
+                    </a>
+                </div>
+
+            </div>
+
+
+            <div class="table-responsive">
+
+                <table class="table align-middle">
+
+                    <thead>
+
+                        <tr>
+
+
+                            <th>STUDENT</th>
+                            <th>COURSE</th>
+                            <th>BATCH</th>
+                            <th>TOTAL DAYS</th>
+                            <th>PRESENT</th>
+                            <th>ABSENT</th>
+                            <th>LATE</th>
+                            <th>ATTENDANCE RATE</th>
+                            <th>STATUS</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for student in report_students %}
+
+                        <tr class="report-row" data-name="{{ student.student.first_name|lower }}"
+                            data-course="{{ student.course.course_name|lower }}" data-batch="{{ student.batch.id }}"
+                            data-attendance="{{ student.attendance_rate }}" data-status="{{ student.status|lower }}">
+
+
+                            <td>
+
+                                <div class="student-cell">
+
+                                    <div class="student-avatar">
+
+                                        {{ student.student.first_name|slice:":2"|upper }}
+
+                                    </div>
+
+                                    <span>
+
+                                        {{ student.student.first_name }}
+                                        {{ student.student.last_name }}
+
+                                    </span>
+
+                                </div>
+
+                            </td>
+
+                            <td>
+
+                                {{ student.course }}
+
+                            </td>
+                            <td>
+
+                                {{ student.batch.batch_name }}
+
+                            </td>
+                            <td>
+
+                                {{ student.total_days }}
+
+                            </td>
+
+                            <td class="present-text">
+                                {{ student.present_count }}
+                            </td>
+                            <td class="absent-text">
+                                {{ student.absent_count }}
+                            </td>
+
+                            <td class="late-text">
+
+                                {{ student.late_count }}
+
+                            </td>
+
+
+
+                            <td class="rate-text">
+
+                                {{ student.attendance_rate }}%
+
+                            </td>
+
+                            <td>
+
+                                {% if student.status == "Critical" %}
+
+                                <span class="status-badge critical-badge">
+                                    Critical
+                                </span>
+
+                                {% elif student.status == "Warning" %}
+
+                                <span class="status-badge warning-badge">
+                                    Warning
+                                </span>
+
+                                {% elif student.status == "Excellent" %}
+
+                                <span class="status-badge excellent-badge">
+                                    Excellent
+                                </span>
+
+                                {% else %}
+
+                                <span class="status-badge good-badge">
+                                    Good
+                                </span>
+
+                                {% endif %}
+                            </td>
+
+                        </tr>
+
+                        {% empty %}
+
+                        <tr>
+                            <td colspan="9" style="text-align:center;">
+                                No records found
+                            </td>
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            <div class="report-table-footer">
+                Showing all {{ report_students|length }} record{{ report_students|length|pluralize }} — single page, no pagination.
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+
+    <!-- CHART JS -->
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    {{ monthly_present|json_script:"monthly-present" }}
+    {{ monthly_absent|json_script:"monthly-absent" }}
+    {{ monthly_late|json_script:"monthly-late" }}
+
+    {{ batch_labels|json_script:"batch-labels" }}
+    {{ batch_present_counts|json_script:"batch-counts" }}
+    {{ batch_performance_labels|json_script:"batch-performance-labels" }}
+
+    {{ batch_performance_counts|json_script:"batch-performance-counts" }}
+
+    {{ batch_present_list|json_script:"batch-present-list" }}
+    {{ batch_absent_list|json_script:"batch-absent-list" }}
+    {{ batch_late_list|json_script:"batch-late-list" }}
+    {{ batch_percentage_list|json_script:"batch-percentage-list" }}
+    {{ batch_status_map|json_script:"batch-status-map" }}
+
+    {{ distribution_data|json_script:"distribution-data" }}
+
+    {{ all_batch_labels|json_script:"all-batch-labels" }}
+    {{ all_batch_ids|json_script:"all-batch-ids" }}
+    {{ all_batch_present_list|json_script:"all-batch-present-list" }}
+    {{ all_batch_absent_list|json_script:"all-batch-absent-list" }}
+    {{ all_batch_late_list|json_script:"all-batch-late-list" }}
+    {{ all_batch_percentage_list|json_script:"all-batch-percentage-list" }}
+
+    {{ latest_month|json_script:"latest-month" }}
+    <script src="{% static 'js/attendance_js/reports.js' %}"></script>
+{% endblock %}

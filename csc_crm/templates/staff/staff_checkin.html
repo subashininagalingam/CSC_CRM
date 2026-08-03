@@ -1,0 +1,236 @@
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert-message">
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
+<div class="staff-container">
+
+   <div class="checkin-header">
+
+    <div class="checkin-icon">
+        <i class="fa-regular fa-calendar-check"></i>
+    </div>
+
+    <h1 class="title">Staff Check-In</h1>
+
+    <p class="sub-title">
+        Mark your attendance for today
+    </p>
+
+</div>
+
+    <form method="POST"  action="{% url 'staff_checkin' staff.id %}">
+
+        {% csrf_token %}
+<div class="info-card">
+
+    <div class="info-icon purple">
+        <i class="fa-regular fa-id-card"></i>
+    </div>
+
+    <div class="info-text">
+        <small>Employee ID</small>
+        <strong>{{ staff.employee_id }}</strong>
+    </div>
+
+</div>
+
+<div class="info-card">
+
+    <div class="info-icon blue">
+        <i class="fa-regular fa-user"></i>
+    </div>
+
+    <div class="info-text">
+        <small>Staff Name</small>
+        <strong>{{ staff.first_name }} {{ staff.last_name }}</strong>
+    </div>
+
+</div>
+
+<div class="info-card">
+
+    <div class="info-icon yellow">
+        <i class="fa-regular fa-calendar-days"></i>
+    </div>
+
+    <div class="info-text">
+        <small>Today's Date & Time</small>
+        <strong id="currentDateTimeText"></strong>
+    </div>
+
+</div>
+<div class="info-card">
+
+    <div class="info-icon green">
+        <i class="fa-regular fa-clock"></i>
+    </div>
+
+    <div class="info-text">
+        <small>Working Timer</small>
+        <strong id="liveTimerText">00:00:00</strong>
+    </div>
+
+</div>
+
+        <div class="btn-group" disabled class="disabled-btn">
+
+            <button
+                type="submit"
+                name="action"
+                value="checkin"
+                class="checkin-btn"
+                {% if is_checkin_done or is_leave_or_absent %}disabled{% endif %}>
+
+                <i class="fa-solid fa-right-to-bracket"></i>
+                <span>Check-In</span>
+
+            </button>
+
+            <button
+                type="submit"
+                name="action"
+                value="checkout"
+                class="checkout-btn"
+                {% if not is_checkin_done or is_checkout_done or is_leave_or_absent or is_checkout_closed %}disabled{% endif %} >
+                
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Check-Out</span>
+
+            </button>
+
+            <button
+                type="submit"
+                name="action"
+                value="leave"
+                class="leave-btn"
+                
+                onclick="return confirmLeave();"
+                {% if is_checkin_done or is_leave_or_absent %}disabled{% endif %} >
+
+                <i class="fa-regular fa-calendar-minus"></i>
+                <span>Leave</span>
+
+            </button>
+
+            <button
+                type="submit"
+                name="action"
+                value="absent"
+                class="absent-btn"
+                
+                onclick="return confirmLeave();"
+                {% if is_checkin_done or is_leave_or_absent %}disabled{% endif %}>
+
+                <i class="fa-solid fa-user-xmark"></i>
+                <span>Absent</span>
+
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+<script>
+function updateDateTime(){
+
+    let now = new Date();
+
+    document.getElementById("currentDateTimeText").textContent =
+        now.toLocaleString();
+
+}
+
+updateDateTime();
+setInterval(updateDateTime,1000);
+
+</script>
+
+{% if active_attendance %}
+<script>
+
+
+const loginTime = new Date(
+    "{{ active_attendance.log_in|date:'Y-m-d H:i:s' }}"
+);
+
+function updateTimer(){
+
+    let now = new Date();
+
+    let diff = Math.floor((now - loginTime) / 1000);
+
+    let hrs = Math.floor(
+        diff / 3600
+    );
+
+    let mins = Math.floor(
+        (diff % 3600) / 60
+    );
+
+    let secs = diff % 60;
+
+    document.getElementById("liveTimerText").textContent =
+
+        String(hrs).padStart(2,'0')
+        + ":"
+        + String(mins).padStart(2,'0')
+        + ":"
+        + String(secs).padStart(2,'0');
+
+}
+
+updateTimer();
+
+setInterval(
+    updateTimer,
+    1000
+);
+
+
+</script>
+
+{% endif %}
+<script>
+
+window.onload = function(){
+
+    setTimeout(function(){
+
+        let alertBox = document.querySelector(".alert-message");
+
+        if(alertBox){
+
+            alertBox.style.opacity = "0";
+
+            setTimeout(function(){
+
+                alertBox.style.display = "none";
+
+            },500);
+
+        }
+
+    },3000);
+
+}
+
+
+</script>
+
+<script>
+
+function confirmLeave() {
+    return confirm("Do you want to take Leave?");
+}
+
+function confirmAbsent() {
+    return confirm("Do you want to mark Absent?");
+}
+
+</script>

@@ -1,0 +1,92 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>if (localStorage.getItem("sidebarCollapsed") === "true") { document.documentElement.classList.add("sidebar-collapsed");}</script>
+    <!-- <title>{% block title %}CSC CRM{% endblock %}</title> -->
+    <link rel="stylesheet" href="{% static 'css/staff_css/base.css' %}">
+    <link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
+    <link rel="stylesheet" href="{% static 'css/staff_css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/staff_css/management.css' %}">
+    <link rel="stylesheet" href="{% static 'css/staff_css/add_staff.css' %}">
+    <link rel="stylesheet" href="{% static 'css/staff_css/attendance.css' %}">
+    <link rel="stylesheet" href="{% static 'css/staff_css/staff_profile.css' %}">
+    <link rel="stylesheet" href="{% static 'css/staff_css/confirm_delete.css' %}">
+    <link rel="stylesheet" href="{% static 'css/staff_css/edit_staff.css' %}">
+    <link rel="stylesheet" href="{% static 'css/staff_css/overview.css' %}">
+    <link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+</head>
+<body>
+
+   
+    <div class="sidebar-overlay"></div>
+    <!-- Navigation -->
+    <nav class="top-navbar">
+
+    <div class="nav-left">
+
+        <button class="menu-btn" id="menuToggle">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+
+        <div class="brand">
+
+            <div class="logo-box">
+                CSC
+            </div>
+
+            <div class="brand-text">
+                <h3>CSC CRM</h3>
+                <small>Institute Operations Suite</small>
+            </div>
+
+        </div>
+
+    </div>
+
+</nav>
+   <div class="top-tabs">
+
+   <a href="{% url 'staff_dashboard' %}"
+   class="{% if request.resolver_match.url_name == 'staff_dashboard' %}active{% endif %}">
+   Dashboard
+</a>
+
+<a href="{% url 'staff_management' %}"
+   class="{% if request.resolver_match.url_name == 'staff_management' %}active{% endif %}">
+   Staff Management
+</a>
+
+<a href="#"
+   class="{% if request.resolver_match.url_name == 'staff_profile' %}active{% endif %}">
+   Staff Profile
+</a>
+
+<a href="{% url 'leads:lead_capture_list' %}"
+   class="{% if request.resolver_match.namespace == 'leads' %}active{% endif %}">
+   Leads Capture
+</a>
+</div>
+    
+     {% include "includes/sidebar.html" %}
+    <div class="main-wrapper">
+    <!-- Page Content -->
+    <main class="main-content">
+        {% block content %}
+        {% endblock %}
+    </main>
+    </div>
+
+   
+
+    {% block extra_js %}{% endblock %}
+
+</body>
+
+
+</html>

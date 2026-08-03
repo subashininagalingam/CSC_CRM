@@ -1,0 +1,240 @@
+{% extends 'staff/base.html' %}
+{% load static %}
+{% block content %}
+
+<div class="staff-mgmt-form-container">
+
+    <!-- =============================== BACK-LINK | BREADCRUMB =============================== -->
+     <div class="staff-mgmt-breadcrumb">
+        <a href="{% url 'staff_management' %}" class="back-link">
+            <span class="back-arrow">&larr;</span>Back to Staff Management
+        </a>
+     </div>
+
+     <div class="staff-mgmt-form-card">
+
+        <!-- ============================= FORM HEADER ============================= -->
+         <div class="staff-mgmt-form-header">
+            <div class="form-header-icon">
+                <i class="fa-solid fa-user-plus"></i>
+            </div>
+            <div class="form-header-text">
+                <h1 class="staff-mgmt-form-title">Add New Staff</h1>
+                <p class="staff-mgmt-form-subtitle">Fill in the details to add a new staff member to the system</p>
+            </div>
+         </div>
+
+         <form action="" method="POST" class="staff-mgmt-form" id="staffMgmtForm" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <!-- ========================== PERSONAL INFORMATION SECTION ========================== -->
+             <fieldset class="staff-mgmt-form-section">
+                <legend class="section-title">
+                    <span class="section-bar"></span>
+                    <i class="fa-regular fa-user"></i>
+                    Personal Information
+                </legend>
+
+                <div class="form-row three-columns">
+                    <div class="form-group">
+                        <label for="employee_id" class="form-label">Employee ID (Auto Generate)</label>
+                        <div class="input-wrapper">
+                            {{ form.employee_id }}
+                            <i class="fa-regular fa-address-card"></i>
+                        </div>
+                        <span class="form-error" id="employeeIdError"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="email" class="form-label">Email <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            {{ form.email }}
+                            <i class="fa-regular fa-envelope"></i>
+                        </div>
+                        {% if form.email.errors %}
+                            <span class="form-error">{{ form.email.errors.0 }}</span>
+                        {% else %}
+                            <span class="form-error" id="emailError"></span>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label for="phone" class="form-label">Phone <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            {{ form.phone }}
+                            <i class="fa-solid fa-phone"></i>
+                        </div>
+                        {% if form.phone.errors %}
+                            <span class="form-error">{{ form.phone.errors.0 }}</span>
+                        {% else %}
+                            <span class="form-error" id="phoneError"></span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-row three-columns">
+                    <div class="form-group">
+                        <label for="first_name" class="form-label">First Name <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            {{ form.first_name }}
+                            <i class="fa-regular fa-user"></i>
+                        </div>
+                        <span class="form-error" id="firstNameError"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="last_name" class="form-label">Last Name <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            {{ form.last_name }}
+                            <i class="fa-regular fa-user"></i>
+                        </div>
+                        <span class="form-error" id="lastNameError"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="date_of_birth" class="form-label">Date of Birth <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            {{ form.date_of_birth }}
+                            <i class="fa-regular fa-calendar"></i>
+                        </div>
+                        <span class="form-error" id="dateOfBirthError"></span>
+                    </div>
+                </div>
+             </fieldset>
+
+             <!-- ======================== ORGANIZATION SECTION ======================== -->
+              <fieldset class="staff-mgmt-form-section">
+                <legend class="section-title">
+                    <span class="section-bar"></span>
+                    <i class="fa-regular fa-building"></i>
+                    Organization Details
+                </legend>
+
+                <div class="form-row three-columns">
+                    <div class="form-group">
+                        <label for="role" class="form-label">Role <span class="required">*</span></label>
+                        <div class="input-wrapper select-wrapper">
+                            {{ form.role }}
+                        </div>
+                        <span class="form-error" id="roleError"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="department" class="form-label">Department (Not editable)<span class="required">*</span></label>
+                        <div class="input-wrapper select-wrapper">
+                            {{ form.department }}
+                        </div>
+                        <span class="form-error" id="departmentError"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="date_of_joining" class="form-label">Date od Joining <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            {{ form.date_of_joining }}
+                            <i class="fa-regular fa-calendar"></i>
+                        </div>
+                        <span class="form-error" id="dateOfJoiningError"></span>
+                    </div>
+                </div>
+
+                <div class="form-row three-columns">
+                    <div class="form-group">
+                        <label for="status" class="form-label">Status <span class="required">*</span></label>
+                        <div class="input-wrapper select-wrapper">
+                            {{ form.status }}
+                        </div>
+                        <span class="form-error" id="statusError"></span>
+                    </div>
+                </div>
+              </fieldset>
+
+              <!-- ============================ FILES AND DOCUMENTS SECTION ============================= -->
+               <fieldset class="staff-mgmt-form-section">
+                    <legend class="section-title">
+                        <span class="section-bar"></span>
+                        <i class="fa-regular fa-file-lines"></i>
+                        Documents
+                    </legend>
+
+                    <div class="form-row two-columns">
+                    <div class="form-group">
+                        <label for="{{ form.profile_photo.id_for_label }}" class="form-label">Passport Size Photo</label>
+                        <div class="file-upload-wrapper">
+                            <div class="upload-dropzone">
+                                <div class="upload-icon">
+                                    <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                                </div>
+                                <p class="upload-text"><span class="upload-link">Click to upload</span> or drag &amp; drop</p>
+                                <p class="upload-hint">PNG, JPG up to 2MB</p>
+                                {{ form.profile_photo }}
+                            </div>
+                            <button type="button" id="removePhotoBtn" class="remove-file-btn">&times;</button>
+                        </div>
+                        <div class="upload-progress">
+                            <div class="progress-bar" id="photoProgressBar"></div>
+                        </div>
+                        <span id="progressText" class="upload-status">No file selected</span>
+                        <span class="form-error" id="profilePhotoError"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="documentInput" class="form-label">
+                            Upload Documents (Resume, ID Proof, Certificate as PDF)<span class="required">*</span>
+                        </label>
+                        <div class="file-upload-wrapper">
+                            <div class="upload-dropzone">
+                                <div class="upload-icon">
+                                    <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                                </div>
+                                <p class="upload-text"><span class="upload-link">Click to upload</span>or drag &amp; drop</p>
+                                <p class="upload-hint">PDF up to 5MB</p>
+                                <input type="file" name="documents" id="documentInput" class="form-control" accept=".pdf,.jpg,.jpeg,.png" multiple>
+                            </div>
+                            <button type="button" id="removeDocumentBtn" class="remove-file-btn">&times;</button>
+                        </div>
+                        <div class="upload-progress">
+                            <div class="progress-bar" id="documentProgressBar"></div>
+                        </div>
+                        <span id="documentprogressText" class="upload-status">No file selected</span>
+                        <span class="form-error" id="documentError"></span>
+                    </div>
+                </div>
+               </fieldset>
+
+               <!-- ================== PERFORMANCE SECTION ================= -->
+
+               <fieldset class="staff-mgmt-form-section" id="monthlyTargetGroup">
+                    <legend class="section-title">
+                        <span class="section-bar"></span>
+                        <i class="fa-solid fa-chart-line"></i>
+                        Performance
+                    </legend>
+
+                    <div class="form-row three-columns">
+                        <div class="form-group">
+                            <label for="monthly_target" class="form-label">Monthly Target (&#8377;) <span class="required">*</span></label>
+                            <div class="input-wrapper">
+                                {{ form.monthly_target }}
+                            </div>
+                            <span class="form-error" id="monthlyTargetError"></span>
+                        </div>
+                    </div>
+               </fieldset>
+
+               <!-- ============================= FORM ACTIONS =============================== -->
+                <div class="form-actions">
+                    <a href="{% url 'staff_management' %}" class="btn btn-cancel">
+                        <i class="fa-solid fa-xmark"></i>
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-user-plus"></i>
+                        Add Staff
+                    </button>
+                </div>
+
+         </form>
+
+     </div>
+     
+
+</div>
+
+<!-- {% block extra_js %}
+    <script src="{% static 'js/staff_js/add_staff.js' %}"></script>
+{% endblock %} -->
+
+{% endblock %}

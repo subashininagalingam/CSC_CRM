@@ -1,0 +1,773 @@
+{% extends 'admissions/base.html' %}
+{% load static %}
+
+{% block title %}
+<title>Payment Process</title>
+{% endblock title %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admissions_css/fee_dashboard.css' %}">
+{% endblock extra_css %}
+
+{% block content %}
+
+<div class="fee-dashboard-container">
+
+    <!-- ===================== -->
+    <!-- SUMMARY DASHBOARD -->
+    <!-- ===================== -->
+
+   <div class="dashboard-summary">
+
+        <!-- Total Collected -->
+
+        <div class="summary-column">
+
+            <div class="dashboard-card card-green summary-shadow">
+
+                <div class="card-left">
+
+                   <div class="card-icon card-icon-bg">
+
+                        <i class="fas fa-wallet"></i>
+
+                    </div>
+
+                    <div class="card-content">
+
+                        <span class="card-title">
+                            Total Collected
+                        </span>
+
+                        <h3>
+                            ₹{{ summary.collected }}
+                        </h3>
+
+                        <small>
+                            This Month
+                        </small>
+
+                    </div>
+
+                </div>
+
+                <div class="card-chart mini-chart">
+
+                    <canvas id="incomeChart"></canvas>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Outstanding -->
+
+        <div class="summary-column">
+
+            <div class="dashboard-card card-red summary-shadow">
+
+                <div class="card-left">
+
+                    <div class="card-icon card-icon-bg">
+
+                        <i class="fas fa-circle-exclamation"></i>
+
+                    </div>
+
+                    <div class="card-content">
+
+                        <span class="card-title">
+                            Outstanding
+                        </span>
+
+                        <h3>
+                            ₹{{ summary.outstanding }}
+                        </h3>
+
+                        <small>
+                            Due Amount
+                        </small>
+
+                    </div>
+
+                </div>
+
+               <div class="card-chart mini-chart">
+
+                    <canvas id="outstandingChart"></canvas>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Receipts -->
+
+        <div class="summary-column">
+
+            <div class="dashboard-card card-blue summary-shadow">
+
+                <div class="card-left">
+
+                    <div class="card-icon card-icon-bg">
+
+                        <i class="fas fa-file-invoice"></i>
+
+                    </div>
+
+                    <div class="card-content">
+
+                        <span class="card-title">
+                            Receipts
+                        </span>
+
+                        <h3>
+                            {{ summary.receipts }}
+                        </h3>
+
+                        <small>
+                            This Month
+                        </small>
+
+                    </div>
+
+                </div>
+
+               <div class="card-chart mini-chart">
+
+                    <canvas id="receiptChart"></canvas>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Collection Overview -->
+
+        <div class="summary-column">
+
+            <div class="dashboard-card collection-card summary-shadow">
+
+                <div>
+
+                    <span class="card-title">
+
+                        Collection Overview
+
+                    </span>
+
+                    <h3>
+
+                        {{ collection_percentage }}%
+
+                    </h3>
+
+                    <small>
+
+                        Collection Rate
+
+                    </small>
+
+                </div>
+
+                <div class="progress-circle">
+
+                    <canvas id="collectionChart"></canvas>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ========================================= -->
+<!-- PAYMENT FORM -->
+<!-- ========================================= -->
+
+<div class="payment-wrapper">
+
+    <div class="payment-card dashboard-box">
+
+        <div class="card-header-area">
+
+            <div>
+                <h4>
+                    <i class="fa-solid fa-wallet"></i>
+                    Add Payment
+                </h4>
+                <p>Record student fee payment.</p>
+            </div>
+
+        </div>
+
+        <div class="card-body">
+
+            <form method="POST" autocomplete="off">
+
+                {% csrf_token %}
+
+                <div class="payment-grid">
+
+                    <!-- Student -->
+                    <div class="form-group student-field">
+
+                        <label class="form-label">
+                            Student
+                        </label>
+
+                        <select
+                            name="student"
+                            class="form-select"
+                            required>
+
+                            <option value="" selected disabled>
+                                Select Student
+                            </option>
+
+                            {% for s in students %}
+                            <option value="{{ s.id }}"
+                                {% if selected_student_id == s.id|stringformat:"s" %}selected{% endif %}>
+                                STU{{ s.id }} - {{ s.first_name }} {{ s.last_name }}
+                            </option>
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+                    <!-- Amount -->
+                    <div class="form-group amount-field">
+
+                        <label class="form-label">
+                            Amount
+                        </label>
+
+                        <input
+                            type="number"
+                            name="amount"
+                            id="amount"
+                            class="form-control"
+                            placeholder="Enter Amount"
+                            min="1"
+                            required>
+
+                        <small id="amount-error" class="text-danger"></small>
+
+                    </div>
+
+                    <!-- Payment Mode -->
+                    <div class="form-group payment-mode-field">
+
+                        <label class="form-label">
+                            Payment Mode
+                        </label>
+
+                        <select
+                            name="mode"
+                            id="paymentMode"
+                            class="form-select"
+                            required>
+
+                            <option value="" selected disabled>
+                                Select Payment Mode
+                            </option>
+
+                            <option value="UPI">UPI</option>
+                            <option value="CASH">Cash</option>
+                            <option value="CARD">Card</option>
+
+                        </select>
+
+                    </div>
+
+                    <!-- Reference ID -->
+                    <div class="form-group reference-field">
+
+                        <label class="form-label">
+                            Reference ID
+                        </label>
+
+                        <input
+                            type="text"
+                            name="reference"
+                            id="reference"
+                            class="form-control"
+                            placeholder="Reference ID"
+                            pattern="[A-Za-z0-9]+"
+                            title="Only letters and numbers allowed">
+
+                    </div>
+
+                    <!-- Remarks -->
+                    <div class="form-group remarks-field">
+
+                        <label class="form-label">
+                            Remarks
+                        </label>
+
+                        <textarea
+                            name="remarks"
+                            id="remarks"
+                            class="form-control"
+                            rows="1"
+                            placeholder="Enter Remarks"
+                            oninput="this.value=this.value.replace(/[^A-Za-z ]/g,'')"></textarea>
+
+                    </div>
+
+                </div>
+
+                <div class="payment-footer">
+
+                    <button
+                        type="submit"
+                        class="save-payment-btn">
+
+                        <i class="fa-solid fa-floppy-disk"></i>
+
+                        Save Payment
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+    <!-- ======================================= -->
+    <!-- PAYMENT HISTORY -->
+    <!-- ======================================= -->
+
+    <div class="history-wrapper mb-4">
+
+        <div class="history-card dashboard-box">
+
+            <div class="section-header">
+
+                <div>
+
+                    <h4>
+
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+
+                        Payment History
+
+                    </h4>
+
+                    <p>
+
+                        View all recorded student fee payments.
+
+                    </p>
+
+                </div>
+
+                <a href="?format=excel" class="export-btn">
+
+                    <i class="fa-solid fa-file-excel"></i>
+
+                    Export Excel
+
+                </a>
+
+            </div>
+
+            <div class="table-responsive">
+
+                <table class="table payment-table align-middle">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Student</th>
+
+                            <th>ID</th>
+
+                            <th>Date</th>
+
+                            <th>Amount</th>
+
+                            <th>Payment Mode</th>
+
+                            <th class="text-center">Receipt</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for p in payments %}
+
+                        <tr>
+
+                            <td>
+
+                                <div class="student-info">
+
+                                    <div class="student-avatar">
+
+                                        {{ p.student.first_name|slice:":1" }}
+
+                                    </div>
+
+                                    <div>
+
+                                        <strong>
+
+                                            {{ p.student.first_name }}
+
+                                            {{ p.student.last_name }}
+
+                                        </strong>
+
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+                            <td>
+
+                                STU{{ p.student.id }}
+
+                            </td>
+
+                            <td>
+
+                                {{ p.date }}
+
+                            </td>
+
+                            <td>
+
+                                <span class="amount-text">
+
+                                    ₹{{ p.amount }}
+
+                                </span>
+
+                            </td>
+
+                            <td>
+
+                                {% if p.mode == "CASH" %}
+
+                                <span class="payment-badge cash">
+
+                                    Cash
+
+                                </span>
+
+                                {% elif p.mode == "UPI" %}
+
+                                <span class="payment-badge upi">
+
+                                    UPI
+
+                                </span>
+
+                                {% else %}
+
+                                <span class="payment-badge card">
+
+                                    Card
+
+                                </span>
+
+                                {% endif %}
+
+                            </td>
+
+                            <td class="text-center">
+
+                                <div class="action-buttons">
+
+                                    <a href="{% url 'preview_receipt' p.id %}" class="preview-btn" target="_blank">
+
+                                        <i class="fa-solid fa-eye"></i>
+
+                                        Preview
+
+                                    </a>
+
+                                    <a href="{% url 'generate_receipt' p.id %}"
+   class="download-btn"
+   target="_blank">
+
+    <i class="fa-solid fa-download"></i>
+    PDF
+</a>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                        {% empty %}
+
+                        <tr>
+
+                           <td colspan="6">
+
+    <div class="empty-state payment-empty">
+
+        <i class="fa-solid fa-receipt"></i>
+
+        <p>No payment history available.</p>
+
+    </div>
+
+</td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+    <!-- ====================================== -->
+    <!-- STUDENT FEE STATUS -->
+    <!-- ====================================== -->
+
+    <div class="status-wrapper">
+
+        <div class="status-card dashboard-box">
+
+           <div class="section-header">
+
+                <div>
+
+                    <h4>
+
+                        <i class="fa-solid fa-user-graduate"></i>
+
+                        Student Fee Status
+
+                    </h4>
+
+                    <p>
+
+                        Track payment status of all students.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="table-responsive">
+
+                <table class="table status-table align-middle">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Student</th>
+
+                            <th>Total Fee</th>
+
+                            <th>Paid</th>
+
+                            <th>Pending</th>
+
+                            <th>Status</th>
+
+                            <th class="text-center">Action</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for item in student_fee_status %}
+
+                        <tr>
+
+                            <!-- Student -->
+
+                            <td>
+
+                                <div class="student-info">
+
+                                    <div class="student-avatar">
+
+                                        {{ item.student.first_name|slice:":1" }}
+
+                                    </div>
+
+                                    <div>
+
+                                        <strong>
+
+                                            {{ item.student.first_name }}
+
+                                            {{ item.student.last_name }}
+
+                                        </strong>
+
+                                        <br>
+
+                                        <small>
+
+                                            STU{{ item.student.id }}
+
+                                        </small>
+
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+                            <!-- Total Fee -->
+
+                            <td>
+
+                                <span class="fee-text">
+
+                                    ₹{{ item.total_fee }}
+
+                                </span>
+
+                            </td>
+
+                            <!-- Paid -->
+
+                            <td>
+
+                                <span class="paid-amount">
+
+                                    ₹{{ item.paid }}
+
+                                </span>
+
+                            </td>
+
+                            <!-- Pending -->
+
+                            <td>
+
+                                <span class="pending-amount">
+
+                                    ₹{{ item.pending }}
+
+                                </span>
+
+                            </td>
+
+                            <!-- Status -->
+
+                            <td>
+
+                                {% if item.status == 'Paid' %}
+
+                                <span class="status-badge paid">
+
+                                    <i class="fa-solid fa-circle-check"></i>
+
+                                    Paid
+
+                                </span>
+
+                                {% elif item.status == 'Partial' %}
+
+                                <span class="status-badge partial">
+
+                                    <i class="fa-solid fa-clock"></i>
+
+                                    Partial
+
+                                </span>
+
+                                {% else %}
+
+                                <span class="status-badge pending">
+
+                                    <i class="fa-solid fa-circle-exclamation"></i>
+
+                                    Pending
+
+                                </span>
+
+                                {% endif %}
+
+                            </td>
+
+                            <!-- Action -->
+
+                            <td class="text-center">
+
+                                <a href="{% if item.status != 'Paid' %}{% url 'fee_dashboard' %}?student_id={{ item.student.id }}{% else %}#{% endif %}"
+   class="add-payment-btn {% if item.status == 'Paid' %}disabled{% endif %}"
+   {% if item.status == 'Paid' %}
+      onclick="return false;"
+      aria-disabled="true"
+      title="Fee already paid"
+   {% endif %}>
+    <i class="fa-solid fa-plus"></i>
+</a>
+
+                            </td>
+
+                        </tr>
+
+                        {% empty %}
+
+                        <tr>
+
+                            <td colspan="6">
+
+    <div class="empty-state student-empty">
+
+        <i class="fa-solid fa-user-slash"></i>
+
+        <p>No Student Records Found</p>
+
+    </div>
+
+</td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+{% endblock content %}
+
+{% block extra_js %}
+<script src="{% static 'js/admissions_js/fee_dashboard.js' %}"></script>
+{% endblock %}

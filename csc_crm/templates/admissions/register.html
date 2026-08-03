@@ -1,0 +1,240 @@
+{% extends 'admissions/base.html' %}
+{% load static %}
+
+{# Student Register page: combined form for student, admission and enrollment details #}
+
+{% block title %}
+Student Registration
+{% endblock %}
+
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admissions_css/register.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="edit-container">
+    <h6> <strong>Student Registration</strong></h6>
+    <p>Fill the student details to register a new admission</p>
+
+    {% if student_form.errors or admission_form.errors or enrollment_form.errors %}
+    <div class="server-error-banner">
+        {% for field in student_form %}
+            {% for error in field.errors %}
+                <p>{{ field.label }}: {{ error }}</p>
+            {% endfor %}
+        {% endfor %}
+        {% for error in student_form.non_field_errors %}
+            <p>{{ error }}</p>
+        {% endfor %}
+        {% for field in admission_form %}
+            {% for error in field.errors %}
+                <p>{{ field.label }}: {{ error }}</p>
+            {% endfor %}
+        {% endfor %}
+        {% for field in enrollment_form %}
+            {% for error in field.errors %}
+                <p>{{ field.label }}: {{ error }}</p>
+            {% endfor %}
+        {% endfor %}
+    </div>
+{% endif %}
+
+    <form id="studentForm" method="POST" action="{% url 'student' %}" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+
+        <!-- ================= PERSONAL INFO ================= -->
+        <div class="personal-info">
+
+            <h3 class="section-title">
+                <i class="fas fa-user"></i> Personal Information
+            </h3>
+
+            <div class="personal-grid">
+
+                <div>
+                    <label>First Name *</label>
+                    {{ student_form.first_name }}
+                </div>
+
+                <div>
+                    <label>Last Name *</label>
+                    {{ student_form.last_name }}
+                </div>
+
+                <div>
+                    <label>Email *</label>
+                    {{ student_form.email }}
+                    <span id="email-error" class="error"></span>
+                </div>
+
+                <div>
+                    <label>Phone *</label>
+                    {{ student_form.phone_no }}
+                    <span id="phone-error" class="error"></span>
+                </div>
+
+                <div>
+                    <label>Date of Birth *</label>
+                    {{ student_form.dob }}
+                </div>
+
+                <div>
+                    <label>Gender *</label>
+                    {{ student_form.gender }}
+                </div>
+
+                <div>
+                    <label>Guardian Name *</label>
+                    {{ student_form.guardian_name }}
+                </div>
+
+                <div>
+                    <label>Guardian Phone *</label>
+                    {{ student_form.guardian_phone_no }}
+                    <span id="guardian-phone-error" class="error"></span>
+                </div>
+            </div>
+
+            <div class="address-grid">
+                <label>Address *</label>
+                {{ student_form.address }}
+            </div>
+
+        </div>
+
+        <!-- ================= COURSE ================= -->
+        <div class="personal-info">
+
+            <h3 class="section-title">
+                <i class="fas fa-book icon-blue"></i> Course Enrollment
+            </h3>
+
+            <div class="course-grid">
+
+                <div>
+                    <label>Course *</label><br>
+                    <select name="course_name" id="id_course">
+                        <option value="">Select Course</option>
+                        {% for c in courses %}
+                        <option value="{{ c.id }}" data-duration="{{ c.duration }}" data-fee="{{ c.course_fee }}" >
+                            {{ c.course_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label>Batch *</label><br>
+
+                    {{ enrollment_form.batch }}
+
+                </div>
+
+                <div>
+                    <label>Duration (Month)</label><br>
+                    <input type="text" id="duration" placeholder="Duration" readonly required>
+                </div>
+
+                <div>
+                    <label>Admission Date*</label><br>
+                    {{ enrollment_form.start_date }}
+
+                </div>
+
+                <div>
+                    <label>Course Fee</label><br>
+                    <input type="text" id="fee" placeholder="Course Fee" readonly required>
+                </div>
+
+            </div>
+
+            <label>Admission Status</label><br>
+            <div class="admission-status">
+                {% for value, label in admission_form.fields.status.choices %}
+                <label class="status-option">
+                    <input type="radio" name="status" value="{{ value }}" {% if admission_form.status.value == value %}checked{% endif %}>
+                    <span class="status {{ value }}">{{ label }}</span>
+                </label>
+                {% endfor %}
+            </div>
+
+        </div>
+
+        <!-- ================= DOCUMENT ================= -->
+        <div class="personal-info">
+            <h3 class="section-title-details">
+                <i class="fas fa-file-alt icon-blue"></i> Document Upload
+            </h3>
+
+            <div class="document-grid">
+                <div>
+                    <label>📷 Student Photo</label>
+                    <div class="file-upload-wrapper">
+                    {{ student_form.photo }}
+                    <button type="button" id="removePhotoBtn" class="remove-file-btn" style="display: none;">X</button>
+                            </div>
+                            <div class="upload-progress">
+                                <div class="progress-bar" id="photoProgressBar"></div>
+                            </div>
+                            <span id="PhotoProgressText">No file selected</span>
+                    <span id="photo-error" class="error"></span>
+                </div>
+
+                <div>
+                    <label>📄 ID Proof</label>
+                    <div class="file-upload-wrapper">
+                                <input
+                                    type="file"
+                                    name="id_proof"
+                                    id="idProofInput"
+                                    accept=".pdf,.doc,.docx"
+                                    multiple
+                                >
+                                <button type="button" id="removeIdProofBtn" class="remove-file-btn">X</button>
+                            </div>
+                            <div class="upload-progress">
+                                <div class="progress-bar" id="idProofProgressBar"></div>
+                            </div>
+                            <span id="idProofProgressText">No file selected</span>
+                            <span id="idproof-error" class="error"></span>
+                </div>
+
+                <div>
+                    <label>📜 Certificate</label>
+                    <div class="file-upload-wrapper">
+                                <input
+                                    type="file"
+                                    name="certificate"
+                                    id="certificateInput"
+                                    accept=".pdf,.doc,.docx"
+                                    multiple
+                                >
+                                <button type="button" id="removeCertificateBtn" class="remove-file-btn">X</button>
+                            </div>
+                            <div class="upload-progress">
+                                <div class="progress-bar" id="certificateProgressBar"></div>
+                            </div>
+                            <span id="certificateProgressText">No file selected</span>
+                            
+                            <span id="certificate-error" class="error"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= BUTTON ================= -->
+        <div class="form-btn">
+            <button type="reset" class="clear-btn"><i class="fa-solid fa-rotate"></i> Clear Form</button>
+            <button type="submit">
+                <i class="fas fa-check"></i> Save & Generate ID
+            </button>
+        </div>
+
+    </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{% static 'js/admissions_js/register.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,379 @@
+{% extends 'staff/base.html' %}
+{% load static %}
+
+{% block content %}
+
+<div class="dash-container">
+
+    <!-- ============================= PAGE HEADER ============================== -->
+
+    <div class="dash-page-header">
+
+        <div>
+            <h1>CSC-CRM Dashboard</h1>
+            <p>Overview of Staff, Leads, Attendance and Business Performance</p>
+        </div>
+
+        <div class="dash-breadcrumb">
+            Home / <span>Staff</span> / <span>Dashboard</span>
+        </div>
+
+    </div>
+
+    <!-- ========================== STAF SUMMARY CARD ========================== -->
+
+    <div class="dash-stats-row">
+
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-indigo">
+                <i class="fa-solid fa-user"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>Total Staff</span>
+                <h2>{{ total_staff }}</h2>
+                <small>All Departments</small>
+            </div>
+        </div>
+
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-green">
+                <i class="fa-solid fa-user-check"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>Active Staff</span>
+                <h2>{{ active_staff }}</h2>
+                <small>Currently active</small>
+            </div>
+        </div>
+
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-amber">
+                <i class="fa-regular fa-clock"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>On Leave</span>
+                <h2>{{ on_leave }}</h2>
+                <small>Currently On Leave</small>
+            </div>
+        </div>
+
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-gray">
+                <i class="fa-solid fa-user-slash"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>Inactive</span>
+                <h2>{{ inactive }}</h2>
+                <small>Not Active</small>
+            </div>
+        </div>
+
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-red">
+                <i class="fa-solid fa-power-off"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>Terminated</span>
+                <h2>{{ terminated }}</h2>
+                <small>This Month</small>
+            </div>
+        </div>
+
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-blue">
+                <i class="fa-solid fa-star"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>Average Rating</span>
+                <h2>{{ average_rating }}</h2>
+                <small>Out of 5</small>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- =================== OVERVIEW ROW: LEADS / STUDENTS / ATTENDANCE / DEPARTMENTS  ================== -->
+
+    <div class="dash-overview-grid">
+
+        <!-- ========= LEAD OVERVIEW ========= -->
+        <div class="dash-panel">
+
+            <div class="dash-panel-header">
+                <h3>Leads Overview</h3>
+                <a href="{% url 'leads:lead_pipeline_view' %}">View Details <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+
+            <div class="dash-donut-row">
+
+                <div class="dash-donut" style="--donut-gradient: conic-gradient(
+                        #fffb11 0deg {{ new_leads_deg|default:0 }}deg,
+                        #f59e0b {{ new_leads_deg|default:0 }}deg {{ contacted_leads_deg|default:0 }}deg,
+                        #8b5cf6 {{ contacted_leads_deg|default:0 }}deg {{ interested_leads_deg|default:0 }}deg,
+                        #06b6d4 {{ interested_leads_deg|default:0 }}deg {{ demo_leads_deg|default:0 }}deg,
+                        #16a34a {{ demo_leads_deg|default:0 }}deg {{ enrolled_leads_deg|default:0 }}deg,
+                        #ef4444 {{ enrolled_leads_deg|default:0 }}deg 360deg
+                    );">
+                    <div class="dash-donut-center">
+                        <h2>{{ total_leads }}</h2>
+                        <span>Total Leads</span>
+                    </div>
+                </div>
+
+                <ul class="dash-legend">
+                    <li><i class="dash-dot" style="background:#fffb11;"></i>New <b>{{ new_leads }}</b> <small>({{ new_leads_pct|default:0 }}%)</small></li>
+                    <li><i class="dash-dot" style="background:#f59e0b;"></i>Contacted <b>{{ contacted_leads }}</b><small>({{ contacted_leads_pct|default:0 }}%)</small></li>
+                    <li><i class="dash-dot" style="background:#8b5cf6;"></i>Interested <b>{{ interested_leads }}</b><small>({{ interested_leads_pct|default:0 }}%)</small></li>
+                    <li><i class="dash-dot" style="background:#06b6d4;"></i>Demo Scheduled <b>{{ demo_leads }}</b><small>({{ demo_leads_pct|default:0 }}%)</small></li>
+                    <li><i class="dash-dot" style="background:#16a34a;"></i>Enrolled <b>{{ enrolled_leads }}</b><small>({{ enrolled_leads_pct|default:0 }}%)</small></li>
+                    <li><i class="dash-dot" style="background:#ef4444;"></i>Lost <b>{{ lost_leads }}</b><small>({{ lost_leads_pct|default:0 }}%)</small></li>
+                </ul>
+
+            </div>
+
+        </div>
+
+        <!-- ============== STUDENT OVERVIEW ============== -->
+         <div class="dash-panel">
+
+            <div class="dash-panel-header">
+                <h3>Student Overview</h3>
+                <a href="{% url 'search_students' %}">View Details <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+
+            <div class="dash-donut-row">
+
+                <div class="dash-donut" style="--donut-gradient: conic-gradient(
+                        #22c55e 0deg {{ active_students_deg|default:0 }}deg,
+                        #2563eb {{ active_students_deg|default:0 }}deg {{ completed_students_deg|default:0 }}deg,
+                        #ef4444 {{ completed_students_deg|default:0 }}deg {{ dropped_students_deg|default:0 }}deg,
+                        #e5e7eb {{ dropped_students_deg|default:0 }}deg 360deg
+                    );">
+                    <div class="dash-donut-center">
+                        <h2>{{ total_students }}</h2>
+                        <span>Total Students</span>
+                    </div>
+                </div>
+
+                <ul class="dash-legend">
+                    <li><i class="dash-dot" style="background:#22c55e;"></i>Active <b>{{ active_students }}</b><small>({{ active_students_pct|default:0 }}%)</small></li>
+                    <li><i class="dash-dot" style="background:#2563eb;"></i>Completed <b>{{ completed_students }}</b><small>({{ completed_students_pct|default:0 }}%)</small></li>
+                    <li><i class="dash-dot" style="background:#ef4444;"></i>Dropped <b>{{ dropped_students }}</b><small>({{ dropped_students_pct|default:0 }}%)</small></li>
+                    <li class="dash-legend-total">Total Students <b>{{ total_students }}</b></li>
+                </ul>
+
+            </div>
+
+         </div>
+
+<!-- ============================= ATTENDANCE SUMMARY ========================== -->
+        <div class="dash-panel">
+ 
+            <div class="dash-panel-header">
+                <h3>Attendance Summary</h3>
+                <small>Staff Attendance</small> 
+            </div>
+ 
+            <div class="dash-mini-grid">
+ 
+                <div class="dash-mini-card mini-indigo">
+                    <div class="dash-mini-icon"><i class="fa-solid fa-user-check"></i></div>
+                    <h2>{{ present }}</h2>
+                    <span>Present Today</span>
+                </div>
+ 
+                <div class="dash-mini-card mini-amber">
+                    <div class="dash-mini-icon"><i class="fa-regular fa-clock"></i></div>
+                    <h2>{{ late }}</h2>
+                    <span>Late Today</span>
+                </div>
+ 
+                <div class="dash-mini-card mini-red">
+                    <div class="dash-mini-icon"><i class="fa-solid fa-user-xmark"></i></div>
+                    <h2>{{ absent }}</h2>
+                    <span>Absent Today</span>
+                </div>
+ 
+                <div class="dash-mini-card mini-blue">
+                    <div class="dash-mini-icon"><i class="fa-solid fa-person-walking-arrow-right"></i></div>
+                    <h2>{{ leave }}</h2>
+                    <span>On Leave Today</span>
+                </div>
+ 
+            </div>
+ 
+            <div class="dash-attendance-progress">
+                <div class="dash-progress-top">
+                    <span>Today's Attendance</span>
+                    <strong>{{ attendance_percentage }}%</strong>
+                </div>
+                <div class="dash-progress-bar">
+                    <div class="dash-progress-fill" style="width: {{ attendance_percentage|default:0 }}%;"></div>
+                </div>
+            </div>
+ 
+        </div>
+ 
+        <!-- =========================DEPARTMENT OVERVIEW ========================= -->
+        <div class="dash-panel">
+ 
+            <div class="dash-panel-header">
+                <h3>Department Overview</h3>
+                <small>All Department</small>
+            </div>
+ 
+            <ul class="dash-department-list">
+                {% for dept in departments %}
+                <li>
+                    <span><i class="fa-solid fa-building"></i> {{ dept.dept_name }}</span>
+                    <strong>{{ dept.total_staff }}</strong>
+                </li>
+                {% endfor %}
+            </ul>
+ 
+            <div class="dash-department-total">
+                <span>Total Departments</span>
+                <strong>{{ departments|length }}</strong>
+            </div>
+ 
+        </div>
+ 
+    </div>
+ 
+    <!-- ================================  RECENT STAFF / RECENT STUDENTS / BATCH STRENGTH  ================================ -->
+ 
+    <div class="dash-lists-grid">
+ 
+        <!-- ==================== RECENT STAFF =================== -->
+        <div class="dash-panel">
+ 
+            <div class="dash-panel-header">
+                <h3>Recent Staff</h3>
+                <a href="{% url 'staff_management' %}">View All <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+ 
+            <div class="dash-person-list">
+                {% for staff in recent_staff %}
+                <div class="dash-person-item">
+ 
+                    <div class="dash-person-avatar">
+                        {{ staff.first_name|slice:":1" }}{{ staff.last_name|slice:":1" }}
+                    </div>
+ 
+                    <div class="dash-person-body">
+                        <h5>{{ staff.first_name }} {{ staff.last_name }}</h5>
+                        <div class="dash-person-meta">
+                            <span><i class="fa-solid fa-briefcase"></i> {{ staff.role.role_name }}</span>
+                            <span><i class="fa-solid fa-building"></i> {{ staff.department.dept_name }}</span>
+                            <span><i class="fa-solid fa-calendar-days"></i> {{ staff.date_of_joining|date:"d M Y" }}</span>
+                        </div>
+                    </div>
+ 
+                    <button class="dash-person-menu"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+ 
+                </div>
+                {% empty %}
+                <p class="dash-empty">No staff found.</p>
+                {% endfor %}
+            </div>
+ 
+        </div>
+ 
+        <!-- ============================ RECENT STUDENTS ============================= -->
+        <div class="dash-panel">
+ 
+            <div class="dash-panel-header">
+                <h3>Recent Students</h3>
+                <a href="{% url 'student_list' %}">View All <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+ 
+            <div class="dash-person-list">
+                {% for student in recent_students %}
+                <div class="dash-person-item">
+ 
+                    <div class="dash-person-avatar avatar-alt">
+                        {{ student.first_name|slice:":1" }}{{ student.last_name|slice:":1" }}
+                    </div>
+ 
+                    <div class="dash-person-body">
+                        <h5>{{ student.first_name }} {{ student.last_name }}</h5>
+                        <div class="dash-person-meta">
+                            <span><i class="fa-solid fa-phone"></i> {{ student.phone_no }}</span>
+                            <span><i class="fa-solid fa-envelope"></i> {{ student.email }}</span>
+                        </div>
+                    </div>
+ 
+                </div>
+                {% empty %}
+                <p class="dash-empty">No students found.</p>
+                {% endfor %}
+            </div>
+ 
+        </div>
+ 
+        <!-- =================== BATCH STRENGTH ====================-->
+        <div class="dash-panel">
+ 
+            <div class="dash-panel-header">
+                <h3>Batch Strength</h3>
+                <a href="{% url 'batches_page' %}">View All <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+ 
+            <div class="dash-batch-chips">
+                <span>Total <b>{{ total_batches }}</b></span>
+                <span>Ongoing <b>{{ ongoing_batches }}</b></span>
+                <span>Upcoming <b>{{ upcoming_batches }}</b></span>
+                <span>Completed <b>{{ completed_batches }}</b></span>
+            </div>
+ 
+            <div class="dash-batch-list">
+                {% for batch in batch_summary %}
+                <div class="dash-batch-item">
+ 
+                    <div class="dash-batch-top">
+                        <div>
+                            <h5>{{ batch.batch_name }}</h5>
+                            <span>{{ batch.course.course_name }}</span>
+                        </div>
+                        <strong>{{ batch.enrolled_students }}/{{ batch.max_students }}</strong>
+                    </div>
+ 
+                    <div class="dash-progress-bar">
+                        <div class="dash-progress-fill" style="width:{{ batch.occupancy_percentage }}%;"></div>
+                    </div>
+ 
+                </div>
+                {% empty %}
+                <p class="dash-empty">No batches available.</p>
+                {% endfor %}
+            </div>
+ 
+        </div>
+ 
+    </div>
+
+    <!-- ================== QUICK ACTIONS ===================== -->
+
+    <div class="dash-panel dash-quick-actions-panel">
+
+        <h3>Quick Actions</h3>
+
+        <div class="dash-quick-actions-row">
+
+            <a href="{% url 'add_staff' %}" class="dash-action-btn action-indigo">
+                <span><i class="fa-solid fa-user-plus"></i> Add New Staff</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </a>
+ 
+            <a href="{% url 'staff_management' %}" class="dash-action-btn action-green">
+                <span><i class="fa-solid fa-user-group"></i> Staff Management</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </a>
+            
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

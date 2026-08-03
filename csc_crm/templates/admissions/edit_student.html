@@ -1,0 +1,295 @@
+{% extends 'admissions/base.html' %}
+{% load static %}
+
+{% block title %}
+Edit Student
+{% endblock title %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admissions_css/edit_student.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="edit-container">
+
+    <h6> <strong>Edit Student</strong></h6>
+    <p>Fill the student details to edit the existing admission</p>
+
+    <form method="POST" enctype="multipart/form-data" id="studentForm" novalidate>
+        {% csrf_token %}
+        <input type="hidden" id="student_id" value="{{ student.id }}">
+
+        <!-- PERSONAL INFO -->
+        <div class="personal-info">
+
+            <h3 class="section-title">
+                <i class="fas fa-user"></i> Personal Information
+            </h3>
+
+            <div class="personal-grid">
+
+                <div>
+                    <label>First Name</label>
+                    <input type="text" name="first_name" value="{{ student.first_name }}" required>
+                    <span class="error" id="firstNameError"></span>
+                </div>
+
+                <div>
+                    <label>Last Name</label>
+                    <input type="text" name="last_name" value="{{ student.last_name }}" required>
+                    <span class="error" id="lastNameError"></span>
+                </div>
+
+                <div>
+                    <label>Email</label>
+                    <input type="email" name="email" value="{{ student.email }}" required>
+                    <span class="error" id="emailError"></span>
+                </div>
+
+                <div>
+                    <label>Phone</label>
+                    <input type="text" name="phone_no" value="{{ student.phone_no }}" maxlength="10" required>
+                    <span class="error" id="phoneError"></span>
+                </div>
+
+                <div>
+                    <label>Date of Birth</label>
+                    <input type="date" name="dob" value="{{ student.dob|date:'Y-m-d' }}" required>
+                    <span class="error" id="dobError"></span>
+                </div>
+
+                <div>
+                    <label>Gender</label>
+                    <select name="gender" required>
+
+                        <option value="M" {% if student.gender == "M" %}selected{% endif %}>
+                            Male
+                        </option>
+
+                        <option value="F" {% if student.gender == "F" %}selected{% endif %}>
+                            Female
+                        </option>
+
+                        <option value="O" {% if student.gender == "O" %}selected{% endif %}>
+                            Others
+                        </option>
+
+                    </select>
+                    <span class="error" id="genderError"></span>
+                </div>
+
+                <div>
+                    <label>Guardian Name</label>
+                    <input type="text" name="guardian_name" value="{{ student.guardian_name }}" required>
+                    <span class="error" id="guardianNameError"></span>
+                </div>
+
+                <div>
+                    <label>Guardian Phone</label>
+                    <input type="text" name="guardian_phone_no" value="{{ student.guardian_phone_no }}" maxlength="10"
+                        required>
+                    <span class="error" id="guardianPhoneError"></span>
+                </div>
+
+            </div>
+
+            <div class="address-grid">
+                <label>Address</label>
+
+                <textarea name="address">{{ student.address }}</textarea>
+                <span class="error" id="addressError"></span>
+            </div>
+
+        </div>
+
+        <!-- COURSE -->
+        <div class="personal-info">
+
+            <h3 class="section-title">
+                <i class="fas fa-book"></i> Course Enrollment
+            </h3>
+
+            <div class="course-grid">
+
+                <div>
+                    <label>Course</label>
+                    <select name="course_name" id="id_course" required>
+
+                        <option value="">Select Course</option>
+
+                        {% for c in courses %}
+                        <option value="{{ c.id }}" {% if admission.course_name_id == c.id %}selected{% endif %}
+                            data-duration="{{ c.duration }}" data-fee="{{ c.course_fee }}">
+
+                            {{ c.course_name }}
+
+                        </option>
+                        {% endfor %}
+
+                    </select>
+                    <span class="error" id="courseError"></span>
+                </div>
+
+                <div>
+
+                    <label>Batch</label>
+
+                    <select name="batch" id="id_batch" class="form-control">
+                    <option value="">Select Batch</option>
+
+                    {% for batch in batches %}
+                    <option value="{{ batch.id }}"
+                    {% if enrollment.batch_id == batch.id %}selected{% endif %}>
+                    {{ batch.batch_name }}
+                    </option>
+                    {% endfor %}
+                    </select>
+                    <span class="error" id="batchError"></span>
+                </div>
+
+                <div>
+                    <label>Duration</label>
+                    <input type="text" id="duration" value="{{ admission.course.duration }}" readonly required>
+                </div>
+
+                <div>
+                    <label>Start Date</label>
+                    <input type="date" name="start_date" value="{{ enrollment.start_date|date:'Y-m-d' }}" required>
+                    <span class="error" id="startDateError"></span>
+                </div>
+
+                <div>
+                    <label>Course Fee</label>
+                    <input type="text" id="fee" value="{{ admission.course.course_fee }}" readonly required>
+                </div>
+
+            </div>
+
+            <label>Admission Status</label>
+
+            <div class="admission-status">
+
+                <label class="status-option">
+                    <input type="radio" name="status" value="enquiry" {% if admission.status == "enquiry" %}checked{% endif %} required>
+                    <span class="status enquiry">Enquiry</span>
+                </label>
+
+                <label class="status-option">
+                    <input type="radio" name="status" value="confirmed" {% if admission.status == "confirmed" %}checked{% endif %} required>
+                    <span class="status confirmed">Confirmed</span>
+                </label>
+
+                <label class="status-option">
+                    <input type="radio" name="status" value="enrolled" {% if admission.status == "enrolled" %}checked{% endif %}>
+                    <span class="status enrolled">Enrolled</span>
+                </label>
+
+            </div>
+
+        </div>
+
+        <!-- DOCUMENT -->
+        <div class="personal-info">
+
+            <h3 class="section-title-details">
+                <i class="fas fa-file-alt"></i> Document Upload
+            </h3>
+
+            <div class="document-grid">
+
+                <div>
+                    <label>Student Photo</label>
+                    <div class="file-upload-wrapper">
+                        <input type="file" name="photo" id="id_photo" accept="image/*">
+                        <button type="button" id="removePhotoBtn" class="remove-file-btn"
+                            style="display: {% if student.photo %}flex{% else %}none{% endif %};">X</button>
+                    </div>
+                    <div class="upload-progress">
+                        <div class="progress-bar" id="photoProgressBar"
+                            style="width: {% if student.photo %}100%{% else %}0%{% endif %};"></div>
+                    </div>
+                    <span id="PhotoProgressText">
+                        {% if student.photo %}
+                        <a href="{{ student.photo.url }}" target="_blank">{{ student.photo.public_id|cut:"student_photos/" }}{% if student.photo.format %}.{{ student.photo.format }}{% endif %}</a>
+                        {% else %}
+                        No file selected
+                        {% endif %}
+                    </span>
+                    <span class="error" id="photoError"></span>
+                </div>
+
+                <div>
+                    <label>ID Proof</label>
+                    <div class="file-upload-wrapper">
+                        <input
+                            type="file"
+                            name="id_proof"
+                            id="id_id_proof"
+                            accept=".pdf,.doc,.docx"
+                            multiple
+                        >
+                        <button type="button" id="removeIdProofBtn" class="remove-file-btn"
+                            style="display: {% if student.id_proof %}flex{% else %}none{% endif %};">X</button>
+                    </div>
+                    <div class="upload-progress">
+                        <div class="progress-bar" id="idProofProgressBar"
+                            style="width: {% if student.id_proof %}100%{% else %}0%{% endif %};"></div>
+                    </div>
+                    <span id="idProofProgressText">
+                        {% if student.id_proof %}
+                        <a href="{{ student.id_proof.url }}" target="_blank">{{ student.id_proof.name|cut:"id_proofs/" }}</a>
+                        {% else %}
+                        No file selected
+                        {% endif %}
+                    </span>
+                    <span class="error" id="idProofError"></span>
+                </div>
+
+                <div>
+                    <label>Certificate</label>
+                    <div class="file-upload-wrapper">
+                        <input
+                            type="file"
+                            name="certificate"
+                            id="id_certificate"
+                            accept=".pdf,.doc,.docx"
+                            multiple
+                        >
+                        <button type="button" id="removeCertificateBtn" class="remove-file-btn"
+                            style="display: {% if student.certificate %}flex{% else %}none{% endif %};">X</button>
+                    </div>
+                    <div class="upload-progress">
+                        <div class="progress-bar" id="certificateProgressBar"
+                            style="width: {% if student.certificate %}100%{% else %}0%{% endif %};"></div>
+                    </div>
+                    <span id="certificateProgressText">
+                        {% if student.certificate %}
+                        <a href="{{ student.certificate.url }}" target="_blank">{{ student.certificate.name|cut:"certificates/" }}</a>
+                        {% else %}
+                        No file selected
+                        {% endif %}
+                    </span>
+                    <span class="error" id="certificateError"></span>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- BUTTON -->
+        <div class="form-btn">
+
+            <button type="submit">
+                <i class="fas fa-save"></i>
+                Update Student
+            </button>
+
+        </div>
+
+    </form>
+</div>
+
+{% endblock content %}
+
+{% block extra_js %}
+    <script src="{% static 'js/admissions_js/edit_student.js' %}"></script>
+{% endblock %}

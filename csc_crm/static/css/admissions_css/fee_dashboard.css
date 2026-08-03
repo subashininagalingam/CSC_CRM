@@ -1,0 +1,1264 @@
+body{
+    margin-top:0;
+    background:#F5F7FB;
+    font-family:'Poppins',sans-serif;
+}
+
+.table{
+    margin-bottom:0;
+}
+/*======================================
+        MAIN CONTAINER
+=======================================*/
+
+.fee-dashboard-container{
+    max-width:none;
+    margin:0;
+    padding:4px 6px 6px;
+}
+
+html,
+body{
+    margin:0;
+    padding:0;
+    height:100%;
+    overflow-x:hidden;
+    overflow-y:auto;
+}
+
+
+
+
+/*==================================================
+            SUMMARY CARDS 
+==================================================*/
+
+.dashboard-summary{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:16px;
+    margin-bottom:20px;
+}
+
+.summary-column{
+    width:100%;
+}
+
+.dashboard-card{
+    position:relative;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    height:108px;
+    background:#ffffff;
+    border-radius:14px;
+    overflow:hidden;
+    padding:14px 18px;
+    border:1px solid #edf2f7;
+    box-shadow:0 4px 14px rgba(15,23,42,.08);
+    transition:.3s ease;
+}
+
+.dashboard-card:hover{
+    transform:translateY(-3px);
+    box-shadow:0 18px 35px rgba(15,23,42,.12);
+}
+
+/* Left Border */
+
+.card-green{
+    border-left:5px solid #22c55e;
+}
+
+.card-red{
+    border-left:5px solid #ef4444;
+}
+
+.card-blue{
+    border-left:5px solid #3b82f6;
+}
+
+.collection-card{
+    border-left:5px solid #f59e0b;
+}
+
+/* Left Side */
+
+.card-left{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex:1;
+    min-width:0;
+}
+
+/* Icon */
+
+.card-icon{
+    width:46px;
+    height:46px;
+    border-radius:14px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    color:#fff;
+    font-size:18px;
+    flex-shrink:0;
+}
+
+.card-green .card-icon{
+    background:#22c55e;
+}
+
+.card-red .card-icon{
+    background:#ef4444;
+}
+
+.card-blue .card-icon{
+    background:#3b82f6;
+}
+
+.collection-card .card-icon{
+    background:#f59e0b;
+}
+
+/* Text */
+
+.card-content{
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    min-width:0;
+}
+
+.card-title{
+    font-size:13px;
+    font-weight:500;
+    color:#8b98b6;
+    margin-bottom:2px;
+    white-space:nowrap;
+}
+
+.card-content h3{
+    margin:0;
+    font-size:18px;
+    font-weight:700;
+    color:#1f2a7a;
+    line-height:1.2;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+.card-content small{
+    margin-top:3px;
+    font-size:12px;
+    color:#94a3b8;
+}
+
+/* Right Graph */
+
+.card-chart{
+    width:80px;
+    height:38px;
+    display:flex;
+    justify-content:flex-end;
+    align-items:center;
+    flex-shrink:0;
+}
+
+.card-chart canvas{
+    width:100% !important;
+    height:100% !important;
+}
+
+/* Collection Card */
+
+.collection-card{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.collection-card .card-title{
+    margin-bottom:8px;
+}
+
+.collection-card h3{
+    font-size:22px;
+    margin:0;
+    color:#1f2a7a;
+}
+
+.progress-circle{
+    width:56px;
+    height:56px;
+    flex-shrink:0;
+}
+
+.progress-circle canvas{
+    width:100%!important;
+    height:100%!important;
+}
+
+/*==================================================
+            ADD PAYMENT FORM
+==================================================*/
+
+.payment-wrapper{
+    margin-bottom:18px;
+}
+
+.payment-card{
+    position:relative;
+    background:#fff;
+    border:1px solid #E9EEF6;
+    border-radius:16px;
+    box-shadow:0 8px 22px rgba(15,23,42,.06);
+    overflow:hidden;
+    isolation:isolate;
+}
+
+.payment-card::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    height:100%;
+    width:4px;
+    background:#FFC72C;
+    border-radius:16px 0 0 16px;
+    z-index:1;
+    max-height:100%;
+}
+
+/* Header */
+
+.card-header-area{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:12px 18px;
+    border-bottom:1px solid #EEF2F7;
+}
+
+.card-header-area h4{
+    margin:0;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:18px;
+    font-weight:700;
+    color:#1F2A7A;
+}
+
+.card-header-area h4 i{
+    font-size:17px;
+}
+
+.card-header-area p{
+    margin:3px 0 0;
+    font-size:13px;
+    color:#94A3B8;
+}
+
+/* Body */
+
+.payment-card .card-body{
+    padding:14px 18px;
+}
+
+/* Grid */
+
+.payment-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    column-gap:16px;
+    row-gap:10px;
+}
+
+/* Grid Positions */
+
+.student-field{
+    grid-column:1;
+}
+
+.amount-field{
+    grid-column:2;
+}
+
+.payment-mode-field{
+    grid-column:3;
+}
+
+.reference-field{
+    grid-column:1;
+}
+
+.remarks-field{
+    grid-column:2 / span 2;
+}
+
+/* Form Group */
+
+.form-group{
+    margin-bottom:0 !important;
+    min-width:0;
+}
+
+/* Label */
+
+.form-label{
+    display:block;
+    margin-bottom:4px;
+    font-size:13px;
+    font-weight:600;
+    color:#344054;
+}
+
+/* Inputs */
+
+.payment-card .form-control,
+.payment-card .form-select{
+
+    width:100%;
+    height:38px;
+    padding:8px 12px;
+    border:1px solid #D9E2EC;
+    border-radius:6px;
+    background:#fff;
+    font-size:13px;
+    color:#1F2937;
+    transition:.25s;
+    box-shadow:none;
+    box-sizing:border-box;
+
+}
+
+.payment-card textarea.form-control{
+
+    height:38px;
+    min-height:38px;
+    padding:8px 12px;
+    resize:none;
+
+}
+
+.payment-card input::placeholder,
+.payment-card textarea::placeholder{
+    color:#98A2B3;
+}
+
+.payment-card .form-control:focus,
+.payment-card .form-select:focus{
+    border-color:#2563EB;
+    box-shadow:0 0 0 3px rgba(37,99,235,.12);
+}
+
+/* Validation */
+
+.text-danger{
+    display:block;
+    margin-top:4px;
+    font-size:11px;
+}
+
+/* Button */
+
+.payment-footer,
+.text-end {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+
+    margin-top: 10px;
+    padding-top: 10px;
+
+    border-top: 1px solid #EEF2F7;
+}
+
+.save-payment-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    padding: 6px 16px;
+    height: 34px;
+
+    border: none;
+    border-radius: 6px;
+
+    background: #FFC72C;
+    color: #1F2A7A;
+
+    font-size: 12.5px;
+    font-weight: 600;
+
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+
+.save-payment-btn:hover {
+    background: #F4B400;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+
+.save-payment-btn i {
+    font-size: 12px;
+}
+
+/*==================================================
+        PAYMENT HISTORY 
+==================================================*/
+
+.history-wrapper{
+
+    margin-bottom:18px;
+
+}
+
+.history-card{
+    position:relative;
+    background:#fff;
+    border:1px solid #E8EEF5;
+    border-radius:14px;
+    box-shadow:0 4px 14px rgba(15,23,42,.05);
+    overflow:hidden;
+    isolation:isolate;
+    padding:0;
+}
+
+.history-card::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    height:100%;
+    width:4px;
+    background:#FFC72C;
+    border-radius:14px 0 0 14px;
+    z-index:1;
+    max-height:100%;
+}
+
+/* Header */
+
+.section-header{
+
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+
+    padding:12px 18px;
+
+    border-bottom:1px solid #EEF2F7;
+
+}
+
+.section-header h4{
+
+    font-size:16px;
+    font-weight:700;
+    margin:0;
+
+}
+
+
+
+.section-header h4 i{
+
+    color:#1F2A7A;
+
+    margin-right:10px;
+
+}
+
+.section-header p{
+
+    margin-top:2px;
+    font-size:12px;
+
+    color:#94A3B8;
+
+}
+
+/* Export Button */
+
+.export-btn{
+
+    display:inline-flex;
+
+    align-items:center;
+
+    gap:8px;
+
+    padding:7px 14px;
+
+    background:#fff;
+
+    color:#1F2A7A;
+
+    border:1px solid #D9E2EC;
+
+    font-size:12px;
+
+    font-weight:600;
+    margin-top:2px;
+    border-radius:7px;
+
+    text-decoration:none;
+    white-space:nowrap;
+
+    transition:.30s;
+
+}
+
+.export-btn:hover{
+
+    background:#F8FAFC;
+
+    color:#1F2A7A;
+
+    transform:translateY(-2px);
+
+}
+
+/* Table */
+
+.payment-table{
+
+    margin:0;
+
+    width:100%;
+
+    border-collapse:collapse;
+
+}
+
+/* Header */
+
+.payment-table thead{
+
+    background:#252C8D;
+
+}
+
+.payment-table thead th{
+
+    color:#fff;
+
+    font-size:12px;
+
+    font-weight:600;
+
+    padding:9px 14px;
+
+    border:none;
+
+    white-space:nowrap;
+
+}
+
+/* Body */
+
+.payment-table tbody td{
+
+    padding:8px 14px;
+
+    border-bottom:1px solid #EEF2F7;
+
+    vertical-align:middle;
+
+    font-size:12px;
+
+    color:#374151;
+
+}
+
+.payment-table tbody tr{
+
+    transition:.30s;
+
+}
+
+.payment-table tbody tr:hover{
+
+    background:#F8FAFC;
+
+}
+
+/* Student */
+
+.student-info{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:12px;
+
+}
+
+.student-avatar{
+
+    width:40px;
+
+    height:40px;
+    min-width:40px;
+
+    border-radius:50%;
+
+    background:#1F2A7A;
+
+    color:#fff;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    font-size:15px;
+
+    font-weight:700;
+
+}
+
+.student-info strong{
+
+    font-size:14px;
+
+    color:#1F2A7A;
+
+}
+
+/* Amount */
+
+.amount-text{
+
+    font-size:15px;
+
+    font-weight:700;
+
+    color:#16A34A;
+
+    white-space:nowrap;
+
+}
+
+/* Payment Mode */
+
+.payment-badge{
+
+    display:inline-flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    min-width:75px;
+
+    padding:6px 14px;
+
+    border-radius:30px;
+
+    font-size:12px;
+
+    font-weight:600;
+    white-space:nowrap;
+
+}
+
+.payment-badge.cash{
+
+    background:#FEF3C7;
+
+    color:#B45309;
+
+}
+
+.payment-badge.upi{
+
+    background:#DBEAFE;
+
+    color:#1D4ED8;
+
+}
+
+.payment-badge.card{
+
+    background:#EDE9FE;
+
+    color:#6D28D9;
+
+}
+
+/* Buttons */
+
+.action-buttons{
+
+    display:flex;
+
+    justify-content:center;
+
+    gap:8px;
+
+}
+
+.preview-btn{
+
+    background:#2563EB;
+
+    color:#fff;
+
+    padding:4px 10px;
+
+    text-decoration:none;
+
+    font-size:11px;
+
+    font-weight:600;
+
+    transition:.30s;
+    border-radius:5px;
+    white-space:nowrap;
+
+}
+
+.preview-btn:hover{
+
+    background:#1D4ED8;
+
+    color:#fff;
+
+}
+
+.download-btn{
+
+    background:#16A34A;
+
+    color:#fff;
+
+    padding:4px 10px;
+
+    text-decoration:none;
+
+    font-size:11px;
+
+    font-weight:600;
+
+    transition:.30s;
+
+    border-radius:5px;
+    white-space:nowrap;
+
+}
+
+.download-btn:hover{
+
+    background:#15803D;
+
+    color:#fff;
+
+}
+
+.table-responsive{
+    padding:0 12px 12px;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:thin;
+    scrollbar-color:#cbd5e1 transparent;
+}
+.table-responsive::-webkit-scrollbar{
+    height:6px;
+}
+.table-responsive::-webkit-scrollbar-track{
+    background:transparent;
+}
+.table-responsive::-webkit-scrollbar-thumb{
+    background:#cbd5e1;
+    border-radius:10px;
+}
+.table-responsive::-webkit-scrollbar-thumb:hover{
+    background:#94a3b8;
+}
+
+/*==================================================
+        STUDENT FEE STATUS 
+==================================================*/
+
+.status-wrapper{
+
+    margin-bottom:18px;
+
+}
+
+.status-card{
+    position:relative;
+    background:#fff;
+    border:1px solid #E8EEF5;
+    border-radius:14px;
+    box-shadow:0 4px 14px rgba(15,23,42,.05);
+    overflow:hidden;
+    isolation:isolate;
+    padding:0;
+}
+
+.status-card::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    height:100%;
+    width:4px;
+    background:#FFC72C;
+    border-radius:14px 0 0 14px;
+    z-index:1;
+    max-height:100%;
+}
+
+/* Header */
+
+.status-card .section-header{
+
+    padding:14px 18px;
+
+    border-bottom:1px solid #EEF2F7;
+
+}
+
+/* Table */
+
+.status-table{
+
+    width:100%;
+
+    border-collapse:collapse;
+
+    margin:0;
+
+}
+
+.status-table thead{
+
+    background:#252C8D;
+
+}
+
+.status-table thead th{
+
+    color:#fff;
+
+    font-size:12px;
+
+    font-weight:600;
+
+    padding:9px 14px;
+
+    border:none;
+
+    white-space:nowrap;
+
+}
+
+.status-table tbody td{
+
+    padding:8px 14px;
+
+    border-bottom:1px solid #EEF2F7;
+
+    vertical-align:middle;
+
+    font-size:12px;
+
+}
+
+.status-table tbody tr{
+
+    transition:.30s;
+
+}
+
+.status-table tbody tr:hover{
+
+    background:#F8FAFC;
+
+}
+
+/* Amounts */
+
+.fee-text{
+
+    color:#1F2A7A;
+
+    font-weight:700;
+
+    font-size:12px;
+    white-space:nowrap;
+
+}
+
+.paid-amount{
+
+    color:#16A34A;
+
+    font-weight:700;
+
+    font-size:14px;
+    white-space:nowrap;
+
+}
+
+.pending-amount{
+
+    color:#EF4444;
+
+    font-weight:700;
+
+    font-size:14px;
+    white-space:nowrap;
+
+}
+
+/* Status Badge */
+
+.status-badge{
+
+    display:inline-flex;
+
+    align-items:center;
+
+    gap:6px;
+
+    padding:3px 9px;
+
+    border-radius:4px;
+
+    font-size:10px;
+
+    font-weight:600;
+    white-space:nowrap;
+
+}
+
+.status-badge i{
+
+    font-size:11px;
+
+}
+
+.status-badge.paid{
+
+    background:#DCFCE7;
+
+    color:#15803D;
+
+}
+
+.status-badge.partial{
+
+    background:#FEF3C7;
+
+    color:#B45309;
+
+}
+
+.status-badge.pending{
+
+    background:#FEE2E2;
+
+    color:#DC2626;
+
+}
+
+/* Action Button */
+
+.add-payment-btn{
+
+    width:24px;
+
+    height:24px;
+    font-size:11px;
+
+    border-radius:4px;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    background:#16A34A;
+
+    color:#fff;
+
+    text-decoration:none;
+
+    transition:.30s;
+
+}
+
+.add-payment-btn:hover{
+
+    background:#15803D;
+
+    color:#fff;
+
+    transform:scale(1.08);
+
+}
+
+.add-payment-btn.disabled{
+
+    background:#CBD5E1;
+
+    cursor:not-allowed;
+
+    pointer-events:none;
+
+}
+
+/* Table Padding */
+
+.status-card .table-responsive{
+
+    padding:0 12px 12px;
+
+}
+
+/*=========================================
+      EMPTY STATE 
+=========================================*/
+
+.payment-empty,
+.student-empty{
+
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+
+    height:120px;
+
+    padding:15px 10px;
+
+}
+
+.payment-empty i,
+.student-empty i{
+
+    font-size:28px;
+
+    color:#64748B;
+
+    margin-bottom:10px;
+
+}
+
+.payment-empty p,
+.student-empty p{
+
+    margin:0;
+
+    font-size:14px;
+
+    color:#475569;
+
+    font-weight:500;
+
+}
+
+/*==================================================================
+    RESPONSIVE — TABLET (≤1200px)
+==================================================================*/
+
+@media(max-width:1200px){
+
+    .dashboard-summary{
+        grid-template-columns:repeat(2,1fr);
+    }
+
+}
+
+/*==================================================================
+    RESPONSIVE — TABLET / SMALL LAPTOP (≤992px)
+==================================================================*/
+
+@media(max-width:992px){
+
+    .fee-dashboard-container{
+        padding:0 10px;
+    }
+
+    /* Payment form: 3 cols -> 1 col */
+    .payment-grid{
+        grid-template-columns:1fr;
+    }
+
+    .student-field,
+    .amount-field,
+    .payment-mode-field,
+    .reference-field,
+    .remarks-field{
+        grid-column:auto;
+    }
+
+    /* Section headers stack */
+    .section-header{
+        flex-direction:column;
+        align-items:flex-start;
+        gap:12px;
+    }
+
+    .export-btn{
+        width:100%;
+        justify-content:center;
+    }
+
+    .action-buttons{
+        flex-direction:column;
+        gap:6px;
+    }
+
+    .preview-btn,
+    .download-btn{
+        width:100%;
+        text-align:center;
+        justify-content:center;
+        display:flex;
+    }
+
+    .status-card .section-header{
+        padding:16px;
+    }
+
+    .status-table{
+        min-width:850px;
+    }
+
+    .payment-table{
+        min-width:650px;
+    }
+}
+
+/*==================================================================
+    RESPONSIVE — MOBILE (≤768px)
+==================================================================*/
+
+@media(max-width:768px){
+
+    body{
+        background-color:#F5F7FB;
+    }
+
+    /* Summary cards: 1 per row, hide mini charts to save space */
+    .dashboard-summary{
+        grid-template-columns:1fr;
+        gap:12px;
+    }
+
+    .dashboard-card{
+        height:auto;
+        min-height:96px;
+        padding:12px 14px;
+    }
+
+    .card-chart,
+    .progress-circle{
+        display:none;
+    }
+
+    .card-icon{
+        width:40px;
+        height:40px;
+        font-size:16px;
+    }
+
+    .card-content h3{
+        font-size:16px;
+    }
+
+    /* Payment card header/body tighten up */
+    .card-header-area{
+        padding:14px 16px;
+        flex-direction:column;
+        align-items:flex-start;
+        gap:6px;
+    }
+
+    .payment-card .card-body{
+        padding:14px 16px;
+    }
+
+    .save-payment-btn{
+        width:100%;
+        justify-content:center;
+    }
+
+    /* Tables scroll horizontally instead of squeezing */
+    .table-responsive{
+        padding:0 10px 10px;
+    }
+
+    .payment-table,
+    .status-table{
+        min-width:600px;
+    }
+
+    .student-avatar{
+        width:34px;
+        height:34px;
+        min-width:34px;
+        font-size:13px;
+    }
+
+    .status-card .table-responsive{
+        padding:0 12px 12px;
+    }
+
+    .status-card{
+        border-radius:14px;
+    }
+    .history-card::before,
+    .status-card::before,
+    .payment-card::before{
+        height:100% !important;
+        max-height:100% !important;
+        bottom:auto !important;
+    }
+}
+
+/*==================================================================
+    RESPONSIVE — SMALL MOBILE (≤480px)
+==================================================================*/
+
+@media(max-width:480px){
+
+    .fee-dashboard-container{
+        padding:0 8px;
+    }
+
+    .card-header-area h4,
+    .section-header h4{
+        font-size:15px;
+    }
+
+    .dashboard-card{
+        padding:10px 12px;
+    }
+
+    .card-title{
+        font-size:12px;
+    }
+
+    .card-content h3{
+        font-size:15px;
+    }
+
+    .payment-badge{
+        min-width:60px;
+        padding:5px 10px;
+        font-size:11px;
+    }
+}

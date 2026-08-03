@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Edit - CSC CRM</title>
+</head>
+<body>
+    
+    <div class="model-overlay">
+        <div class="model-content quick-edit-model">
+            <div class="model-header">
+                <h2 class="model-title">Quick Edit - {{ staff.first_name }} {{ staff.last_name }}</h2>
+                <a href="{% url 'staff_management' %}" class="model-close">X</a>
+            </div>
+
+            <form method="POST" class="quick-edit-form">
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label for="status" class="form-label">Status</label>
+                    {{ form.status }}
+                    <span class="form-error" id="statusError"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="performance_rating" class="form-label">Performance Rating (1-5)</label>
+                    {{ form.performance_rating }}
+                    <span class="form-error" id="performanceRatingError"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="monthly_target" class="form-label">Monthly Target</label>
+                    {{ form.monthly_target }}
+                    <span class="form-error" id="monthlyTargetError"></span>
+                </div>
+
+                <div class="moedl-footer">
+                    <a href="{% url 'staff_management' %}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

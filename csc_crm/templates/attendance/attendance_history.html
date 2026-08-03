@@ -1,0 +1,333 @@
+{% extends 'attendance/base.html' %}
+{% load static %}
+
+{% block title %}
+<title>Student Attendance - History</title>
+{% endblock title %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/attendance_css/attendance_history.css' %}">
+{% endblock %}
+
+{% block content %}
+
+    <!-- ============ PAGE HEADER + STAT CARDS ============ -->
+    <div class="page-header-card">
+
+        <div class="page-header-left">
+            <div class="page-header-icon">
+                <i class="fa-regular fa-calendar-days"></i>
+            </div>
+            <div>
+                <h2 class="page-title">Attendance History</h2>
+                <p class="page-subtitle">View and manage attendance records</p>
+            </div>
+        </div>
+
+        <div class="stat-strip">
+
+            <div class="stat-chip">
+                <div class="stat-icon stat-icon-purple">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+                <div>
+                    <p class="stat-label">Total Records</p>
+                    <h3 class="stat-value">{{ total_records|default:"0" }}</h3>
+                </div>
+            </div>
+
+            <div class="stat-chip">
+                <div class="stat-icon stat-icon-green">
+                    <i class="fa-solid fa-check"></i>
+                </div>
+                <div>
+                    <p class="stat-label">Present</p>
+                    <h3 class="stat-value stat-value-green">{{ total_present|default:"0" }}</h3>
+                </div>
+            </div>
+
+            <div class="stat-chip">
+                <div class="stat-icon stat-icon-red">
+                    <i class="fa-solid fa-user-xmark"></i>
+                </div>
+                <div>
+                    <p class="stat-label">Absent</p>
+                    <h3 class="stat-value stat-value-red">{{ total_absent|default:"0" }}</h3>
+                </div>
+            </div>
+
+            <div class="stat-chip">
+                <div class="stat-icon stat-icon-amber">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+                <div>
+                    <p class="stat-label">Avg. Attendance</p>
+                    <h3 class="stat-value stat-value-amber">{{ avg_attendance|default:"0" }}%</h3>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ============ FILTER FORM ============ -->
+    <form method="GET" class="filter-form" id="filterForm">
+
+    <div class="filter-grid">
+
+        <!-- Search -->
+        <div class="field-group">
+            <label>Search Student</label>
+            <div class="input-icon">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" name="search" value="{{ request.GET.search }}"
+                    placeholder="Search by Name or ID..." class="form-control">
+            </div>
+        </div>
+
+        <!-- From Date -->
+        <div class="field-group">
+            <label for="fromDate">From Date</label>
+            <div class="input-icon">
+                <i class="fa-regular fa-calendar"></i>
+                <input type="date" class="form-control" id="fromDate" name="from_date"
+                    value="{{ request.GET.from_date }}" placeholder="dd-mm-yyyy">
+            </div>
+        </div>
+
+        <!-- To Date -->
+        <div class="field-group">
+            <label for="toDate">To Date</label>
+            <div class="input-icon">
+                <i class="fa-regular fa-calendar"></i>
+                <input type="date" class="form-control" id="toDate" name="to_date"
+                    value="{{ request.GET.to_date }}" placeholder="dd-mm-yyyy">
+            </div>
+        </div>
+
+        <!-- Status -->
+        <div class="field-group">
+            <label>Status</label>
+            <select name="status" class="form-select">
+                <option value="">All Status</option>
+                <option value="Present" {% if request.GET.status == "Present" %}selected{% endif %}>Present</option>
+                <option value="Absent" {% if request.GET.status == "Absent" %}selected{% endif %}>Absent</option>
+                <option value="Late" {% if request.GET.status == "Late" %}selected{% endif %}>Late</option>
+            </select>
+        </div>
+
+        <!-- Batch -->
+        <div class="field-group">
+            <label>Batch</label>
+            <select name="batch" class="form-select">
+                <option value="">All Batches</option>
+                {% for batch in filter.form.batch.field.queryset %}
+                <option value="{{ batch.id }}" {% if request.GET.batch == batch.id|stringformat:'s' %}selected{% endif %}>
+                    {{ batch.batch_name }} ({{ batch.course.course_name }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Course -->
+        <div class="field-group">
+            <label>Course</label>
+            <select name="course_name" class="form-select">
+                <option value="">All Courses</option>
+                {% for course in courses %}
+                <option value="{{ course.course_name }}">{{ course.course_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Buttons -->
+        <div class="filter-actions">
+
+            <button type="button" class="clear-btn" id="resetBtn">
+                <i class="fa-solid fa-rotate-left"></i>
+                Reset
+            </button>
+
+            <button type="submit" class="btn-search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                Search
+            </button>
+
+        </div>
+
+    </div>
+
+    </form>
+
+    <div>
+        <p id="search-error"></p>
+    </div>
+
+    <!-- ============ DOWNLOAD BAR ============ -->
+    <form method="GET"
+        action="{% url 'attendance_export' %}"
+        class="download-form"
+        onsubmit="return validateFormat()">
+
+        <input type="hidden" name="search" value="{{ request.GET.search }}">
+        <input type="hidden" name="from_date" value="{{ request.GET.from_date }}">
+        <input type="hidden" name="to_date" value="{{ request.GET.to_date }}">
+        <input type="hidden" name="status" value="{{ request.GET.status }}">
+        <input type="hidden" name="batch" value="{{ request.GET.batch }}">
+        <input type="hidden" name="course_name" value="{{ request.GET.course_name }}">
+        <input type="hidden" name="selected_ids" id="selectedIdsInput" value="">
+
+        <div class="format-box">
+            <select name="format" id="format">
+                <option value="">Select format</option>
+                <option value="excel">Excel</option>
+                <option value="pdf">PDF</option>
+            </select>
+            <p id="error-msg"></p>
+        </div>
+
+        <button type="submit" class="down">
+            <i class="fa-solid fa-download"></i> Download
+        </button>
+
+        <span id="selectedCountLabel" class="selected-count-label"></span>
+
+    </form>
+
+    <!-- ============ TABLE ============ -->
+    <div class="report-card">
+
+        <div class="table-responsive">
+
+            <table class="table">
+
+                <thead>
+                    <tr>
+                        <th class="col-check"><input type="checkbox" id="selectAll"></th>
+                        <th>Date</th>
+                        <th>Student Name</th>
+                        <th>Student ID</th>
+                        <th>Course</th>
+                        <th>Batch</th>
+                        <th>Status</th>
+                        <th>Marked By</th>
+                        <th class="col-actions"></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for record in records %}
+                    <tr class="attendance-row"
+                        data-record-id="{{ record.id }}"
+                        data-name="{{ record.enrollment.student.first_name|lower }} {{ record.enrollment.student.last_name|lower }}"
+                        data-id="stu{{ record.enrollment.student.id }}"
+                        data-course="{{ record.enrollment.course.course_name|lower }}"
+                        data-batch="{{ record.batch.id }}"
+                        data-status="{{ record.status|lower }}"
+                        data-date="{{ record.attendance_date|date:'Y-m-d' }}">
+
+                        <td class="col-check"><input type="checkbox" class="row-check" value="{{ record.id }}"></td>
+
+                        <td>{{ record.attendance_date|date:"F j, Y" }}</td>
+
+                        <td>
+                            <div class="student-info">
+
+                                {% if record.enrollment.student.photo %}
+                                <img src="{{ record.enrollment.student.photo.url }}" class="student-avatar-img" alt="Student">
+                                {% else %}
+                                <div class="student-avatar">
+                                    {{ record.enrollment.student.first_name|slice:":1" }}{{ record.enrollment.student.last_name|slice:":1" }}
+                                </div>
+                                {% endif %}
+
+                                <span>
+                                    <a href="#" class="student-detail-btn" data-id="{{ record.enrollment.student.id }}">
+                                        {{ record.enrollment.student.first_name }} {{ record.enrollment.student.last_name }}
+                                    </a>
+                                </span>
+
+                            </div>
+                        </td>
+
+                        <td>STU{{ record.enrollment.student.id }}</td>
+
+                        <td>{{ record.enrollment.course.course_name }}</td>
+
+                        <td>{{ record.batch.batch_name }}</td>
+
+                        <td>
+                            {% if record.status == "Present" %}
+                            <span class="badge-present">Present</span>
+                            {% elif record.status == "Absent" %}
+                            <span class="badge-absent">Absent</span>
+                            {% else %}
+                            <span class="badge-late">Late</span>
+                            {% endif %}
+                        </td>
+
+                        <td>{{ record.trainer }}</td>
+
+                        <td class="col-actions">
+                            <div class="row-menu">
+                                <button type="button" class="row-menu-btn" data-id="{{ record.enrollment.student.id }}">
+                                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                                </button>
+                                <div class="row-menu-dropdown">
+                                    <a href="{% url 'view_student' record.enrollment.student.id %}" class="row-menu-item row-view-btn">
+                                        <i class="fa-regular fa-eye"></i> View
+                                    </a>
+                                    <a href="" class="row-menu-item row-edit-btn">
+                                        <i class="fa-regular fa-pen-to-square"></i> Edit
+                                    </a>
+                                </div>
+                            </div>
+                        </td>
+
+                    </tr>
+
+                    {% empty %}
+
+                    <tr>
+                        <td colspan="9" class="empty-row">
+                            No attendance records found
+                        </td>
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        <div class="table-footer">
+            <p class="footer-count">
+                Showing {{ records|length }} of {{ total_records|default:records|length }} records
+            </p>
+
+            <div class="pagination-box">
+                <button class="page-btn" id="pagePrev">&laquo;</button>
+                <button class="page-btn active">1</button>
+                <button class="page-btn">2</button>
+                <button class="page-btn">3</button>
+                <span class="page-dots">&hellip;</span>
+                <button class="page-btn" id="pageNext">&raquo;</button>
+
+                <select class="page-size-select">
+                    <option>10 per page</option>
+                    <option>25 per page</option>
+                    <option>50 per page</option>
+                </select>
+            </div>
+        </div>
+
+    </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/attendance_js/attendance_history.js' %}"></script>
+{% endblock %}

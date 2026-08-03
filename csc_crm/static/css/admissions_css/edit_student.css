@@ -1,0 +1,326 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body{
+    background: #f5f7fb;
+}
+
+.edit-container {
+    width: 95%;
+    margin: 30px auto 20px auto;  
+
+}
+
+strong,p{
+    color: rgb(30, 42, 120);
+}
+p{
+    font-size: 12px;
+}
+
+.section-title,
+.section-title-details {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color:rgb(30, 42, 120);
+    margin-bottom: 15px;
+}
+
+.section-title i,
+.section-title-details i {
+    color: rgb(30, 42, 120);
+    font-size: 14px;
+}
+
+.personal-info {
+    width: 100%;
+    background: white;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    box-shadow: -5px 0 0 0 rgb(255, 202, 43);
+    box-sizing: border-box;
+}
+
+label {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 3px;
+    display: block;
+}
+
+input,
+select,
+textarea {
+    width: 100%;
+    padding: 8px;
+    height: 40px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+textarea {
+    height: auto;
+    resize: vertical;
+}
+
+.personal-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.address-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.course-grid,
+.document-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.admission-status {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.status-option input {
+    display: none;
+}
+
+.status {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+/* Status Colors */
+.status.enquiry {
+    background: #fff7cc;
+    color: #a68b00;
+}
+
+.status.confirmed {
+    background: #e0e7ff;
+    color: #3b5bdb;
+}
+
+.status.enrolled {
+    background: #d3f9d8;
+    color: #2b8a3e;
+}
+
+.status.dropped {
+    background: #ffe3e3;
+    color: #c92a2a;
+}
+
+/* Selected Status */
+.status-option input[value="enquiry"]:checked + .status {
+    border: 2px solid #facc15;
+}
+
+.status-option input[value="confirmed"]:checked + .status {
+    border: 2px solid #3b5bdb;
+}
+
+.status-option input[value="enrolled"]:checked + .status {
+    border: 2px solid #2b8a3e;
+}
+
+.status-option input[value="dropped"]:checked + .status {
+    border: 2px solid #c92a2a;
+}
+
+.file-name {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #2563eb;
+    word-break: break-word;
+}
+
+.error {
+    color: #dc2626;
+    font-size: 12px;
+    margin-top: 4px;
+    display: block;
+}
+
+.form-btn {
+    margin-top: 25px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+button {
+    background: rgb(30, 42, 120);
+    color: white;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+button:hover {
+    background: rgb(255, 202, 43);
+    color: rgb(30, 42, 120);
+    box-shadow: 0 4px 10px rgb(255, 202, 43);
+}
+
+a {
+    text-decoration: none;
+}
+
+.file-link{
+    display: inline-block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #2563eb;
+    text-decoration: none;
+    word-break: break-word;
+}
+
+.file-link:hover{
+    text-decoration: underline;
+}
+.error {
+    color: #dc2626;
+    font-size: 12px;
+}
+
+@media (max-width: 550px) {
+
+    .container {
+        width: 100%;
+        padding: 10px;
+    }
+
+    .personal-grid,
+    .course-grid,
+    .document-grid {
+        grid-template-columns: 1fr;
+    }
+
+    button {
+        width: 100%;
+    }
+}
+
+/* =========================== FILE UPLOAD (parity with register page) =========================== */
+
+.document-grid input[type="file"] {
+    width: 100%;
+    height: auto;
+    padding: 8px 15px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 14px;
+    transition: .3s;
+}
+
+.document-grid input[type="file"]:hover {
+    border-color: #2563eb;
+}
+
+.document-grid input[type="file"]:focus {
+    border: 1px solid #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .15);
+    outline: none;
+}
+
+.document-grid input[type="file"]::file-selector-button {
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-right: 12px;
+    font-size: 13px;
+    transition: .3s;
+}
+
+.document-grid input[type="file"]::file-selector-button:hover {
+    background: #1d4ed8;
+}
+
+.document-grid input[type="file"].error-input {
+    border: 1px solid #dc2626 !important;
+}
+
+.file-upload-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.file-upload-wrapper input[type="file"] {
+    width: 100%;
+    padding-right: 38px;
+    box-sizing: border-box;
+}
+
+.remove-file-btn {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+
+    width: 28px;
+    height: 28px;
+
+    border: none;
+    border-radius: 50%;
+
+    background: #dc2626;
+    color: #ffffff;
+
+    font-size: 12px;
+    font-weight: bold;
+
+    cursor: pointer;
+
+    display: none;
+    align-items: center;
+    justify-content: center;
+
+    z-index: 10;
+}
+
+.remove-file-btn:hover {
+    background: #b91c1c;
+}
+
+.upload-progress {
+    width: 100%;
+    height: 10px;
+    background: #e5e7eb;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.progress-bar {
+    width: 0%;
+    height: 100%;
+    background: #16a34a;
+    transition: 0.3s;
+}
