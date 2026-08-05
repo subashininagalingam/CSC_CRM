@@ -13,7 +13,7 @@ body{
     background:var(--ah-bg);
     color:var(--ah-navy);
     font-family:'Segoe UI',sans-serif;
-    padding: 20px 10px 10px 10px;
+    padding: 20px 15px 10px 15px;
     font-size:13px;
 }
 

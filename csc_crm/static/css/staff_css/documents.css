@@ -26,7 +26,6 @@
 
 .doc-page {
     background: var(--light);
-    min-height: 100vh;
     padding: 0 0 24px;
     
 }
@@ -470,6 +469,7 @@
     border-radius: 16px;
     box-shadow: var(--shadow);
     overflow: hidden;
+    
 }
 
 .doc-vault-header {
@@ -544,6 +544,7 @@
 
 .doc-list {
     padding: 16px 24px;
+    
 }
 
 .doc-item {
@@ -596,6 +597,7 @@
     font-size: 12px;
     color: var(--muted);
     margin-top: 3px;
+    
 }
 
 .doc-item-meta span {
@@ -651,25 +653,26 @@
 
 .doc-empty {
     text-align: center;
-    padding: 48px 24px;
+    padding: 10px 12px;
     color: var(--muted);
+    
 }
 
 .doc-empty i {
-    font-size: 48px;
+    font-size: 33px;
     margin-bottom: 12px;
     opacity: 0.3;
     display: block;
 }
 
 .doc-empty h3 {
-    font-size: 18px;
+    font-size: 13px;
     color: var(--text);
     margin: 0 0 6px;
 }
 
 .doc-empty p {
-    font-size: 15px;
+    font-size: 12px;
     margin: 0;
 }
 
@@ -691,7 +694,7 @@
 }
 
 .doc-upload-header {
-    padding: 18px 24px;
+    padding: 10px 24px;
     border-bottom: 1px solid var(--border);
     background: linear-gradient(135deg, var(--primary), var(--primary-dark));
     color: var(--white);
@@ -701,7 +704,7 @@
 }
 
 .doc-upload-header h2 {
-    font-size: 17px;
+    font-size: 13px;
     font-weight: 700;
     display: flex;
     align-items: center;
@@ -714,8 +717,8 @@
     border: none;
     color: var(--white);
     border-radius: 8px;
-    width: 30px;
-    height: 30px;
+    width: 25px;
+    height: 25px;
     cursor: pointer;
     font-size: 18px;
     display: flex;
@@ -729,13 +732,13 @@
 }
 
 .doc-upload-body {
-    padding: 24px;
+    padding: 14px 20px;
 }
 
 .doc-dropzone {
     border: 2px dashed #c4b5fd;
     border-radius: 12px;
-    padding: 32px 24px;
+    padding: 30px 24px;
     text-align: center;
     background: #faf5ff;
     cursor: pointer;

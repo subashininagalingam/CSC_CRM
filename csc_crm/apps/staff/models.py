@@ -72,7 +72,7 @@ class Staff(models.Model):
         # Extended Personal Info
     GENDER_CHOICES = [('male', 'Male'), ('female', 'Female'), ('other', 'Other')]
     BLOOD_GROUP_CHOICES = [('A+','A+'),('A-','A-'),('B+','B+'),('B-','B-'),('O+','O+'),('O-','O-'),('AB+','AB+'),('AB-','AB-')]
-    MARITAL_CHOICES = [('single','Single'),('married','Married'),('divorced','Divorced'),('widowed','Widowed')]
+   
 
     # Basic Information
     employee_id = models.CharField(unique=True, max_length=20, db_index=True)
@@ -95,17 +95,15 @@ class Staff(models.Model):
 
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True, null=True)
     blood_group = models.CharField(max_length=5, choices=BLOOD_GROUP_CHOICES, blank=True, null=True)
-    marital_status = models.CharField(max_length=20, choices=MARITAL_CHOICES, blank=True, null=True)
-    nationality = models.CharField(max_length=50, blank=True, null=True, default='Indian')
+    
     address = models.TextField(blank=True, null=True)
 
     # Employment extra
-    reporting_manager = models.CharField(max_length=100, blank=True, null=True)
-    work_location = models.CharField(max_length=100, blank=True, null=True)
-    employment_type = models.CharField(max_length=50, blank=True, null=True, default='Full-time')
+    
+    reporting_manager = models.ForeignKey("self", on_delete=models.SET_NULL,null=True,blank=True, related_name="team_members", limit_choices_to={"status": "active"},)
 
     # Contact & Emergency
-    personal_email = models.EmailField(blank=True, null=True)
+    
     emergency_contact_name = models.CharField(max_length=100, blank=True, null=True)
     emergency_contact_phone = models.CharField(max_length=15, blank=True, null=True)
 

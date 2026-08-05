@@ -1,73 +1,64 @@
-from itertools import count
-from multiprocessing import context
-# from tkinter.font import Font
-from urllib import request, response
-from csc_crm.apps.student_attendance.forms import BatchForm
-from .services import get_absent_tracker_data
-from .models import AbsentTracker
-
-from rest_framework import viewsets
-from django.shortcuts import render
-from csc_crm.apps.admissions.models import Enrollment
-from django.utils import timezone
-from rest_framework import generics
-from rest_framework import status
-
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from django.utils.timezone import localdate
-from rest_framework import filters
-
-from django.db import transaction
-from rest_framework import status
-from rest_framework.views import APIView
-
-from .filters import AttendanceFilter
-
-from django.http import HttpResponse
 import csv
 import json
-
-from django.http import HttpResponse
-from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment
-from reportlab.platypus import SimpleDocTemplate, Table, Spacer, Paragraph
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet
-
-from django.http import JsonResponse
-from django.db.models import Count
-from django.utils import timezone
-
-from django.http import JsonResponse
-from django.db.models import Q
-from django.utils import timezone
 from datetime import timedelta
 
-from django.http import JsonResponse
-from csc_crm.apps.admissions.models import Course
-
-
-from csc_crm.apps.admissions.models import Course
+from django.conf import settings
+from django.contrib import messages
+from django.core.mail import send_mail
+from django.db import transaction
+from django.db.models import Count, Q
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
+from django.utils.timezone import localdate
 from django.views.decorators.http import require_POST
 
+from openpyxl import Workbook
+from openpyxl.styles import (
+    Alignment,
+    Border,
+    Font,
+    PatternFill,
+    Side,
+)
 
+from reportlab.lib import colors, enums
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import (
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
 
+from rest_framework import filters, status, viewsets
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from csc_crm.apps.admissions.models import Course, Enrollment
+from csc_crm.apps.student_attendance.forms import BatchForm
+
+from .filters import AttendanceFilter
 from .models import (
-    Trainer,
-    Batch,
+    AbsentTracker,
     Attendance,
-    SyllabusLog
+    Batch,
+    SyllabusLog,
+    Trainer,
 )
-
 from .serializers import (
-    # TrainerSerializer,
-    BatchSerializer,
     AttendanceSerializer,
-    SyllabusLogSerializer
+    BatchSerializer,
+    SyllabusLogSerializer,
 )
-
+from .services import (
+    get_absent_tracker_data,
+    get_low_attendance_data,
+)
 
 # class TrainerViewSet(viewsets.ModelViewSet):
 
@@ -551,7 +542,7 @@ def batch_preview(request, batch_id):
 
     context = {
         'batch': batch,
-        'batch_status': batch.display_status, 
+        'batch_status': batch.get_status_display(),
         'total_students': total_students,
         'present_count': present_count,
         'absent_count': absent_count,
@@ -771,8 +762,6 @@ def attendance_history_page(request):
     )
 
     filtered_records = attendance_filter.qs
-
-    # ---- Stat card numbers (based on the filtered set shown in the table) ----
 
     total_records = filtered_records.count()
     total_present = filtered_records.filter(status="Present").count()
@@ -1146,10 +1135,7 @@ def save_admin_notes(request):
         "status": "success"
     })
 
-from django.shortcuts import render, get_object_or_404
-from django.core.mail import send_mail
-from django.conf import settings
-from django.contrib import messages
+
 
 def low_attendance_alerts(request):
 
@@ -1259,10 +1245,6 @@ def low_attendance_alerts(request):
 
     )
 
-
-from openpyxl import Workbook
-from django.http import HttpResponse
-from openpyxl.styles import Font, PatternFill
 
 def low_attendance_export(request):
 
@@ -1823,14 +1805,8 @@ Total Absences:
     
     #Reports 
     
-from django.shortcuts import render
-from django.utils import timezone
-from django.db.models import Count
 
-from csc_crm.apps.admissions.models import Enrollment, Course
-from .models import Attendance, Batch
-from .services import get_low_attendance_data
-from django.db.models import Q
+
 
 def get_report_students():
 
@@ -2828,24 +2804,6 @@ def reports(request):
 
 
 
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
-from django.http import HttpResponse
-from openpyxl import Workbook
-from reportlab.platypus import (
-    SimpleDocTemplate,
-    Table,
-    TableStyle,
-    Paragraph,
-    Spacer,
-    PageBreak
-)
-
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib import enums
-
 
 def analytics_pdf(request):
 
@@ -3240,16 +3198,6 @@ def analytics_pdf(request):
 
 
 
-from openpyxl import Workbook
-from openpyxl.styles import (
-    Font,
-    PatternFill,
-    Alignment,
-    Border,
-    Side
-)
-from django.http import HttpResponse
-from django.utils import timezone
 
 
 def analytics_excel(request):

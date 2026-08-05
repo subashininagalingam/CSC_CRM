@@ -1,7 +1,4 @@
 
-
-
-
 :root {
     --primary: #262170;
     --primary-dark: #1b1757;
@@ -796,9 +793,7 @@
 ==========================================*/
 
 .over-performance-grid{
-    /* display:grid;
-    grid-template-columns:minmax(0,2.3fr) minmax(300px,1fr);
-    gap:18px; */
+   
     align-items:stretch;
     width:100%;
     margin-bottom:18px;

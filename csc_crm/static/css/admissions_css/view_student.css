@@ -16,7 +16,7 @@ body {
     max-width: 1300px;
     margin: 30px auto 30px auto;
 }
-h6,h3{
+h4{
    color: rgb(30, 42, 120); 
 }
 
@@ -180,6 +180,7 @@ a {
     display: flex;
     align-items: flex-start;
     gap: 10px;
+    margin-top: 10px;
     font-size: 13px;
     color: #1f2937;
 }

@@ -109,6 +109,59 @@
     margin: 6px 0 0;
 }
 
+textarea.form-control {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 14px;
+    border: 1px solid #d9dbe3;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    color: #1a1a1a;
+    background: #fff;
+    resize: vertical;
+    min-height: 44px;
+    line-height: 1.4;
+    transition: border-color 0.2s ease;
+}
+
+textarea.form-control::placeholder {
+    color: #9a9da8;
+}
+
+textarea.form-control:focus {
+    outline: none;
+    border-color: #6c5ce7;
+    box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
+}
+
+#skillsTypedInput {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.skills-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+    max-width: 100%;
+}
+
+.skill-chip {
+    display: inline-block;
+    background: #f1f3f6;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 13px;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+
+
 /* =========================== SECTIONS ================================ */
 
 .staff-mgmt-form-section {

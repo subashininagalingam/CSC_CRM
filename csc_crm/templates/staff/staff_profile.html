@@ -126,7 +126,7 @@
     <div class="sp-sec-head"><i class="fa fa-briefcase"></i> Professional Information</div>
     <div class="sp-row"><span class="sp-row-k">Department</span><span class="sp-row-v">{{ staff.department }}</span></div>
     <div class="sp-row"><span class="sp-row-k">Role</span><span class="sp-row-v">{{ staff.role }}</span></div>
-    <div class="sp-row"><span class="sp-row-k">Reporting Manager</span><span class="sp-row-v">{{ staff.reporting_manager|default:"N/A" }}</span></div>
+    <div class="sp-row"><span class="sp-row-k">Reporting Manager</span><span class="sp-row-v">{{ staff.reporting_manager.full_name|default:"N/A" }}</span></div>
     {% comment %} <div class="sp-row"><span class="sp-row-k">Shift</span><span class="sp-row-v">{{ staff.shift|default:"General Shift" }}</span></div> {% endcomment %}
     <div class="sp-row"><span class="sp-row-k">Date of Joining</span><span class="sp-row-v">{{ staff.date_of_joining|date:"d M Y" }}</span></div>
   </div>

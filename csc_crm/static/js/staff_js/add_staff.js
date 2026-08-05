@@ -1106,3 +1106,151 @@ function validateMonthlyTarget() {
 
     toggleMonthlyTarget();
 });
+
+
+
+
+
+// ================= REPORTING MANAGER — ROLE-BASED FILTER =================
+
+document.addEventListener('DOMContentLoaded', () => {
+    const roleInput = document.getElementById('roleInput');
+    const reportingManagerGroup = document.getElementById('reportingManagerGroup');
+    const reportingManagerInput = document.getElementById('reportingManagerInput');
+
+    if (!roleInput || !reportingManagerGroup || !reportingManagerInput) return;
+
+    const staffRolesDataEl = document.getElementById('staffRolesData');
+    const staffRoles = staffRolesDataEl ? JSON.parse(staffRolesDataEl.textContent) : {};
+
+    const REPORTING_MANAGER_RULES = {
+        'Admin': null,
+        'Manager': ['Admin'],
+        'Developer': ['Manager'],
+        'Trainer': ['Manager'],
+        'HR': ['Manager'],
+        'Sales Exec Lead': ['Manager'],
+        'Marketing Lead': ['Manager'],
+        'Digital Marketing': ['Marketing Lead'],
+        'Content Creator': ['Marketing Lead'],
+        'Sales Exec': ['Sales Exec Lead'],
+    };
+
+    const allOptions = Array.from(reportingManagerInput.options).filter(opt => opt.value !== '');
+    const placeholderOption = Array.from(reportingManagerInput.options).find(opt => opt.value === '')
+        || new Option('---------', '');
+
+    function filterReportingManagers() {
+        const selectedRoleText = roleInput.options[roleInput.selectedIndex]
+            ? roleInput.options[roleInput.selectedIndex].text.trim()
+            : '';
+
+        const allowedRoles = REPORTING_MANAGER_RULES.hasOwnProperty(selectedRoleText)
+            ? REPORTING_MANAGER_RULES[selectedRoleText]
+            : 'ANY';
+
+        if (allowedRoles === null || !selectedRoleText) {
+            reportingManagerGroup.style.display = 'none';
+            reportingManagerInput.value = '';
+            reportingManagerInput.required = false;
+            if (typeof checkChanges === 'function') checkChanges();
+            return;
+        }
+
+        reportingManagerGroup.style.display = '';
+
+        reportingManagerInput.innerHTML = '';
+        reportingManagerInput.appendChild(placeholderOption.cloneNode(true));
+
+        allOptions.forEach(opt => {
+            const staffRole = staffRoles[opt.value];
+
+            if (allowedRoles === 'ANY' || (staffRole && allowedRoles.includes(staffRole))) {
+                reportingManagerInput.appendChild(opt.cloneNode(true));
+            }
+        });
+
+        reportingManagerInput.value = '';
+
+        if (typeof checkChanges === 'function') checkChanges();
+    }
+
+    roleInput.addEventListener('change', filterReportingManagers);
+
+    filterReportingManagers();
+});
+
+
+// ================= SKILLS — TYPED INPUT (comma-separated names) =================
+
+document.addEventListener('DOMContentLoaded', () => {
+    const skillsTypedInput = document.getElementById('skillsTypedInput');
+    const skillsHiddenInput = document.getElementById('skillsInput');
+
+    if (!skillsTypedInput || !skillsHiddenInput) return;
+
+    const MAX_SKILL_LENGTH = 30;
+
+    // Pre-fill typed input from existing hidden JSON (edit page)
+    try {
+        if (skillsHiddenInput.value) {
+            const existing = JSON.parse(skillsHiddenInput.value);
+            if (Array.isArray(existing) && existing.length > 0) {
+                const names = existing.map(s => (typeof s === 'string' ? s : s.name));
+                skillsTypedInput.value = names.join(', ');
+            }
+        }
+    } catch (e) {
+        // ignore, start blank
+    }
+
+    function parseTypedSkills(raw) {
+        const skills = raw
+            .split(',')
+            .map(s => s.trim())
+            .filter(s => s.length > 0)
+            .map(s => s.length > MAX_SKILL_LENGTH ? s.substring(0, MAX_SKILL_LENGTH) : s);
+
+        const seen = new Set();
+        const unique = [];
+
+        skills.forEach(skill => {
+            const key = skill.toLowerCase();
+            if (!seen.has(key)) {
+                seen.add(key);
+                unique.push(skill);
+            }
+        });
+
+        return unique;
+    }
+
+    // While typing — only update hidden field, no preview shown
+    skillsTypedInput.addEventListener('input', () => {
+        const raw = skillsTypedInput.value.trim();
+
+        if (!raw) {
+            skillsHiddenInput.value = '[]';
+            if (typeof checkChanges === 'function') checkChanges();
+            return;
+        }
+
+        const skills = parseTypedSkills(raw);
+        skillsHiddenInput.value = JSON.stringify(skills);
+
+        if (typeof checkChanges === 'function') checkChanges();
+    });
+
+    // On page load — sync hidden field from existing value (edit mode)
+    (function initialSync() {
+        const raw = skillsTypedInput.value.trim();
+
+        if (!raw) {
+            skillsHiddenInput.value = '[]';
+            return;
+        }
+
+        const skills = parseTypedSkills(raw);
+        skillsHiddenInput.value = JSON.stringify(skills);
+    })();
+});

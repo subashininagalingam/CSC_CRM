@@ -43,6 +43,11 @@
                 <span class="bp-status-badge bp-status-{{ batch_status|lower }}">
                     {{ batch_status }}
                 </span>
+                {% if batch_status == 'Upcoming' %}
+                <span class="bp-status-badge bp-status-upcoming">
+                    <i class="fa-regular fa-calendar-plus"></i> Starts {{ batch.start_date|date:"d M Y" }}
+                </span>
+                {% endif %}
             </div>
 
             <div class="bp-banner-tags">
@@ -212,9 +217,20 @@
                 <span class="bp-overview-value bp-text-green">{{ attendance_percentage }}%</span>
             </div>
 
+            {% if batch_status == 'Upcoming' %}
+            <button type="button" class="bp-btn bp-btn-view-attendance bp-btn-disabled" disabled>
+                <i class="fa-regular fa-clock"></i>
+                Batch Not Started — Starts {{ batch.start_date|date:"d M Y" }}
+            </button>
+            {% elif batch_status == 'Completed' or batch_status == 'Cancelled' %}
+            <button type="button" class="bp-btn bp-btn-view-attendance bp-btn-disabled" disabled>
+                <i class="fa-solid fa-ban"></i> Batch {{ batch_status }}
+            </button>
+            {% else %}
             <a href="{% url 'mark_attendance_page' batch.id %}" class="bp-btn bp-btn-view-attendance">
                 <i class="fa-regular fa-eye"></i> View Attendance
             </a>
+            {% endif %}
         </div>
 
     </div>

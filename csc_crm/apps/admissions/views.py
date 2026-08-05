@@ -852,7 +852,6 @@ def delete_student(request, id):
     return redirect('student_list')
 
 
-
 def search_students(request):
 
     students = Student.objects.prefetch_related(
@@ -880,7 +879,16 @@ def search_students(request):
             cell.fill = header_fill
             cell.alignment = Alignment(horizontal="center")
 
-        for student in filtered_students:
+        # ============ BULK SELECTION EXPORT ============
+        ids_param = request.GET.get('ids')
+
+        if ids_param:
+            selected_ids = [i for i in ids_param.split(',') if i.strip().isdigit()]
+            export_students = filtered_students.filter(id__in=selected_ids)
+        else:
+            export_students = filtered_students
+
+        for student in export_students:
             for admission in student.admissions.all():
                 enrollment = getattr(admission, 'enrollment', None)
 
@@ -938,6 +946,7 @@ def search_students(request):
         'base_query': base_query,
     })
 
+
 # View Student page.
 # Shows the full profile of a single student: personal details,
 # admission/enrollment info and their payment history.
@@ -971,10 +980,16 @@ def view_student(request, id):
 def check_email(request):
 
     email = request.GET.get('email')
+    exclude_id = request.GET.get('exclude_id')
 
-    exists = Student.objects.filter(
+    qs = Student.objects.filter(
         email=email
-    ).exists()
+    )
+
+    if exclude_id:
+        qs = qs.exclude(pk=exclude_id)
+
+    exists = qs.exists()
 
     return JsonResponse({
         'exists': exists
@@ -983,20 +998,27 @@ def check_email(request):
 def check_phone(request):
 
     phone = request.GET.get('phone')
+    exclude_id = request.GET.get('exclude_id')
 
-    exists = Student.objects.filter(
+    qs = Student.objects.filter(
         phone_no=phone
-    ).exists()
+    )
 
-    guardian_exists = Student.objects.filter(
+    guardian_qs = Student.objects.filter(
         guardian_phone_no=phone
-    ).exists()
+    )
+
+    if exclude_id:
+        qs = qs.exclude(pk=exclude_id)
+        guardian_qs = guardian_qs.exclude(pk=exclude_id)
+
+    exists = qs.exists()
+    guardian_exists = guardian_qs.exists()
 
     return JsonResponse({
         'exists': exists,
         'guardian_exists': guardian_exists
     })
-
 #preview pdf
     
 def preview_receipt(request, pk):

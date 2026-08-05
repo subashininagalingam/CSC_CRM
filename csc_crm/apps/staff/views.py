@@ -159,6 +159,13 @@ def generate_employee_id():
     return f"EMP{max_number + 1:03d}"
 
 # ========================== CREATE NEW STAFF ==============================
+def _get_staff_roles_map():
+    """{ staff_id (str): role_name } — JS ku Reporting Manager dropdown 
+    filter panna use aagum."""
+    return {
+        str(s.id): s.role.role_name
+        for s in Staff.objects.filter(status='active').select_related('role')
+    }
 
 def add_staff(request):
     """Add new staff member"""
@@ -202,7 +209,8 @@ def add_staff(request):
 
     context = {
         'page_title': 'Add New Staff',
-        'form': form
+        'form': form,
+        'staff_roles_map': _get_staff_roles_map(),
     }
 
     return render(request, 'staff/add_staff.html', context)
@@ -263,7 +271,8 @@ def edit_staff(request, id):
     context = {
         'page_title':f"Edit '{staff.full_name}'",
         'form':form,
-        'staff':staff
+        'staff':staff,
+        'staff_roles_map': _get_staff_roles_map(),
     }
 
     return render(request, 'staff/edit_staff.html', context)

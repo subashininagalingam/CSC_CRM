@@ -1,9 +1,4 @@
-body {
-    margin-top: 100px;
-}
-
 .bp-wrapper {
-    margin-left: 235px;
     padding: 15px 25px;
 }
 
@@ -354,6 +349,15 @@ body {
 
 .bp-btn-view-attendance:hover {
     background: #eef2ff;
+}
+
+.bp-btn-disabled,
+.bp-btn-disabled:hover {
+    border-color: #d1d5db;
+    color: #9ca3af;
+    background: #f3f4f6;
+    cursor: not-allowed;
+    font-weight: 600;
 }
 
 /* =========================

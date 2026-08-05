@@ -2,6 +2,7 @@ body{
     margin-top:0;
     background:#F5F7FB;
     font-family:'Poppins',sans-serif;
+   
 }
 
 .table{
@@ -14,7 +15,7 @@ body{
 .fee-dashboard-container{
     max-width:none;
     margin:0;
-    padding:4px 6px 6px;
+    padding:24px 15px 10px 15px;
 }
 
 html,

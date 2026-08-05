@@ -12,6 +12,8 @@ class StaffForm(forms.ModelForm):
             'employee_id', 'first_name', 'last_name', 'email', 'phone',
             'role', 'department', 'monthly_target', 'performance_rating',
             'status', 'date_of_joining', 'date_of_birth', 'profile_photo',
+            'gender', 'blood_group', 'address', 'reporting_manager',
+            'emergency_contact_name', 'emergency_contact_phone', 'skills',
         ]
         widgets = {
             'employee_id' : forms.TextInput(attrs={
@@ -76,7 +78,53 @@ class StaffForm(forms.ModelForm):
                 'type':'date',
                 'id': 'dateOfBirthInput',
             }),
+
+            # ---- NEW FIELDS ----
+            'gender': forms.Select(attrs={
+                'class': 'form-control',
+                'id': 'genderInput',
+            }),
+            'blood_group': forms.Select(attrs={
+                'class': 'form-control',
+                'id': 'bloodGroupInput',
+            }),
+            'address': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Full address',
+                'id': 'addressInput',
+            }),
+            'reporting_manager': forms.Select(attrs={
+                'class': 'form-control',
+                'id': 'reportingManagerInput',
+            }),
+            'emergency_contact_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Emergency contact name',
+                'id': 'emergencyContactNameInput',
+            }),
+            'emergency_contact_phone': forms.TextInput(attrs={
+                'class': 'form-control',
+                'type': 'tel',
+                'placeholder': '+91 XXXXX XXXXX',
+                'id': 'emergencyContactPhoneInput',
+            }),
+            'skills': forms.HiddenInput(attrs={'id': 'skillsInput'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        qs = Staff.objects.filter(status='active')
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        self.fields['reporting_manager'].queryset = qs
+        self.fields['reporting_manager'].required = False
+
+        # Show only full name in dropdown, not employee_id
+        self.fields['reporting_manager'].label_from_instance = (
+            lambda obj: obj.full_name()
+        )
 
     def clean_employee_id(self):
         employee_id = self.cleaned_data.get('employee_id')
@@ -112,6 +160,48 @@ class StaffForm(forms.ModelForm):
         if len(phone) !=13:
             raise ValidationError("Phone number must be exactly 10 digits.")
         return phone
+
+    def clean_emergency_contact_phone(self):
+        phone = self.cleaned_data.get('emergency_contact_phone')
+        if phone and len(phone) != 13:
+            raise ValidationError("Emergency contact phone must be a valid +91 number.")
+        return phone
+
+    def clean_skills(self):
+        """skills = comma-separated names, e.g: Python, Django, Communication
+        Stored in DB as JSON: ["Python", "Django", "Communication"]"""
+        import json
+
+        MAX_SKILL_LENGTH = 30
+
+        raw = self.cleaned_data.get('skills')
+
+        if not raw or not raw.strip():
+            return '[]'
+
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, list):
+                names = []
+                for item in parsed:
+                    if isinstance(item, dict):
+                        names.append(item.get('name', '').strip())
+                    else:
+                        names.append(str(item).strip())
+                names = [n[:MAX_SKILL_LENGTH] for n in names if n]
+                return json.dumps(names)
+        except (TypeError, ValueError):
+            pass
+
+        skills_list = [
+            s.strip()[:MAX_SKILL_LENGTH]
+            for s in raw.split(',') if s.strip()
+        ]
+
+        if not skills_list:
+            return '[]'
+
+        return json.dumps(skills_list)
     
     def clean(self):
         cleaned_data = super().clean()
@@ -195,6 +285,39 @@ class StaffForm(forms.ModelForm):
 
         else:
             cleaned_data['monthly_target'] = None
+
+        # ================= REPORTING MANAGER VALIDATION =================
+
+        reporting_manager = cleaned_data.get('reporting_manager')
+
+        REPORTING_MANAGER_RULES = {
+            'Admin': None,
+            'Manager': ['Admin'],
+            'Developer': ['Manager'],
+            'Trainer': ['Manager'],
+            'HR': ['Manager'],
+            'Sales Exec Lead': ['Manager'],
+            'Marketing Lead': ['Manager'],
+            'Digital Marketing': ['Marketing Lead'],
+            'Content Creator': ['Marketing Lead'],
+            'Sales Exec': ['Sales Exec Lead'],
+        }
+
+        if role:
+            allowed_manager_roles = REPORTING_MANAGER_RULES.get(role_name, 'ANY')
+
+            if allowed_manager_roles is None:
+                cleaned_data['reporting_manager'] = None
+
+            elif allowed_manager_roles != 'ANY':
+                if reporting_manager:
+                    manager_role = reporting_manager.role.role_name
+                    if manager_role not in allowed_manager_roles:
+                        self.add_error(
+                            'reporting_manager',
+                            f"Reporting manager for {role_name} must be a "
+                            f"{' or '.join(allowed_manager_roles)}."
+                        )
 
         return cleaned_data
         

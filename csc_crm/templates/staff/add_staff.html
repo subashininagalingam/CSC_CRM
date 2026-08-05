@@ -26,6 +26,7 @@
 
          <form action="" method="POST" class="staff-mgmt-form" id="staffMgmtForm" enctype="multipart/form-data">
             {% csrf_token %}
+            {{ staff_roles_map|json_script:"staffRolesData" }}
 
             <!-- ========================== PERSONAL INFORMATION SECTION ========================== -->
              <fieldset class="staff-mgmt-form-section">
@@ -92,9 +93,35 @@
                         <div class="input-wrapper">
                             {{ form.date_of_birth }}
                             <i class="fa-regular fa-calendar"></i>
+                                        </div>
+                                        <span class="form-error" id="dateOfBirthError"></span>
+                                    </div>
+                
+                        <div class="form-group">
+                            <label class="form-label">Gender</label>
+                            <div class="input-wrapper select-wrapper">{{ form.gender }}</div>
                         </div>
-                        <span class="form-error" id="dateOfBirthError"></span>
-                    </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Blood Group</label>
+                            <div class="input-wrapper select-wrapper">{{ form.blood_group }}</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Emergency Contact Name</label>
+                            <div class="input-wrapper">{{ form.emergency_contact_name }} <i class="fa-regular fa-user"></i></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Emergency Contact Phone</label>
+                            <div class="input-wrapper">{{ form.emergency_contact_phone }} <i class="fa-solid fa-phone"></i></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Address</label>
+                            <div class="input-wrapper">{{ form.address }}</div>
+                        </div>
+      
                 </div>
              </fieldset>
 
@@ -139,8 +166,26 @@
                         </div>
                         <span class="form-error" id="statusError"></span>
                     </div>
+
+                    <div class="form-group" id="reportingManagerGroup">
+            <label class="form-label">Reporting Manager</label>
+            <div class="input-wrapper select-wrapper">{{ form.reporting_manager }}</div>
+            <span class="form-error" id="reportingManagerError"></span>
+        </div>
+
+                <div class="form-group full-width">
+            <label class="form-label">Skills (comma-separated, e.g. Python, Django)</label>
+           <div class="input-wrapper">
+            <input type="text" id="skillsTypedInput" class="form-control"
+       placeholder="Python, Django, Communication" maxlength="300">
+           </div>
+            {{ form.skills }}
+            <span class="form-error" id="skillsError"></span>
+        </div>
+
                 </div>
               </fieldset>
+               
 
               <!-- ============================ FILES AND DOCUMENTS SECTION ============================= -->
                <fieldset class="staff-mgmt-form-section">
