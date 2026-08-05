@@ -20,11 +20,11 @@ body {
 .page-head h3 {
     margin: 0;
     color: rgb(30, 42, 120);
-    font-size: 22px;
+    font-size: 20px;
 }
 
 .page-sub {
-    margin: 4px 0 0 0;
+    margin: 4px 0 5px 0;
     color: #6b7280;
     font-size: 13px;
 }
