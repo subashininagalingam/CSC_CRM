@@ -436,7 +436,7 @@ body{
     color:var(--ah-navy);
     font-weight:600;
     font-size:12.5px;
-    text-decoration: none;
+    text-decoration: underline;
 }
 
 

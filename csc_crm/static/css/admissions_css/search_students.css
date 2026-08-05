@@ -20,11 +20,11 @@ body {
 .page-head h3 {
     margin: 0;
     color: rgb(30, 42, 120);
-    font-size: 20px;
+    font-size: 22px;
 }
 
 .page-sub {
-    margin: 4px 0 5px 0;
+    margin: 4px 0 0 0;
     color: #6b7280;
     font-size: 13px;
 }
@@ -474,4 +474,9 @@ a {
 
 .kebab-item.delete-item {
     color: #d9534f;
+}
+/* ===== Field validation ===== */
+.filter-grid input.error-input,
+.filter-grid select.error-input {
+    border-color: red;
 }

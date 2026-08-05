@@ -100,11 +100,11 @@ Student List
         </select>
 
         <select name="batch">
-            <option value="">All Batch</option>
-            <option value="June 2026" {% if request.GET.batch == "June 2026" %}selected{% endif %}>June 2026</option>
-            <option value="July 2026" {% if request.GET.batch == "July 2026" %}selected{% endif %}>July 2026</option>
-            <option value="August 2026" {% if request.GET.batch == "August 2026" %}selected{% endif %}>August 2026</option>
-        </select>
+                        <option value="">All Batch</option>
+                        {% for batch in batches %}
+                        <option value="{{ batch.id }}" {% if request.GET.batch == batch.id|stringformat:"s" %}selected{% endif %}>{{ batch.batch_name }} ({{ batch.course.course_name }})</option>
+                        {% endfor %}
+                    </select>
 
         <div class="filter">
         <p id="search-error"></p>

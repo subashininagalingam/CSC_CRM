@@ -9,7 +9,7 @@ body{
 }
 .edit-container {
     width: 95%;
-    margin: 10px auto 20px auto; 
+     margin: 10px auto 20px auto; 
 
 }
 
@@ -408,7 +408,27 @@ button:hover{
     background: #b91c1c;
     
 }
+/* ===== Input icons (matches staff profile page style) ===== */
 
+.input-icon-wrapper {
+    position: relative;
+}
+
+.input-icon-wrapper input {
+    padding-right: 38px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.input-icon-wrapper i {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9aa0ac;
+    font-size: 14px;
+    pointer-events: none;
+}
 /* =========================================================================
    RESPONSIVE 
    ========================================================================= */

@@ -44,11 +44,13 @@ function validateName() {
 
     if (nameInput.value.trim() !== "" && !/^[A-Za-z ]+$/.test(nameInput.value)) {
 
+        nameInput.classList.add("error-input");
         nameError.innerText = "Only letters and spaces allowed";
         return false;
 
     } else {
 
+        nameInput.classList.remove("error-input");
         nameError.innerText = "";
         return true;
 
@@ -74,11 +76,13 @@ function validateId() {
 
     if (idInput.value.trim() !== "" && !/^\d{1,5}$/.test(idInput.value)) {
 
+        idInput.classList.add("error-input");
         idError.innerText = "ID must be 1 to 5 digits";
         return false;
 
     } else {
 
+        idInput.classList.remove("error-input");
         idError.innerText = "";
         return true;
 
@@ -104,11 +108,13 @@ function validatePhone() {
 
     if (phoneInput.value.trim() !== "" && !/^\d{10}$/.test(phoneInput.value)) {
 
+        phoneInput.classList.add("error-input");
         phoneError.innerText = "Phone number must be exactly 10 digits";
         return false;
 
     } else {
 
+        phoneInput.classList.remove("error-input");
         phoneError.innerText = "";
         return true;
 
@@ -152,6 +158,12 @@ form.addEventListener("submit", function (e) {
         error.innerText = "Please fix the highlighted fields";
         error.style.color = "red";
 
+        const firstError = form.querySelector(".error-input");
+        if (firstError) {
+            firstError.scrollIntoView({ behavior: "smooth", block: "center" });
+            firstError.focus();
+        }
+
     } else {
 
         error.innerText = "";
@@ -167,6 +179,7 @@ document.getElementById("resetBtn").addEventListener("click", function () {
     // CLEAR INPUTS
     form.querySelectorAll("input").forEach(input => {
         input.value = "";
+        input.classList.remove("error-input");
     });
 
     // RESET SELECTS

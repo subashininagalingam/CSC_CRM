@@ -126,9 +126,7 @@
         if(!value.trim()) return;
 
         try{
-            const response = await fetch(
-                `/check-lead/?${field}=${value}&lead_id=${leadId}`
-            );
+            const response = await fetch(`/leads/check-lead/?${field}=${encodeURIComponent(value)}&lead_id=${leadId}`);
 
             const data = await response.json()
 

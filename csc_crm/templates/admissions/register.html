@@ -54,23 +54,35 @@ Student Registration
 
                 <div>
                     <label>First Name *</label>
-                    {{ student_form.first_name }}
+                    <div class="input-icon-wrapper">
+                        {{ student_form.first_name }}
+                        <i class="fas fa-user"></i>
+                    </div>
                 </div>
 
                 <div>
                     <label>Last Name *</label>
-                    {{ student_form.last_name }}
+                    <div class="input-icon-wrapper">
+                        {{ student_form.last_name }}
+                        <i class="fas fa-user"></i>
+                    </div>
                 </div>
 
                 <div>
                     <label>Email *</label>
-                    {{ student_form.email }}
+                    <div class="input-icon-wrapper">
+                        {{ student_form.email }}
+                        <i class="fas fa-envelope"></i>
+                    </div>
                     <span id="email-error" class="error"></span>
                 </div>
 
                 <div>
                     <label>Phone *</label>
-                    {{ student_form.phone_no }}
+                    <div class="input-icon-wrapper">
+                        {{ student_form.phone_no }}
+                        <i class="fas fa-phone"></i>
+                    </div>
                     <span id="phone-error" class="error"></span>
                 </div>
 
@@ -86,12 +98,18 @@ Student Registration
 
                 <div>
                     <label>Guardian Name *</label>
-                    {{ student_form.guardian_name }}
+                    <div class="input-icon-wrapper">
+                        {{ student_form.guardian_name }}
+                        <i class="fas fa-user"></i>
+                    </div>
                 </div>
 
                 <div>
                     <label>Guardian Phone *</label>
-                    {{ student_form.guardian_phone_no }}
+                    <div class="input-icon-wrapper">
+                        {{ student_form.guardian_phone_no }}
+                        <i class="fas fa-phone"></i>
+                    </div>
                     <span id="guardian-phone-error" class="error"></span>
                 </div>
             </div>

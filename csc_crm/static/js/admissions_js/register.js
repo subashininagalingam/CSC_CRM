@@ -51,6 +51,30 @@ document.addEventListener("DOMContentLoaded", () => {
     const submitBtn = form.querySelector('button[type="submit"]');
 
     // ===========================
+    // PLACEHOLDER FORMAT
+    // (matches the staff profile page style)
+    // ===========================
+
+    if (emailInput) emailInput.placeholder = "e.g. name@example.com";
+
+    // "+91 " is now a permanent, always-visible prefix baked into the
+    // field value itself (not just a placeholder) - the person can only
+    // ever type/see the 10 digits after it. Pre-fill both phone fields
+    // with it on load.
+    const PHONE_PREFIX = "+91 ";
+    if (phoneInput) phoneInput.value = PHONE_PREFIX;
+    if (guardianPhoneInput) guardianPhoneInput.value = PHONE_PREFIX;
+
+    // FIX: the Django field is CharField(max_length=10), so the rendered
+    // <input> carries maxlength="10" from the widget. Since we now bake
+    // "+91 " (4 chars) into the same field, that left only 6 characters
+    // of room for the actual number - typing got silently capped after
+    // 5-6 digits. Raise the HTML maxlength to fit "+91 " + 10 digits.
+    const PHONE_MAXLENGTH = PHONE_PREFIX.length + 10; // "+91 " + 10 digits = 14
+    if (phoneInput) phoneInput.setAttribute("maxlength", String(PHONE_MAXLENGTH));
+    if (guardianPhoneInput) guardianPhoneInput.setAttribute("maxlength", String(PHONE_MAXLENGTH));
+
+    // ===========================
     // REGEX
     // ===========================
 
@@ -121,6 +145,34 @@ document.addEventListener("DOMContentLoaded", () => {
         if (error) {
             error.textContent = "";
         }
+    }
+
+    // "+91 " is a locked prefix baked into the field value. This re-applies
+    // it on every keystroke so it can never be deleted or edited - only the
+    // up-to-10 digits typed after it can change. Also keeps the cursor
+    // pinned to the end so typing feels natural.
+    function enforcePhonePrefix(input) {
+        let digits = input.value.replace(/\D/g, "");
+
+        // The prefix itself always contributes a leading "91" - drop it
+        // once so it isn't double-counted as part of the typed number.
+        if (digits.startsWith("91")) {
+            digits = digits.slice(2);
+        }
+
+        digits = digits.substring(0, 10);
+        input.value = PHONE_PREFIX + digits;
+
+        const end = input.value.length;
+        input.setSelectionRange(end, end);
+    }
+
+    // Pulls out just the real 10-digit number typed after "+91 ".
+    function extractTenDigitPhone(value) {
+        const digits = value.replace(/\D/g, "");
+        // First two digits are always the fixed "91" prefix - everything
+        // after that (up to 10 digits) is the actual number.
+        return digits.startsWith("91") ? digits.slice(2, 12) : digits.substring(0, 10);
     }
 
     // ===========================
@@ -212,7 +264,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return false;
         }
 
-        // @ missing
         if (!email.includes("@")) {
             showError(emailInput, "Email must contain '@' symbol.");
             return false;
@@ -220,7 +271,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const parts = email.split("@");
 
-        // More than one @
         if (parts.length !== 2) {
             showError(emailInput, "Email can contain only one '@' symbol.");
             return false;
@@ -254,25 +304,10 @@ document.addEventListener("DOMContentLoaded", () => {
             return false;
         }
 
-        const basicEmailPattern =
-            /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-
         if (!basicEmailPattern.test(email)) {
             showError(emailInput, "Please enter a valid email address.");
             return false;
         }
-
-        const allowedDomainEndings = [
-            ".com",
-            ".in",
-            ".co.in",
-            ".org",
-            ".org.in",
-            ".net",
-            ".edu",
-            ".edu.in",
-            ".ac.in"
-        ];
 
         const isAllowedDomain = allowedDomainEndings.some(end =>
             domain.endsWith(end)
@@ -319,10 +354,13 @@ document.addEventListener("DOMContentLoaded", () => {
     // ===========================
     // PHONE VALIDATION
     // ===========================
+    // "+91 " is a locked prefix baked into the field, and enforcePhonePrefix()
+    // keeps it that way on every keystroke - the person can only edit the
+    // 10 digits typed after it.
 
     function validatePhoneFormat() {
 
-        const phone = phoneInput.value.trim();
+        const phone = extractTenDigitPhone(phoneInput.value);
 
         if (phone === "") {
             showError(phoneInput, "Phone number is required.");
@@ -348,7 +386,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!validatePhoneFormat()) return false;
 
         try {
-            const response = await fetch(`/admission/check-phone/?phone=${encodeURIComponent(phoneInput.value.trim())}`);
+            const response = await fetch(`/admission/check-phone/?phone=${encodeURIComponent(extractTenDigitPhone(phoneInput.value))}`);
             const data = await response.json();
 
             if (data.exists) {
@@ -367,9 +405,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     phoneInput.addEventListener("input", () => {
-        phoneInput.value = phoneInput.value.replace(/\D/g, "").substring(0, 10);
+        enforcePhonePrefix(phoneInput);
         validatePhoneFormat();
     });
+    // Clicking/tabbing in should land the cursor after the prefix, not
+    // let the person select/overwrite it.
+    phoneInput.addEventListener("focus", () => enforcePhonePrefix(phoneInput));
     phoneInput.addEventListener("blur", async () => { await checkDuplicatePhone(); });
 
     // ===========================
@@ -378,7 +419,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function validateGuardianPhoneFormat() {
 
-        const phone = guardianPhoneInput.value.trim();
+        const phone = extractTenDigitPhone(guardianPhoneInput.value);
 
         if (phone === "") {
             showError(guardianPhoneInput, "Guardian phone number is required.");
@@ -395,7 +436,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return false;
         }
 
-        if (phone === phoneInput.value.trim()) {
+        if (phone === extractTenDigitPhone(phoneInput.value)) {
             showError(guardianPhoneInput, "Guardian phone number cannot be the same as the student's phone number.");
             return false;
         }
@@ -409,7 +450,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!validateGuardianPhoneFormat()) return false;
 
         try {
-            const response = await fetch(`/admission/check-phone/?phone=${encodeURIComponent(guardianPhoneInput.value.trim())}`);
+            const response = await fetch(`/admission/check-phone/?phone=${encodeURIComponent(extractTenDigitPhone(guardianPhoneInput.value))}`);
             const data = await response.json();
 
             if (data.guardian_exists) {
@@ -428,9 +469,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     guardianPhoneInput.addEventListener("input", () => {
-        guardianPhoneInput.value = guardianPhoneInput.value.replace(/\D/g, "").substring(0, 10);
+        enforcePhonePrefix(guardianPhoneInput);
         validateGuardianPhoneFormat();
     });
+    guardianPhoneInput.addEventListener("focus", () => enforcePhonePrefix(guardianPhoneInput));
     guardianPhoneInput.addEventListener("blur", async () => { await checkDuplicateGuardianPhone(); });
 
     // Re-check guardian phone if the student phone changes after the fact
@@ -453,7 +495,13 @@ document.addEventListener("DOMContentLoaded", () => {
         String(today.getDate()).padStart(2, "0");
 
     dobInput.max = todayString;
+
+    // FIX: Admission date must be TODAY only - not a future date, not a
+    // past date. Lock both min and max to today so the date picker itself
+    // won't let anything else be chosen.
     admissionDateInput.min = todayString;
+    admissionDateInput.max = todayString;
+    admissionDateInput.value = todayString;
 
     function enablePicker(input) {
         input.addEventListener("click", () => {
@@ -503,8 +551,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const selected = new Date(admissionDateInput.value);
         selected.setHours(0, 0, 0, 0);
 
-        if (selected < today) {
-            showError(admissionDateInput, "Admission date must be today or a future date.");
+        // FIX: must be exactly today - neither before nor after
+        if (selected.getTime() !== today.getTime()) {
+            showError(admissionDateInput, "Admission date must be today's date.");
             return false;
         }
 
@@ -558,19 +607,15 @@ document.addEventListener("DOMContentLoaded", () => {
         return true;
     }
 
-    // Gender
     genderInput.addEventListener("change", validateGender);
     genderInput.addEventListener("blur", validateGender);
 
-    // Address
     addressInput.addEventListener("input", validateAddress);
     addressInput.addEventListener("blur", validateAddress);
 
-    // Course
     courseInput.addEventListener("change", validateCourse);
     courseInput.addEventListener("blur", validateCourse);
 
-    // Batch
     batchInput.addEventListener("change", validateBatch);
     batchInput.addEventListener("blur", validateBatch);
 
@@ -665,7 +710,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function handleMultipleFileChange(input, store, progressBar, progressText, removeBtn) {
 
-        // If user opens file explorer and clicks Cancel
         if (input.files.length === 0) {
             input.files = store.files;
             updateDocumentUI(store, progressBar, progressText, removeBtn);
@@ -788,6 +832,45 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // ===========================
+    // SERVER-SIDE ERROR MAPPING (for AJAX submit)
+    // ===========================
+    // Maps the Django field name (as it appears in form.errors) to the
+    // actual input element on this page, so server-side errors can be
+    // shown inline without a full page reload / file reset.
+
+    const fieldNameToInput = {
+        first_name: firstNameInput,
+        last_name: lastNameInput,
+        email: emailInput,
+        phone_no: phoneInput,
+        dob: dobInput,
+        gender: genderInput,
+        guardian_name: guardianNameInput,
+        guardian_phone_no: guardianPhoneInput,
+        address: addressInput,
+        photo: photoInput,
+        course_name: courseInput,
+        batch: batchInput,
+        start_date: admissionDateInput,
+        id_proof: idProofInput,
+        certificate: certificateInput
+    };
+
+    function showServerErrors(errors) {
+        if (!errors) return;
+
+        Object.keys(errors).forEach(fieldName => {
+            const input = fieldNameToInput[fieldName];
+            if (!input) return;
+
+            const raw = errors[fieldName];
+            const message = Array.isArray(raw) ? raw[0] : raw;
+
+            showError(input, message);
+        });
+    }
+
+    // ===========================
     // SINGLE SUBMIT HANDLER
     // ===========================
     // Everything funnels through exactly one listener so nothing can
@@ -800,6 +883,12 @@ document.addEventListener("DOMContentLoaded", () => {
         e.preventDefault();
 
         if (isSubmitting) return;
+
+        // Normalize phone fields to plain 10-digit numbers in case the
+        // person clicks Save without ever leaving (blurring) the field -
+        // otherwise a raw "+91..." value could slip through to the server.
+        phoneInput.value = extractTenDigitPhone(phoneInput.value);
+        guardianPhoneInput.value = extractTenDigitPhone(guardianPhoneInput.value);
 
         // ---- Step 1: cheap synchronous checks first ----
         let valid = true;
@@ -821,6 +910,25 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!validateEmailFormat()) valid = false;
         if (!validatePhoneFormat()) valid = false;
         if (!validateGuardianPhoneFormat()) valid = false;
+
+        // FIX: file size checks now feed into the same `valid` flag
+        // instead of an undeclared `isValid` variable that never
+        // actually blocked submission.
+        for (const file of idProofInput.files) {
+            if (file.size > MAX_FILE_SIZE) {
+                showError(idProofInput, "Each ID Proof file must be less than 5 MB.");
+                valid = false;
+                break;
+            }
+        }
+
+        for (const file of certificateInput.files) {
+            if (file.size > MAX_FILE_SIZE) {
+                showError(certificateInput, "Each Certificate file must be less than 5 MB.");
+                valid = false;
+                break;
+            }
+        }
 
         if (!valid) {
             const firstError = document.querySelector(".error-input");
@@ -860,34 +968,66 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // ID Proof Size Validation
-        for (const file of idProofInput.files) {
-            if (file.size > MAX_FILE_SIZE) {
-                showError(idProofInput, "Each ID Proof file must be less than 5 MB.");
-                isValid = false;
-                break;
-            }
-        }
-
-        // Certificate Size Validation
-        for (const file of certificateInput.files) {
-            if (file.size > MAX_FILE_SIZE) {
-                showError(certificateInput, "Each Certificate file must be less than 5 MB.");
-                isValid = false;
-                break;
-            }
-        }
-
-        // ---- Step 3: all good, submit for real ----
-        // form.submit() (not requestSubmit) so this does NOT re-fire
-        // the "submit" event and re-run this handler again.
+        // ---- Step 3: all good, submit via AJAX ----
+        // We use fetch() instead of form.submit() so a server-side
+        // validation error does NOT cause a full page reload - a full
+        // reload wipes out any selected files (browser restriction),
+        // which is what was happening before. On error we just show the
+        // messages inline and the user's files/inputs stay exactly as
+        // they were.
         if (submitBtn) {
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
         }
 
-        form.submit();
+        try {
+            const formData = new FormData(form);
+
+            const response = await fetch(form.action, {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Server accepted it - now it's safe to leave the page.
+                window.location.href = data.redirect_url || form.action;
+                return;
+            }
+
+            // Server-side validation failed (e.g. a duplicate that slipped
+            // past the client-side check, or a server-only rule). Show the
+            // errors inline - no reload, so files/inputs are untouched.
+            showServerErrors(data.errors);
+
+            isSubmitting = false;
+
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = submitBtn.dataset.originalText;
+            }
+
+            const firstError = document.querySelector(".error-input");
+            if (firstError) {
+                firstError.scrollIntoView({ behavior: "smooth", block: "center" });
+                firstError.focus();
+            }
+
+        } catch (err) {
+            console.log(err);
+
+            isSubmitting = false;
+
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = submitBtn.dataset.originalText;
+            }
+
+            alert("Something went wrong while saving. Please try again.");
+        }
     });
-
-
 
 });

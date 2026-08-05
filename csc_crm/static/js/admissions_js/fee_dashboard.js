@@ -7,6 +7,26 @@ document.addEventListener("DOMContentLoaded", function () {
     const paymentForm = document.querySelector(".payment-card form");
 
     /*=========================================
+            ERROR HELPERS
+            (same red-border + message pattern
+            used on register / edit student pages)
+    =========================================*/
+
+    function showError(input, errorEl, message) {
+
+        if (input) input.classList.add("error-input");
+        if (errorEl) errorEl.innerText = message;
+
+    }
+
+    function clearError(input, errorEl) {
+
+        if (input) input.classList.remove("error-input");
+        if (errorEl) errorEl.innerText = "";
+
+    }
+
+    /*=========================================
             AMOUNT VALIDATION (real-time)
     =========================================*/
 
@@ -22,12 +42,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (raw === "" || isNaN(value) || value <= 0) {
 
-            amountError.innerText = "Amount must be greater than 0";
+            showError(amountInput, amountError, "Amount must be greater than 0");
             return false;
 
         } else {
 
-            amountError.innerText = "";
+            clearError(amountInput, amountError);
             return true;
 
         }
@@ -75,7 +95,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         paymentModeError = document.createElement("small");
         paymentModeError.id = "paymentMode-error";
-        paymentModeError.className = "text-danger";
+        paymentModeError.className = "error";
         paymentMode.insertAdjacentElement("afterend", paymentModeError);
 
     }
@@ -86,12 +106,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (!paymentMode.value) {
 
-            paymentModeError.innerText = "Please select a payment mode";
+            showError(paymentMode, paymentModeError, "Please select a payment mode");
             return false;
 
         } else {
 
-            paymentModeError.innerText = "";
+            clearError(paymentMode, paymentModeError);
             return true;
 
         }
@@ -112,14 +132,13 @@ document.addEventListener("DOMContentLoaded", function () {
             referenceInput.required = false;
             referenceInput.value = "";
             referenceInput.placeholder = "Not Required for Cash";
+            clearError(referenceInput, referenceError);
 
         }
 
     }
 
     if (paymentMode && referenceInput) {
-
-        toggleReference();
 
         paymentMode.addEventListener("change", function () {
 
@@ -143,9 +162,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
         referenceError = document.createElement("small");
         referenceError.id = "reference-error";
-        referenceError.className = "text-danger";
+        referenceError.className = "error";
         referenceInput.insertAdjacentElement("afterend", referenceError);
 
+    }
+
+    // toggleReference() references referenceError, so run it only after
+    // referenceError has been created above
+    if (paymentMode && referenceInput) {
+        toggleReference();
     }
 
     function validateReference() {
@@ -154,12 +179,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (referenceInput.required && referenceInput.value.trim() === "") {
 
-            referenceError.innerText = "Reference ID is required for " + paymentMode.value + " payments";
+            showError(
+                referenceInput,
+                referenceError,
+                "Reference ID is required for " + paymentMode.value + " payments"
+            );
             return false;
 
         } else {
 
-            referenceError.innerText = "";
+            clearError(referenceInput, referenceError);
             return true;
 
         }
@@ -191,7 +220,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         studentError = document.createElement("small");
         studentError.id = "student-error";
-        studentError.className = "text-danger";
+        studentError.className = "error";
         studentSelect.insertAdjacentElement("afterend", studentError);
 
     }
@@ -202,12 +231,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (!studentSelect.value) {
 
-            studentError.innerText = "Please select a student";
+            showError(studentSelect, studentError, "Please select a student");
             return false;
 
         } else {
 
-            studentError.innerText = "";
+            clearError(studentSelect, studentError);
             return true;
 
         }
@@ -252,7 +281,16 @@ document.addEventListener("DOMContentLoaded", function () {
             const validStudent = validateStudent();
 
             if (!validAmount || !validMode || !validReference || !validStudent) {
+
                 e.preventDefault();
+
+                // same "jump to first error" behaviour as register / edit student
+                const firstError = paymentForm.querySelector(".error-input");
+                if (firstError) {
+                    firstError.scrollIntoView({ behavior: "smooth", block: "center" });
+                    firstError.focus();
+                }
+
             }
 
         });

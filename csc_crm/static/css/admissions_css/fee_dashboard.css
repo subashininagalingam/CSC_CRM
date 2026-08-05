@@ -356,12 +356,20 @@ body{
     box-shadow:0 0 0 3px rgba(37,99,235,.12);
 }
 
+
 /* Validation */
 
 .text-danger{
     display:block;
     margin-top:4px;
     font-size:11px;
+    color:#DC2626;
+}
+
+.payment-card .form-control.error-input,
+.payment-card .form-select.error-input{
+    border-color:#DC2626;
+    box-shadow:0 0 0 3px rgba(220,38,38,.12);
 }
 
 /* Button */
