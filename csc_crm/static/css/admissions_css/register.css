@@ -9,7 +9,7 @@ body{
 }
 .edit-container {
     width: 95%;
-    margin: 30px auto 20px auto; 
+    margin: 10px auto 20px auto; 
 
 }
 
@@ -28,6 +28,7 @@ strong,p{
 }
 p{
     font-size: 12px;
+    padding-bottom: 15px;
 }
 
 /* icon style */
