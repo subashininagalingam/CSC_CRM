@@ -9,7 +9,7 @@ body{
 }
 .edit-container {
     width: 95%;
-     margin: 10px auto 20px auto; 
+    margin: 30px auto 20px auto; 
 
 }
 
@@ -23,15 +23,11 @@ body{
     margin-bottom: 10px;
 }
 
-strong{
+strong,p{
     color: rgb(30, 42, 120);
-    font-weight: 600;
 }
 p{
-    font-size: 14px;
-    margin-bottom: 15px;
-    margin-top: 3px;
-    color: #3f3f3f;
+    font-size: 12px;
 }
 
 /* icon style */
@@ -409,15 +405,29 @@ button:hover{
     
 }
 /* ===== Input icons (matches staff profile page style) ===== */
+/* Now also applies to <select> fields (Course, Batch, Gender, etc.) —
+   previously this only targeted <input>, so select boxes in
+   Course Enrollment had no right-padding and no icon support. */
 
 .input-icon-wrapper {
     position: relative;
 }
 
-.input-icon-wrapper input {
+.input-icon-wrapper input,
+.input-icon-wrapper select {
     padding-right: 38px;
     width: 100%;
     box-sizing: border-box;
+}
+
+/* Selects keep their native arrow by default, which would sit right on
+   top of our icon at right:12px. Push selects to use a custom arrow
+   further right isn't needed — instead we hide the native arrow and
+   let our own icon act as the only right-side glyph, matching input fields. */
+.input-icon-wrapper select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
 }
 
 .input-icon-wrapper i {
@@ -428,6 +438,52 @@ button:hover{
     color: #9aa0ac;
     font-size: 14px;
     pointer-events: none;
+}
+
+/* Date inputs (DOB, Admission Date) show their own native browser
+   calendar icon by default, on top of our custom .fa-calendar-alt icon -
+   that's the "two icons" issue. Hide the native one so only our icon
+   shows. Clicking still works because the existing JS (enablePicker)
+   already listens for click on the whole <input>, not just the native
+   indicator, and calls input.showPicker(). */
+.input-icon-wrapper input[type="date"]::-webkit-calendar-picker-indicator {
+    display: none;
+}
+
+.input-icon-wrapper input[type="date"] {
+    cursor: pointer;
+}
+
+/* Firefox doesn't support ::-webkit-calendar-picker-indicator; it
+   already shows only one native icon there, so no extra rule needed -
+   this webkit rule only affects Chrome/Edge/Safari where the double
+   icon appears. */
+
+/* ===== Phone field: separate "+91" box (matches edit_student page) ===== */
+
+.phone-wrapper {
+    display: flex;
+    width: 100%;
+}
+
+.country-code {
+    width: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f5f5f5;
+    border: 1px solid #d1d5db;
+    border-right: none;
+    border-radius: 6px 0 0 6px;
+    font-size: 14px;
+}
+
+.phone-wrapper .input-icon-wrapper {
+    flex: 1;
+}
+
+.phone-wrapper input {
+    border-radius: 0 6px 6px 0;
 }
 /* =========================================================================
    RESPONSIVE 

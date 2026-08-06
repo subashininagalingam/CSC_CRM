@@ -14,7 +14,7 @@ Student Registration
 
 {% block content %}
 <div class="edit-container">
-    <h4> <strong>Student Registration</strong></h4>
+    <h6> <strong>Student Registration</strong></h6>
     <p>Fill the student details to register a new admission</p>
 
     {% if student_form.errors or admission_form.errors or enrollment_form.errors %}
@@ -79,21 +79,30 @@ Student Registration
 
                 <div>
                     <label>Phone *</label>
-                    <div class="input-icon-wrapper">
-                        {{ student_form.phone_no }}
-                        <i class="fas fa-phone"></i>
+                    <div class="phone-wrapper">
+                        <span class="country-code">+91</span>
+                        <div class="input-icon-wrapper">
+                            {{ student_form.phone_no }}
+                            <i class="fas fa-phone"></i>
+                        </div>
                     </div>
                     <span id="phone-error" class="error"></span>
                 </div>
 
                 <div>
                     <label>Date of Birth *</label>
-                    {{ student_form.dob }}
+                    <div class="input-icon-wrapper">
+                        {{ student_form.dob }}
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
                 </div>
 
                 <div>
                     <label>Gender *</label>
-                    {{ student_form.gender }}
+                    <div class="input-icon-wrapper">
+                        {{ student_form.gender }}
+                        <i class="fas fa-venus-mars"></i>
+                    </div>
                 </div>
 
                 <div>
@@ -106,9 +115,12 @@ Student Registration
 
                 <div>
                     <label>Guardian Phone *</label>
-                    <div class="input-icon-wrapper">
-                        {{ student_form.guardian_phone_no }}
-                        <i class="fas fa-phone"></i>
+                    <div class="phone-wrapper">
+                        <span class="country-code">+91</span>
+                        <div class="input-icon-wrapper">
+                            {{ student_form.guardian_phone_no }}
+                            <i class="fas fa-phone"></i>
+                        </div>
                     </div>
                     <span id="guardian-phone-error" class="error"></span>
                 </div>
@@ -132,37 +144,49 @@ Student Registration
 
                 <div>
                     <label>Course *</label><br>
-                    <select name="course_name" id="id_course">
-                        <option value="">Select Course</option>
-                        {% for c in courses %}
-                        <option value="{{ c.id }}" data-duration="{{ c.duration }}" data-fee="{{ c.course_fee }}" >
-                            {{ c.course_name }}
-                        </option>
-                        {% endfor %}
-                    </select>
+                    <div class="input-icon-wrapper">
+                        <select name="course_name" id="id_course">
+                            <option value="">Select Course</option>
+                            {% for c in courses %}
+                            <option value="{{ c.id }}" data-duration="{{ c.duration }}" data-fee="{{ c.course_fee }}" >
+                                {{ c.course_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <i class="fas fa-book"></i>
+                    </div>
                 </div>
 
                 <div>
                     <label>Batch *</label><br>
-
-                    {{ enrollment_form.batch }}
-
+                    <div class="input-icon-wrapper">
+                        {{ enrollment_form.batch }}
+                        <i class="fas fa-layer-group"></i>
+                    </div>
                 </div>
 
                 <div>
                     <label>Duration (Month)</label><br>
-                    <input type="text" id="duration" placeholder="Duration" readonly required>
+                    <div class="input-icon-wrapper">
+                        <input type="text" id="duration" placeholder="Duration" readonly required>
+                        <i class="fas fa-clock"></i>
+                    </div>
                 </div>
 
                 <div>
                     <label>Admission Date*</label><br>
-                    {{ enrollment_form.start_date }}
-
+                    <div class="input-icon-wrapper">
+                        {{ enrollment_form.start_date }}
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
                 </div>
 
                 <div>
                     <label>Course Fee</label><br>
-                    <input type="text" id="fee" placeholder="Course Fee" readonly required>
+                    <div class="input-icon-wrapper">
+                        <input type="text" id="fee" placeholder="Course Fee" readonly required>
+                        <i class="fas fa-indian-rupee-sign"></i>
+                    </div>
                 </div>
 
             </div>

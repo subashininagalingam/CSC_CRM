@@ -362,3 +362,202 @@ document.addEventListener("DOMContentLoaded", function () {
     console.log("Fee Dashboard Loaded Successfully.");
 
 });
+//Name Valdiation
+
+function validateName(input,error,message){
+
+let value=input.value.trim();
+
+value=value.replace(/[^A-Za-z ]/g,"");
+
+input.value=value;
+
+if(value===""){
+
+showError(input,error,message);
+
+return false;
+
+}
+
+clearError(input,error);
+
+return true;
+
+}
+
+//phone validation
+
+function validatePhone(input,error){
+
+let phone=input.value.replace(/\D/g,'');
+
+input.value=phone;
+
+if(phone.length!=10){
+
+showError(input,error,"Phone number must contain exactly 10 digits.");
+
+return false;
+
+}
+
+if(!/^[6-9]/.test(phone)){
+
+showError(input,error,"Phone number must start with 6, 7, 8 or 9.");
+
+return false;
+
+}
+
+clearError(input,error);
+
+return true;
+
+}
+ // Email Validation
+
+ function validateEmail(input,error){
+
+let email=input.value.trim();
+
+const pattern=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+if(!pattern.test(email)){
+
+showError(input,error,"Enter a valid email address.");
+
+return false;
+
+}
+
+clearError(input,error);
+
+return true;
+
+}
+
+// DOB Validation
+function validateDOB(input,error){
+
+const dob=new Date(input.value);
+
+const today=new Date();
+
+if(dob>=today){
+
+showError(input,error,"Future date is not allowed.");
+
+return false;
+
+}
+
+let age=today.getFullYear()-dob.getFullYear();
+
+const month=today.getMonth()-dob.getMonth();
+
+if(month<0 || (month===0 && today.getDate()<dob.getDate())){
+
+age--;
+
+}
+
+if(age<18){
+
+showError(input,error,"Student must be at least 18 years old.");
+
+return false;
+
+}
+
+clearError(input,error);
+
+return true;
+
+}
+
+// Admission Date Validation
+
+const today=new Date().toISOString().split("T")[0];
+
+startDate.value=today;
+
+startDate.min=today;
+
+startDate.max=today;
+
+
+// Address Validation
+
+if(address.value.trim().length<10){
+
+showError(address,addressError,"Enter complete address.");
+
+}
+// Course Validation
+
+if(course.value==""){
+
+showError(course,courseError,"Please select a course.");
+
+}
+
+// Batch Valdiation
+
+if(course.value==""){
+
+showError(course,courseError,"Please select a course.");
+
+}
+
+//Gender Validation
+
+if(gender.value==""){
+
+showError(gender,genderError,"Please select gender.");
+
+}
+
+// First Name Validation
+firstName.addEventListener("input",()=>{
+
+validateName(firstName,firstNameError,"First Name is required.");
+
+});
+
+const courseSelect = document.getElementById("id_course");
+const durationInput = document.getElementById("duration");
+const feeInput = document.getElementById("fee");
+
+function updateCourseDetails() {
+
+    if (!courseSelect) return;
+
+    const option = courseSelect.options[courseSelect.selectedIndex];
+
+    durationInput.value = option.dataset.duration || "";
+    feeInput.value = option.dataset.fee || "";
+}
+
+// Change Course
+courseSelect.addEventListener("change", updateCourseDetails);
+
+// Load Existing Data
+updateCourseDetails();
+
+function loadCourseDetails() {
+
+    const selected = courseSelect.options[courseSelect.selectedIndex];
+
+    durationInput.value = selected.dataset.duration || "";
+    feeInput.value = selected.dataset.fee || "";
+
+}
+
+if (courseSelect) {
+
+    courseSelect.addEventListener("change", loadCourseDetails);
+
+    loadCourseDetails();
+
+}
