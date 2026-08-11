@@ -92,10 +92,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
    Staff Profile
 </a>
 
-<a href="{% url 'leads:lead_capture_list' %}"
-   class="{% if request.resolver_match.namespace == 'leads' %}active{% endif %}">
-   Leads Capture
-</a>
+
 </div>
     
      {% include "includes/sidebar.html" %}

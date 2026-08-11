@@ -2,10 +2,10 @@
  CSC CRM PROFESSIONAL PAYMENT RECEIPT
 ==================================================*/
 
-/* @page{
+@page{
     size:A4;
     margin:8mm;
-} */
+}
 
 *{
     margin:0;
