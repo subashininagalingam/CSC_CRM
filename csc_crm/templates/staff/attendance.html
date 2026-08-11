@@ -3,7 +3,7 @@
 {% load static %}
 {% block content %}
 
-
+<!--=========================== Attendance-Container ==========================-->
 
 <div class="attendance-container">
 {% if messages %}
@@ -20,17 +20,15 @@
 
 {% endif %}
 
+    <!--===================== HEADING ============================-->
 
-
-
-    <!-- HEADING -->
    <div class="heading-section">
 
     <button class="att-nav-toggle" id="attnavToggle">
             <i class="fas fa-bars"></i>
         </button>
 
-        <!-- Hamburger -->
+        <!--======================== Hamburger ==============================-->
 
 <nav class="att-nav-tabs" id="attnavTabs">
 
@@ -95,12 +93,8 @@
 {% endif %}
 </div>
 
+<!-- ================================== PROFILE ======================= -->
 
-
-
-
-    
-<!-- ===== PROFILE ===== -->
 {% if staff.role.role_name == "BDE" or staff.role.role_name == "Telecall" or staff.role.role_name == "Sales Exec" or staff.role.role_name == "Manager" or staff.role.role_name == "Digital Marketing" or staff.role.role_name == "Content Creator" or staff.role.role_name == "HR" or staff.role.role_name == "Trainer" or staff.role.role_name == "Developer" %}
 <div class="att-profile-card">
 
@@ -231,6 +225,7 @@
 </div>
 {% endif %}
 
+<!--=========================== Attendance-Dashboard ==========================-->
 
 <div id="attendance-dashboard" >
 
@@ -318,7 +313,8 @@
 
     <div class="attendance-boxes">
 
-        <!-- Log In -->
+        <!--============================== Log In ======================-->
+
         <div class="attendance-box"  >
             <p>Log In</p>
             <h3 class="login-time">
@@ -399,7 +395,8 @@
 </div>
 
 
-    <!-- HISTORY -->
+    <!--============================ HISTORY ==================-->
+
     <div class="history-section">
 
         <!-- FILTERS -->
@@ -454,8 +451,8 @@
 
     </div>
         
+        <!--========================= TABLE ========================-->
 
-        <!-- TABLE -->
         <div class="table-wrapper">
         <table >
 
@@ -525,6 +522,8 @@
             </tbody>
 
         </table>
+
+        <!--=========================== Attendance-Pagination ==========================-->
  <div class="attendance-pagination">
 
     {% if attendance_data.has_previous %}

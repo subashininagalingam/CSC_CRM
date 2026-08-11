@@ -6,6 +6,24 @@ from datetime import date
 class StaffForm(forms.ModelForm):
     """Form Adding/Editing Staff members"""
 
+    password = forms.CharField(
+        required=True,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter password',
+            'autocomplete': 'new-password',
+        })
+    )
+        
+    confirm_password = forms.CharField(
+        required=True,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Confirm password',
+            'autocomplete': 'new-password',
+        })
+    )
+
     class Meta:
         model = Staff
         fields = [
@@ -18,7 +36,7 @@ class StaffForm(forms.ModelForm):
         widgets = {
             'employee_id' : forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Auto-generated'
+                'placeholder': 'Enter Employee ID'
             }),
             'first_name' : forms.TextInput(attrs={
                 'class': 'form-control',
@@ -102,6 +120,7 @@ class StaffForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Emergency contact name',
                 'id': 'emergencyContactNameInput',
+                'maxlength': '40',
             }),
             'emergency_contact_phone': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -111,6 +130,8 @@ class StaffForm(forms.ModelForm):
             }),
             'skills': forms.HiddenInput(attrs={'id': 'skillsInput'}),
         }
+
+    
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -161,6 +182,24 @@ class StaffForm(forms.ModelForm):
             raise ValidationError("Phone number must be exactly 10 digits.")
         return phone
 
+    def clean_emergency_contact_name(self):
+        import re
+
+        name = self.cleaned_data.get('emergency_contact_name')
+
+        if not name:
+            return name
+
+        name = name.strip()
+
+        if len(name) > 40:
+            raise ValidationError("Emergency contact name cannot exceed 40 characters.")
+
+        if not re.match(r'^[a-zA-Z\s]+$', name):
+            raise ValidationError("Emergency contact name should contain letters only.")
+
+        return name
+
     def clean_emergency_contact_phone(self):
         phone = self.cleaned_data.get('emergency_contact_phone')
         if phone and len(phone) != 13:
@@ -168,9 +207,10 @@ class StaffForm(forms.ModelForm):
         return phone
 
     def clean_skills(self):
-        """skills = comma-separated names, e.g: Python, Django, Communication
-        Stored in DB as JSON: ["Python", "Django", "Communication"]"""
+        """skills = comma-separated names (letters only), e.g: Python, Django
+        Stored in DB as JSON: ["Python", "Django"]"""
         import json
+        import re
 
         MAX_SKILL_LENGTH = 30
 
@@ -189,22 +229,32 @@ class StaffForm(forms.ModelForm):
                     else:
                         names.append(str(item).strip())
                 names = [n[:MAX_SKILL_LENGTH] for n in names if n]
-                return json.dumps(names)
+                raw_names = names
+            else:
+                raw_names = []
         except (TypeError, ValueError):
-            pass
+            raw_names = [s.strip()[:MAX_SKILL_LENGTH] for s in raw.split(',') if s.strip()]
 
-        skills_list = [
-            s.strip()[:MAX_SKILL_LENGTH]
-            for s in raw.split(',') if s.strip()
-        ]
+        for skill_name in raw_names:
+            if re.search(r'\d', skill_name):
+                raise ValidationError(f"Skill '{skill_name}' should not contain numbers.")
 
-        if not skills_list:
-            return '[]'
-
-        return json.dumps(skills_list)
+        return json.dumps(raw_names)
     
     def clean(self):
         cleaned_data = super().clean()
+
+         # ================= PASSWORD VALIDATION =================
+
+        password = cleaned_data.get('password')
+        confirm_password = cleaned_data.get('confirm_password')
+    
+        if password and confirm_password:
+            if password != confirm_password:
+                self.add_error(
+                    'confirm_password',
+                    'Passwords do not match.'
+            )
 
         date_of_birth = cleaned_data.get('date_of_birth')
         date_of_joining = cleaned_data.get('date_of_joining')

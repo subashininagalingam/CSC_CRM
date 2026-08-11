@@ -5,6 +5,8 @@
 
 <link rel="stylesheet" href="{% static 'css/staff_css/documents.css' %}">
 
+<!--===================================== Header Section ===============================-->
+
 <div class="doc-page">
 
     <div class="doc-top-header">
@@ -62,7 +64,8 @@
     {% endif %}
 
   
-<!-- ===== PROFILE ===== -->
+<!-- ====================================== PROFILE ====================================== -->
+
  {% if staff.role.role_name == "Sales Exec" or staff.role.role_name == "Sales Exec Lead" or staff.role.role_name == "Manager" or staff.role.role_name == "Digital Marketing" or staff.role.role_name == "Content Creator" or staff.role.role_name == "HR" or staff.role.role_name == "Trainer" or staff.role.role_name == "Developer" or staff.role.role_name == "Admin" or staff.role.role_name == "Marketing Lead" %}
 <div class="doc-profile-card">
 
@@ -185,6 +188,7 @@
 </div>
 {% endif %}
 
+<!-- ===================== Summary =============================-->
 
     <div class="doc-summary-grid">
         <div class="doc-summary-card">
@@ -208,6 +212,8 @@
         </div>
     </div>
 
+    <!--===================================== Doc Section ===========================================-->
+    
     <div class="doc-main-layout" id="docMainLayout">
 
         <div class="doc-vault-card">

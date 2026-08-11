@@ -33,7 +33,7 @@ body{
     margin: 0;
     background: var(--csc-bg);
     padding: 12px 0px 0px;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    /* font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; */
     color: var(--csc-text);
 }
 

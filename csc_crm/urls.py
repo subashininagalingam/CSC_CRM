@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import path,include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.shortcuts import redirect
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -25,6 +26,8 @@ urlpatterns = [
     path('staff/', include('csc_crm.apps.staff.urls')),
     path('admission/', include('csc_crm.apps.admissions.urls')),
     path('api/', include('csc_crm.apps.student_attendance.urls')),
+
+    path('', lambda request: redirect('staff_login')),
 ]
 if settings.DEBUG:
     urlpatterns += static(

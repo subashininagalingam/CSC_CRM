@@ -26,7 +26,7 @@ body{
 strong,p{
     color: rgb(30, 42, 120);
 }
-p{
+.edit-container p{
     font-size: 12px;
     padding-bottom: 15px;
 }

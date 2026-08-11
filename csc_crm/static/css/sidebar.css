@@ -40,9 +40,9 @@
     display:flex;
     align-items:center;
 
-    gap:13px;
+    gap:14px;
 
-    padding:12px 12px;
+    padding:10px 12px;
 
     text-decoration:none;
 
@@ -50,8 +50,8 @@
 
     border-radius:10px;
 
-    font-size:13px;
-    font-weight:600 !important;
+    font-size:15px;
+    font-weight:500 !important;
 
     transition:0.25s ease;
 
@@ -225,6 +225,214 @@
     background: rgba(255,255,255,.12);
     color: white;
     box-shadow: none;
+}
+
+/* =========================================================
+   PREMIUM SIDEBAR FOOTER
+========================================================= */
+
+/* =========================================================
+   PREMIUM SIDEBAR FOOTER
+========================================================= */
+
+.sidebar-footer {
+    margin-top: auto;
+    padding: 16px 16px 18px;
+
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+
+    
+
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 -5px 18px rgba(0, 0, 0, 0.10);
+
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+
+/* ================= SIGNED IN TEXT ================= */
+
+.sidebar-users-role {
+    text-align: center;
+    font-size: 14px;
+    padding: 8px 0px;
+    color: #ffffff;
+    font-weight: 600;
+    letter-spacing: 1.15px;
+}
+
+.sidebar-users-role span {
+    color: #aaa8c8;
+
+    font-weight: 400;
+
+    margin-right: 3px;
+}
+
+
+/* ================= LOGOUT FORM ================= */
+
+.sidebar-footer form {
+    margin: 0;
+}
+
+
+/* ================= LOGOUT BUTTON ================= */
+
+.logout-btnn {
+    width: 85px;
+    height: 32px;
+
+    margin: 5px 0;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    border: 1px solid rgba(255, 255, 255, 0.38);
+
+    border-radius: 9px;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(255, 255, 255, 0.10),
+            rgba(255, 255, 255, 0.035)
+        );
+
+    color: #ffffff;
+
+    font-family: 'Poppins', sans-serif;
+
+    font-size: 12px;
+    font-weight: 500;
+
+    cursor: pointer;
+
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.10),
+        0 3px 10px rgba(0, 0, 0, 0.10);
+
+    transition:
+        all 0.25s ease;
+}
+
+
+/* ================= ICON ================= */
+
+.logout-btnn i {
+    font-size: 12px;
+
+    transition:
+        transform 0.25s ease;
+}
+
+
+/* ================= HOVER ================= */
+
+.logout-btnn:hover {
+    background:
+        linear-gradient(
+            145deg,
+            #ff3030,
+            #dc0808
+        );
+
+    border-color: rgba(255, 255, 255, 0.45);
+
+    color: #ffffff;
+
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 6px 16px rgba(220, 8, 8, 0.30);
+}
+
+.logout-btnn:hover i {
+    transform: translateX(2px);
+}
+
+
+/* ================= CLICK ================= */
+
+.logout-btnn:active {
+    transform: translateY(0);
+
+    box-shadow:
+        0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+
+/* ================= COPYRIGHT ================= */
+
+.sidebar-footer > p:not(.sidebar-users-role) {
+    margin: 8px 0 0;
+
+    text-align: center;
+
+    color: rgba(255, 255, 255, 0.78);
+
+    font-size: 10px;
+
+    font-weight: 500;
+}
+
+.sidebar-footer > small {
+    display: block;
+
+    margin-top: 1px;
+
+    text-align: center;
+
+    color: rgba(255, 255, 255, 0.52);
+
+    font-size: 9px;
+}
+
+
+/* =========================================================
+   COLLAPSED SIDEBAR
+========================================================= */
+
+.sidebar.collapsed .sidebar-footer {
+    padding: 14px 10px;
+}
+
+.sidebar.collapsed .sidebar-users-role {
+    display: none;
+}
+
+.sidebar.collapsed .logout-btnn {
+    width: 42px;
+    height: 42px;
+
+    margin: 0 auto;
+
+    padding: 0;
+
+    font-size: 0;
+}
+
+.sidebar.collapsed .logout-btnn i {
+    font-size: 15px;
+}
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 768px) {
+
+    .sidebar-users-role {
+        font-size: 11px;
+    }
+
+    .logout-btnn {
+        height: 44px;
+    }
 }
 /* --------------MOBILE---------- */
 

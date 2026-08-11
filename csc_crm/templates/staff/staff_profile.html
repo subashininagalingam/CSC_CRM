@@ -14,7 +14,8 @@
 <script>setTimeout(()=>{let el=document.getElementById('sp-msgs');if(el){el.style.transition='opacity .4s';el.style.opacity='0';setTimeout(()=>el.remove(),400);}},3000);</script>
 {% endif %}
 
-<!-- ── PAGE HEADER ── -->
+<!-- ======================================== PAGE HEADER =========================================== -->
+ 
 <div class="sp-header">
   <div>
     <div class="sp-back-row">
@@ -26,7 +27,8 @@
   <button class="sp-edit-btn" onclick="openEditModal()"><i class="fa fa-pencil"></i> Edit Profile</button>
 </div>
 
-<!-- ── TOP PROFILE CARD ── -->
+<!-- ========================================== TOP PROFILE CARD ==================================== -->
+ 
 <div class="sp-top-card">
 
   <!-- Avatar col -->
@@ -75,7 +77,8 @@
 
 </div>
 
-<!-- ── KPI CARDS ── -->
+<!-- ==================================== KPI CARDS ======================================= -->
+
 <div class="sp-kpi-row">
   <div class="sp-kpi-card">
     <div class="sp-kpi-icon" style="background:#3b82f6"><i class="fa fa-calendar-check"></i></div>
@@ -118,7 +121,8 @@
   </div>
 </div>
 
-<!-- ── MIDDLE: Professional + Personal ── -->
+<!-- ================================ MIDDLE: Professional + Personal ============================= -->
+
 <div class="sp-mid-grid">
 
   <!-- Professional Information -->
@@ -144,7 +148,8 @@
 
 </div>
 
-<!-- ── BOTTOM: Documents + Recent Activity ── -->
+<!--============================== BOTTOM: Documents + Recent Activity ======================== -->
+
 <div class="sp-bot-grid">
 
   <!-- Documents -->
@@ -176,7 +181,8 @@
     {% endif %}
   </div>
 
-  <!-- Recent Activity -->
+  <!--================================== Recent Activity ===================================-->
+
   <div class="sp-section">
     <div class="sp-sec-head">
       <i class="fa fa-clock-rotate-left"></i> Recent Activity
@@ -200,7 +206,8 @@
 
 </div>
 
-<!-- ── EDIT MODAL ── -->
+<!-- ============================= EDIT MODAL ================================= -->
+
 <div class="sp-modal-overlay" id="editModal">
   <div class="sp-modal">
     <button class="sp-modal-close" onclick="closeEditModal()">&times;</button>
@@ -235,6 +242,8 @@
     </form>
   </div>
 </div>
+
+# ===================================== Script ========================================
 
 {% block extra_js %}
 <script>

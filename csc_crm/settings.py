@@ -168,3 +168,7 @@ CLOUDINARY_STORAGE = {
     'API_KEY':'761268614366864',
     'API_SECRET': '0rEtaxo9thaaIB_ieP-GnsUMdII',
 }
+
+LOGIN_URL = 'staff_login'
+LOGIN_REDIRECT_URL = 'staff_dashboard'
+LOGOUT_REDIRECT_URL = 'staff_login'

@@ -107,7 +107,10 @@ class Staff(models.Model):
     emergency_contact_name = models.CharField(max_length=100, blank=True, null=True)
     emergency_contact_phone = models.CharField(max_length=15, blank=True, null=True)
 
-    # Skills stored as JSON string e.g. [{"name":"Python","level":90}]
+    #password
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='staff_profile', null=True, blank=True)
+
+    # Skills stored as JSON string e.g. [{"name":"Python"}]
     skills = models.TextField(blank=True, null=True)
 
 

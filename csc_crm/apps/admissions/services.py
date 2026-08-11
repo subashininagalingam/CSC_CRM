@@ -1,8 +1,6 @@
 from django.db.models import Sum
-
 from .models import Payment, Student, Admission
-
-
+#==============================Fee Summary Service=======================================
 def get_fee_summary():
 
     total_collected = Payment.objects.filter(

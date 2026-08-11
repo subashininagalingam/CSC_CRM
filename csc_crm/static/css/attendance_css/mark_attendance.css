@@ -24,7 +24,7 @@
 body{
     background:var(--gray-50);
     color:var(--indigo-900);
-    font-family:'Segoe UI',sans-serif;
+    /* font-family:'Segoe UI',sans-serif; */
    
     overflow-x:hidden;
     padding-left:10px;

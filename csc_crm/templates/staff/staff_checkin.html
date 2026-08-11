@@ -6,6 +6,9 @@
         </div>
     {% endfor %}
 {% endif %}
+
+<!--========================= Staff-Container ========================-->
+
 <div class="staff-container">
 
    <div class="checkin-header">
@@ -136,95 +139,62 @@
 
 </div>
 
+<!--================================ Script ============================-->
+
 <script>
-function updateDateTime(){
+document.addEventListener("DOMContentLoaded", function () {
 
-    let now = new Date();
+    // Current Date & Time
+    function updateDateTime() {
+        let now = new Date();
+        const dateTime = document.getElementById("currentDateTimeText");
+        if (dateTime) {
+            dateTime.textContent = now.toLocaleString();
+        }
+    }
 
-    document.getElementById("currentDateTimeText").textContent =
-        now.toLocaleString();
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
 
-}
+    // Live Timer
+    {% if active_attendance %}
+    const loginTime = new Date("{{ active_attendance.log_in|date:'Y-m-d H:i:s' }}");
 
-updateDateTime();
-setInterval(updateDateTime,1000);
+    function updateTimer() {
+        let now = new Date();
+        let diff = Math.floor((now - loginTime) / 1000);
 
-</script>
+        let hrs = Math.floor(diff / 3600);
+        let mins = Math.floor((diff % 3600) / 60);
+        let secs = diff % 60;
 
-{% if active_attendance %}
-<script>
+        const timer = document.getElementById("liveTimerText");
+        if (timer) {
+            timer.textContent =
+                String(hrs).padStart(2, "0") + ":" +
+                String(mins).padStart(2, "0") + ":" +
+                String(secs).padStart(2, "0");
+        }
+    }
 
+    updateTimer();
+    setInterval(updateTimer, 1000);
+    {% endif %}
 
-const loginTime = new Date(
-    "{{ active_attendance.log_in|date:'Y-m-d H:i:s' }}"
-);
-
-function updateTimer(){
-
-    let now = new Date();
-
-    let diff = Math.floor((now - loginTime) / 1000);
-
-    let hrs = Math.floor(
-        diff / 3600
-    );
-
-    let mins = Math.floor(
-        (diff % 3600) / 60
-    );
-
-    let secs = diff % 60;
-
-    document.getElementById("liveTimerText").textContent =
-
-        String(hrs).padStart(2,'0')
-        + ":"
-        + String(mins).padStart(2,'0')
-        + ":"
-        + String(secs).padStart(2,'0');
-
-}
-
-updateTimer();
-
-setInterval(
-    updateTimer,
-    1000
-);
-
-
-</script>
-
-{% endif %}
-<script>
-
-window.onload = function(){
-
-    setTimeout(function(){
-
-        let alertBox = document.querySelector(".alert-message");
-
-        if(alertBox){
-
+    // Auto Hide Alert Messages
+    setTimeout(function () {
+        document.querySelectorAll(".alert-message").forEach(function (alertBox) {
             alertBox.style.opacity = "0";
 
-            setTimeout(function(){
-
+            setTimeout(function () {
                 alertBox.style.display = "none";
+            }, 500);
+        });
+    }, 3000);
 
-            },500);
+});
 
-        }
-
-    },3000);
-
-}
-
-
-</script>
-
-<script>
-
+// Confirm Dialogs
 function confirmLeave() {
     return confirm("Do you want to take Leave?");
 }
@@ -232,5 +202,4 @@ function confirmLeave() {
 function confirmAbsent() {
     return confirm("Do you want to mark Absent?");
 }
-
 </script>

@@ -356,6 +356,46 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     /*=========================================
+            STUDENT PRESELECT FEEDBACK
+            (landed here via the "+" action on
+            Student Fee Status — make it obvious
+            the form below is now theirs)
+    =========================================*/
+
+    const paymentCard = document.querySelector(".payment-card");
+    const urlParams = new URLSearchParams(window.location.search);
+    const preselectedStudentId = urlParams.get("student_id");
+
+    if (preselectedStudentId && paymentCard && studentSelect) {
+
+        // scroll the "Add Payment" form into view
+        paymentCard.scrollIntoView({ behavior: "smooth", block: "start" });
+
+        // pulse the card border so the landing is visible
+        paymentCard.classList.add("payment-card-highlight");
+        setTimeout(() => {
+            paymentCard.classList.remove("payment-card-highlight");
+        }, 2200);
+
+        // show which student the form is now filling a payment for
+        const selectedOption = studentSelect.options[studentSelect.selectedIndex];
+
+        if (selectedOption && selectedOption.value) {
+
+            const banner = document.createElement("div");
+            banner.className = "student-selected-banner";
+            banner.innerHTML = '<i class="fa-solid fa-circle-info"></i> Adding payment for <strong>' +
+                selectedOption.textContent.trim() + "</strong>";
+
+            const cardBody = paymentCard.querySelector(".card-body");
+            if (cardBody) cardBody.insertBefore(banner, cardBody.firstChild);
+
+        }
+
+    }
+
+
+    /*=========================================
             FUTURE CHART PLACEHOLDER
     =========================================*/
 

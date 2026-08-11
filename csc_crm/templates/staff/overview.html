@@ -2,7 +2,7 @@
 {% load static %}
 {% block content %}
 
-<!-- ====== Header ======= -->
+<!-- ======================================== Header ================================================== -->
 
 {% if messages %}
     <div class="messages">
@@ -70,9 +70,8 @@
 </div>
 
 
+<!-- ================================== PROFILE =============================================== -->
 
-
-<!-- ===== PROFILE ===== -->
  {% if staff.role.role_name == "Sales Exec" or staff.role.role_name == "Sales Exec Lead" or staff.role.role_name == "Manager" or staff.role.role_name == "Digital Marketing" or staff.role.role_name == "Content Creator" or staff.role.role_name == "HR" or staff.role.role_name == "Trainer" or staff.role.role_name == "Developer" or staff.role.role_name == "Admin" or staff.role.role_name == "Marketing Lead" %}
 <div class="over-profile-card">
 
@@ -197,7 +196,8 @@
 
 
 
-<!-- Attendance TOP CARDS -->
+<!-- =====================    Attendance TOP CARDS =========================-->
+
 {% if staff.role.role_name == "Sales Exec" or staff.role.role_name == "Sales Exec Lead" or staff.role.role_name == "Manager" or staff.role.role_name == "Digital Marketing" or staff.role.role_name == "Content Creator" or staff.role.role_name == "HR" or staff.role.role_name == "Trainer" or staff.role.role_name == "Developer" %}
 <div class="top-cards-over">
 
@@ -239,7 +239,7 @@
 </div>
 {% endif %}
 
-<!-- ================= ATTENDANCE (moved to top, restyled) =============== -->
+<!-- ======================== ATTENDANCE (moved to top, restyled) ============================= -->
 
 {% if staff.role.role_name == "Sales Exec" or staff.role.role_name == "Sales Exec Lead" or staff.role.role_name == "Manager" or staff.role.role_name == "Digital Marketing" or staff.role.role_name == "Content Creator" or staff.role.role_name == "HR" or staff.role.role_name == "Trainer" or staff.role.role_name == "Developer" %}
 <div class="over-attendance-card">
@@ -301,7 +301,8 @@
 </div>
 {% endif %}
 
-<!-- ===== ATTENDANCE OVERVIEW  ===== -->
+<!-- ================================ ATTENDANCE OVERVIEW  ================================== -->
+
  {% if staff.role.role_name == "Sales Exec" or staff.role.role_name == "Sales Exec Lead" or staff.role.role_name == "Manager" or staff.role.role_name == "Digital Marketing" or staff.role.role_name == "Content Creator" or staff.role.role_name == "HR" or staff.role.role_name == "Trainer" or staff.role.role_name == "Developer" %}
 <div class="over-att-percentage-card">
 
@@ -328,7 +329,7 @@
 </div>
 {% endif %}
 
-<!-- ===== KPI CARDS ===== -->
+<!-- =================================== KPI CARDS =================================== -->
 <div class="over-cards">
 
     <!-- ===================== -->
@@ -363,9 +364,8 @@
     {% endif %}
 
 
-    <!-- ===================== -->
-    <!-- Revenue -->
-    <!-- ===================== -->
+    <!-- ===============================  Revenue  ================================== -->
+    
     {% if staff.role.role_name == "Sales Exec" or staff.role.role_name == "Sales Exec Lead" or staff.role.role_name == "Manager" or staff.role.role_name == "Digital Marketing" or staff.role.role_name == "Content Creator" %}
 
     <div class="over-card" id="revenue-kpi">
@@ -379,9 +379,8 @@
     {% endif %}
 
 
-    <!-- ===================== -->
-    <!-- Present Today -->
-    <!-- ===================== -->
+    <!-- ================================ Present Today  ======================== ========== -->
+   
     {% if staff.role.role_name == "Sales Exec" or staff.role.role_name == "Sales Exec Lead" or staff.role.role_name == "Manager" or staff.role.role_name == "Digital Marketing" or staff.role.role_name == "Content Creator" %}
 
     <div class="over-card" id="present-kpi">
@@ -403,9 +402,8 @@
     {% endif %}
 
 
-    <!-- ===================== -->
-    <!-- HR / Trainer / Developer -->
-    <!-- ===================== -->
+    <!-- ===============================  HR / Trainer / Developer  ================================ -->
+   
     {% if staff.role.role_name == "HR" or staff.role.role_name == "Trainer" or staff.role.role_name == "Developer" %}
 
     <div class="over-card" id="present-kpi">
@@ -438,9 +436,11 @@
 </div>
 
 
+<!--======================================= PERFORMANCE SECTION ==================================-->
+
 {% if staff.role.role_name == "Sales Exec" or staff.role.role_name == "Sales Exec Lead" or staff.role.role_name == "Manager" or staff.role.role_name == "Digital Marketing" or staff.role.role_name == "Content Creator" %}
 
-    <!-- PERFORMANCE SECTION -->
+    
 <div class="over-performance-grid">
 
     <!-- LEFT :  -->

@@ -7,13 +7,13 @@
 body {
     position: relative;
     background: #f4f6fb;
-    font-family: 'Segoe UI', Arial, sans-serif;
+    /* font-family: 'Segoe UI', Arial, sans-serif; */
     color: #1f2937;
 }
 
 .profile-page {
     width: 95%;
-    max-width: 1300px;
+    /* max-width: 1300px; */
     margin: 30px auto 30px auto;
 }
 h4{

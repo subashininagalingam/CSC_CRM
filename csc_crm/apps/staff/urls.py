@@ -3,6 +3,10 @@ from .views import *
 
 urlpatterns = [
 
+    # LOGIN / LOGOUT
+    path('login/', staff_login, name='staff_login'),
+    path('logout/', staff_logout, name='staff_logout'),
+
     # Dashboard
     path('', staff_dashboard, name = 'staff_dashboard'),
 
@@ -33,4 +37,9 @@ urlpatterns = [
     
     # MY PROFILE
     path('<int:staff_id>/profile/', staff_profile, name='staff_profile'),
+
+    
+
+  
+    
 ]

@@ -1,5 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib import messages
 from django.utils import timezone
 from django.db.models.functions import TruncMonth
@@ -8,6 +10,7 @@ from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
 from datetime import datetime, time, timedelta
 from openpyxl import Workbook
+from functools import wraps
 import csv
 import re
 import calendar
@@ -17,10 +20,82 @@ from csc_crm.apps.student_attendance.models import *
 from .models import *
 from .forms import *
 
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
+from functools import wraps
+# ============================ ROLE-BASED ACCESS DECORATOR ============================
 
-# ============================ LIST-VIEW ============================= 
+def role_required(allowed_roles):
+    """Only allow access if the logged-in user's Staff role is in allowed_roles."""
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapper(request, *args, **kwargs):
+            if not request.user.is_authenticated:
+                return redirect('staff_login')
+            try:
+                staff = request.user.staff_profile
+            except Staff.DoesNotExist:
+                messages.error(request, 'No staff profile found.')
+                return redirect('staff_login')
+            if staff.role.role_name not in allowed_roles:
+                messages.error(request, 'You do not have permission to access this page.')
+                return redirect('staff_dashboard')
+            return view_func(request, *args, **kwargs)
+        return wrapper
+    return decorator
 
 
+# ============================ LOGIN / LOGOUT ============================
+
+def staff_login(request):
+    """Employee ID + Password login"""
+
+    if request.user.is_authenticated:
+        return redirect('staff_dashboard')
+
+    if request.method == 'POST':
+        employee_id = request.POST.get('employee_id', '').strip()
+        password = request.POST.get('password', '')
+
+        user = authenticate(request, username=employee_id, password=password)
+
+        if user is not None:
+            try:
+                staff = user.staff_profile
+            except Staff.DoesNotExist:
+                messages.error(request, 'No staff profile linked to this account.')
+                return render(request, 'staff/login.html')
+
+            if staff.status != 'active':
+                messages.error(request, 'Your account is not active. Contact admin.')
+                return render(request, 'staff/login.html')
+
+            auth_login(request, user)
+
+            staff.last_login = timezone.now()
+            staff.last_login_ip = request.META.get('REMOTE_ADDR')
+            staff.save(update_fields=['last_login', 'last_login_ip'])
+
+            messages.success(request, f"Welcome back, {staff.full_name()}!")
+            return redirect('staff_dashboard')
+        else:
+            messages.error(request, 'Invalid Employee ID or Password.')
+
+    return render(request, 'staff/login.html')
+
+
+def staff_logout(request):
+    """Logout current user"""
+    auth_logout(request)
+    messages.success(request, 'Logged out successfully.')
+    return redirect('staff_login')
+
+
+# ============================ LIST-VIEW ============================ 
+
+
+@login_required(login_url='staff_login')
 def staff_management(request):
     """Display all staff members with filters and role permissions matrix"""
 
@@ -167,39 +242,76 @@ def _get_staff_roles_map():
         for s in Staff.objects.filter(status='active').select_related('role')
     }
 
+
+@login_required(login_url='staff_login')
+@role_required(['Admin', 'Manager'])
 def add_staff(request):
     """Add new staff member"""
 
     if request.method == 'POST':
         form = StaffForm(request.POST, request.FILES)
-    
+
         if form.is_valid():
             documents = request.FILES.getlist('documents')
 
+            # ================= DOCUMENT VALIDATION =================
             if not documents:
-                form.add_error(None, 'At least one document is required.')
+                form.add_error(
+                    None,
+                    'At least one document is required.'
+                )
 
-                return render(request, 'staff/add_staff.html', {
+                context = {
                     'page_title': 'Add New Staff',
-                    'form': form
-                })
+                    'form': form,
+                    'staff_roles_map': _get_staff_roles_map(),
+                }
 
-            staff = form.save()
+                return render(
+                    request,
+                    'staff/add_staff.html',
+                    context
+                )
 
+            # ================= STAFF SAVE =================
+            staff = form.save(commit=False)
+
+            # ================= CREATE LINKED AUTH USER =================
+            password = form.cleaned_data.get('password')
+            email = form.cleaned_data.get('email')
+
+            user = User.objects.create_user(
+                username=form.cleaned_data.get('employee_id'),
+                email=email,
+                password=password
+            )
+
+            staff.user = user
+
+            # Save staff
+            staff.save()
+
+            # ================= DOCUMENTS =================
             for document in documents:
                 StaffDocument.objects.create(
                     staff=staff,
                     document=document
                 )
 
+            # ================= SUCCESS MESSAGE =================
             messages.success(
                 request,
                 f"Staff member '{staff.full_name()}' added successfully!"
             )
 
-            return redirect('overview', staff_id=staff.id)
+            return redirect(
+                'overview',
+                staff_id=staff.id
+            )
+
         else:
             print(form.errors)
+
     else:
         form = StaffForm(
             initial={
@@ -207,13 +319,20 @@ def add_staff(request):
             }
         )
 
+    # ================= CONTEXT =================
     context = {
         'page_title': 'Add New Staff',
         'form': form,
         'staff_roles_map': _get_staff_roles_map(),
     }
 
-    return render(request, 'staff/add_staff.html', context)
+    return render(
+        request,
+        'staff/add_staff.html',
+        context
+    )
+
+
 
 # ============================= CHECK EMAIL EXISTING (FOR VALIDATION) ===============================
 
@@ -251,6 +370,8 @@ def check_phone(request):
 
 # ========================== UPDATING STAFF ===================================
 
+@login_required(login_url='staff_login')
+@role_required(['Admin', 'Manager'])
 def edit_staff(request, id):
     """Update existing staff"""
 
@@ -279,6 +400,8 @@ def edit_staff(request, id):
 
 # ============================= STAFF DELETE ==================================
 
+@login_required(login_url='staff_login')
+@role_required(['Admin', 'Manager'])
 def delete_staff(request, id):
     """Deleting staff member"""
 
@@ -305,6 +428,7 @@ def delete_staff(request, id):
 
 # =========================== QUICK EDIT/AJAX ===================================
 
+@login_required(login_url='staff_login')
 def quick_edit_staff(request, id):
     """Quick edit via AJAX"""
 
@@ -343,6 +467,7 @@ def quick_edit_staff(request, id):
 
 # ============================ EXPORT - STAFF LIST TO CSV ===============================
 
+@login_required(login_url='staff_login')
 def export_staff(request):
     """Export staff list as CSV"""
 
@@ -398,6 +523,7 @@ def export_staff(request):
 
 # ===================================== STAFF OVERVIEW =========================
 
+@login_required(login_url='staff_login')
 def overview(request, staff_id=None):
 
     def get_weekly_enrollment_amounts(year, month, staff):
@@ -559,6 +685,7 @@ def overview(request, staff_id=None):
 
 
 
+@login_required(login_url='staff_login')
 def staff_export(request, id):
 
     staff = get_object_or_404(Staff, id=id)
@@ -696,6 +823,7 @@ def auto_checkout_pending_attendance():
 
         attendance.save()
 #======attendance=========
+@login_required(login_url='staff_login')
 def attendance_page(request, id):
 
     auto_checkout_pending_attendance()
@@ -808,6 +936,7 @@ def attendance_page(request, id):
 
 #================export atttendance btn===============
 
+@login_required(login_url='staff_login')
 def export_attendance(request, id):
 
     staff = get_object_or_404(Staff, id=id)
@@ -854,6 +983,7 @@ def export_attendance(request, id):
 
     return response
 #==================================================================staff-checkin page===============================================
+@login_required(login_url='staff_login')
 def staff_checkin(request, id):
 
     auto_checkout_pending_attendance()
@@ -1036,6 +1166,7 @@ def _ensure_legacy_document(staff):
     )
 
 
+@login_required(login_url='staff_login')
 def staff_documents(request, staff_id):
     """View documents for a specific staff member"""
     staff = get_object_or_404(Staff, id=staff_id)
@@ -1065,6 +1196,7 @@ def staff_documents(request, staff_id):
 
     return render(request, 'staff/documents.html', context)
 
+@login_required(login_url='staff_login')
 def delete_document(request, doc_id):
     """Delete a staff document"""
     import os
@@ -1085,6 +1217,7 @@ def delete_document(request, doc_id):
     return redirect('staff_documents', staff_id=staff_id)
 
 
+@login_required(login_url='staff_login')
 def update_document_status(request, doc_id):
     """Update document verification status"""
     doc = get_object_or_404(StaffDocument, id=doc_id)
@@ -1100,6 +1233,7 @@ def update_document_status(request, doc_id):
     
 # ================================ Dashboard View ===================================
 
+@login_required(login_url='staff_login')
 def staff_dashboard(request):
     
     total_staff = Staff.objects.count()
@@ -1431,6 +1565,7 @@ def staff_dashboard(request):
 
 # ================================ MY PROFILE ================================
 
+@login_required(login_url='staff_login')
 def staff_profile(request, staff_id):
     """View and edit a staff member's own profile page"""
 

@@ -102,13 +102,15 @@
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label">Emergency Contact Name</label>
-                            <div class="input-wrapper">{{ form.emergency_contact_name }} <i class="fa-regular fa-user"></i></div>
+                          <label class="form-label">Emergency Contact Name</label>
+                        <div class="input-wrapper">{{ form.emergency_contact_name }} <i class="fa-regular fa-user"></i></div>
+                        <span class="form-error" id="emergencyContactNameError"></span>
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label">Emergency Contact Phone</label>
-                            <div class="input-wrapper">{{ form.emergency_contact_phone }} <i class="fa-solid fa-phone"></i></div>
+                          <label class="form-label">Emergency Contact Phone</label>
+                         <div class="input-wrapper">{{ form.emergency_contact_phone }} <i class="fa-solid  fa-phone"></i></div>
+                         <span class="form-error" id="emergencyContactPhoneError"></span>
                         </div>
 
                         <div class="form-group">

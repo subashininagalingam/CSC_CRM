@@ -2,12 +2,9 @@
 <link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
 <div class="sidebar">
 
-    
-
     <!-- Menu -->
     <ul class="sidebar-menu">
 
-        
         <li>
             <a href="{% url 'staff_dashboard' %}"
    class="{% if request.resolver_match.url_name == 'staff_dashboard' or request.resolver_match.url_name == 'staff_management' or request.resolver_match.url_name == 'add_staff' or request.resolver_match.url_name == 'edit_staff' or request.resolver_match.url_name == 'overview' or request.resolver_match.url_name == 'attendance' or request.resolver_match.url_name == 'staff_profile' or request.resolver_match.url_name == 'staff_documents' %}active{% endif %}">
@@ -45,18 +42,30 @@
         <span>Admission Module</span>
     </a>
 </li>
-        <li>
-            <a href="#">
-                <i class="fa-solid fa-calendar-xmark"></i>
-                <span>Leave Management</span>
-            </a>
-        </li>
+        
 
     </ul>
     <div class="sidebar-footer">
-    <p>© 2026 CSC CRM</p>
-    <small>All Rights Reserved.</small>
-</div>
+    
+        <p class="sidebar-users-role"><span>Signed in as</span> {{ request.user.staff_profile.role.get_role_name_display }}</p>
+        {% if request.user.is_authenticated %}
+        <form method="POST" action="{% url 'staff_logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="logout-btnn">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                Logout
+            </button>
+        </form>
+        {% else %}
+        <a href="{% url 'staff_login' %}" class="logout-btnn" style="text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px;">
+            <i class="fa-solid fa-right-to-bracket"></i>
+            Login
+        </a>
+        {% endif %}
+
+        <p>© 2026 CSC CRM</p>
+        <small>All Rights Reserved.</small>
+    </div>
 
 </div>
 <script src="{% static 'js/sidebar.js' %}"></script>

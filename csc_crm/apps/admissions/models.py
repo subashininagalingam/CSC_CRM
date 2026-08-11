@@ -6,50 +6,25 @@ from django.core.validators import MinValueValidator
 from decimal import Decimal
 from cloudinary.models import CloudinaryField
 from django.core.exceptions import ValidationError
-# from apps.Student_attendance_management.models import Batch
 
+name_validator = RegexValidator( regex=r'^[A-Za-z ]+$',message="Only alphabets and spaces are allowed.")
+phone_validator = RegexValidator( regex=r'^\d{10}$',message="Phone number must be exactly 10 digits.")
+email_validator = RegexValidator(regex=r'^[\w\.-]+@[\w\.-]+\.\w+$',message="Enter a proper email (example: name@gmail.com)")
 
-
-name_validator = RegexValidator(
-    regex=r'^[A-Za-z ]+$',
-    message="Only alphabets and spaces are allowed."
-)
-
-phone_validator = RegexValidator(
-    regex=r'^\d{10}$',
-    message="Phone number must be exactly 10 digits."
-)
-
-email_validator = RegexValidator(
-    regex=r'^[\w\.-]+@[\w\.-]+\.\w+$',
-    message="Enter a proper email (example: name@gmail.com)"
-)
-
-
-
+#==============================Student Model=======================================
 class Student(models.Model):
     first_name = models.CharField(max_length=20, blank=False, validators=[name_validator])
     last_name = models.CharField(max_length=20, blank=False, validators=[name_validator])
     dob = models.DateField()
     phone_no = models.CharField(max_length=10, blank=False, validators=[phone_validator], unique=True)
-
-    gender_choice = [
-        ('', 'Select Gender'),
-        ('M','Male'),
-        ('F','Female'),
-        ('O','Others')
-    ]
+    gender_choice = [('', 'Select Gender'),('M','Male'),('F','Female'),('O','Others')]
     gender = models.CharField(max_length=10, choices=gender_choice)
-
     email = models.EmailField(validators=[email_validator],unique=True)
     address = models.TextField()
-
     guardian_name = models.CharField(max_length=100, blank=False, validators=[name_validator])
     guardian_phone_no = models.CharField(max_length=10, blank=False, validators=[phone_validator], unique=True)
-    
     photo=CloudinaryField('student_photos/',null=True, blank=True)
     
-
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
 
@@ -69,6 +44,7 @@ class Student(models.Model):
     def pending_amount(self):
         pending = self.total_fee() - self.total_paid()
         return max(pending, 0)
+    #==============================Student Document Model=======================================
     
 class StudentDocument(models.Model):
 
@@ -97,6 +73,7 @@ class StudentDocument(models.Model):
 
     def __str__(self):
         return f"{self.student} - {self.document_type}"
+#==============================Payment Model=======================================
 
 class Payment(models.Model):
     PAYMENT_MODES = [
@@ -131,9 +108,7 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"{self.student.first_name} - ₹{self.amount}"
-
-
-
+#==============================Course Model=======================================
 class Course(models.Model):
     course_name = models.CharField(max_length=50, null=False, blank=False)
 
@@ -143,7 +118,7 @@ class Course(models.Model):
     def __str__(self):
         return self.course_name
 
-
+#==============================Admission Model=======================================
 class Admission(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='admissions')
     course_name = models.ForeignKey(Course, on_delete=models.CASCADE)
@@ -156,7 +131,6 @@ class Admission(models.Model):
     ]
 
     status = models.CharField(max_length=20, choices=STATUS, default='enquiry')
-
     applied_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -169,9 +143,7 @@ class Admission(models.Model):
                 name = 'unique_student_course'
             )
         ]
-
-
-
+#==============================Enrollment Model=======================================
 class Enrollment(models.Model):
     admission = models.OneToOneField(Admission, on_delete=models.CASCADE, related_name='enrollment')
 
@@ -184,7 +156,6 @@ class Enrollment(models.Model):
     )
 
     start_date = models.DateField(null=False, blank=False)
-
     payment_status = models.CharField(max_length=20, choices=[
         ('Paid', 'Paid'),
         ('Pending', 'Pending'),
@@ -223,6 +194,7 @@ class Enrollment(models.Model):
     def __str__(self):
 
         return str(self.admission)
+    #==============================Student Note Model=======================================
 class StudentNote(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='notes')
     content = models.TextField()

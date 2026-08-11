@@ -19,6 +19,7 @@ body{
     font-family:Arial, Helvetica, sans-serif;
     background:#f5f6fb;
     overflow-x:hidden;
+    
 }
 
 
@@ -51,6 +52,7 @@ body{
     background:#262170;
     display:flex;
     align-items:center;
+    justify-content: space-between;
     padding:0 16px;
     z-index:1000;
 }
@@ -74,6 +76,43 @@ body{
     align-items:center;
     gap:12px;
 }
+
+.sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 5px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    margin-bottom: 8px;
+   
+}
+.sidebar-user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #3b82f6;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+.sidebar-user-info { overflow: hidden; }
+.sidebar-user-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sidebar-user-role {
+    font-size: 12px;
+    color: #94a3b8;
+}
+
 
 .logo-box{
     width:38px;

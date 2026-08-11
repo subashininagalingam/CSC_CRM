@@ -1,32 +1,15 @@
 import django_filters
 from django.db.models import Q
 from .models import Student
-
+#==============================STUDENT FILTER=======================================
 class StudentFilter(django_filters.FilterSet):
 
     search = django_filters.CharFilter(method='custom_search')
-
     id = django_filters.NumberFilter(field_name='id')
-
-    phone_no = django_filters.CharFilter(
-        field_name='phone_no',
-        lookup_expr='iexact'
-    )
-
-    course_name  = django_filters.CharFilter(
-        field_name='admissions__course_name__course_name',
-        lookup_expr='iexact'
-    )
-
-    batch = django_filters.NumberFilter(
-    field_name='admissions__enrollment__batch__id'
-)
-
-    status = django_filters.CharFilter(
-        field_name='admissions__status',
-        lookup_expr='iexact'
-    )
-
+    phone_no = django_filters.CharFilter( field_name='phone_no',lookup_expr='iexact')
+    course_name  = django_filters.CharFilter( field_name='admissions__course_name__course_name',lookup_expr='iexact')
+    batch = django_filters.NumberFilter(field_name='admissions__enrollment__batch__id')
+    status = django_filters.CharFilter( field_name='admissions__status',lookup_expr='iexact')
     payment_status = django_filters.CharFilter(method='filter_payment_status')
 
 

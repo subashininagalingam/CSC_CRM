@@ -1,11 +1,9 @@
 import os
-
 from django import forms
 from .models import *
 from datetime import date
-
 from django.core.exceptions import ValidationError
-
+#==============================Form Validations=======================================
 def validate_image(file):
     ext = os.path.splitext(file.name)[1].lower()
     if ext not in ['.jpg', '.jpeg', '.png']:
@@ -13,7 +11,7 @@ def validate_image(file):
 
     if file.size > 2 * 1024 * 1024:
         raise ValidationError("Image must be under 2MB")
-
+#==============================Document Validations=======================================
 
 def validate_document(file):
     ext = os.path.splitext(file.name)[1].lower()
@@ -22,13 +20,12 @@ def validate_document(file):
 
     if file.size > 5 * 1024 * 1024:
         raise ValidationError("File must be under 5MB")
+    #=============================Student Form=======================================
 
 class StudentForm(forms.ModelForm):
 
     photo = forms.FileField(validators=[validate_image], required=False)
-
     id_proof = forms.FileField(validators=[validate_document], required=False)
-
     certificate = forms.FileField(validators=[validate_document], required=False)
 
     class Meta:
@@ -49,8 +46,7 @@ class StudentForm(forms.ModelForm):
             'certificate': forms.FileInput(attrs={ 'accept': '.pdf,doc,.docx'}),
 
         }
-
-    
+#==============================Form Validations=======================================
     def clean_first_name(self):
         value = self.cleaned_data.get('first_name')
 
@@ -67,9 +63,6 @@ class StudentForm(forms.ModelForm):
 
         return value
     
-
-
-
     def clean_phone_no(self):
         phone = self.cleaned_data.get('phone_no')
         
@@ -80,7 +73,6 @@ class StudentForm(forms.ModelForm):
             )
 
         return phone
-
 
     def clean_dob(self):
         dob = self.cleaned_data['dob']
@@ -112,7 +104,7 @@ class StudentForm(forms.ModelForm):
             )
         
         return phone
-    
+    #==============================COURSE FORM=======================================
 class CourseForm(forms.ModelForm):
     class Meta:
         model = Course
@@ -122,7 +114,7 @@ class CourseForm(forms.ModelForm):
             'duration': forms.TextInput(attrs={'placeholder': 'Enter course duration', 'required': True}),      
             'course_fee': forms.NumberInput(attrs={'placeholder': 'Enter course fee', 'required': True}),
         }
-
+#==============================AdMISSION FORM=======================================
 
 class AdmissionForm(forms.ModelForm):
     class Meta:
@@ -136,7 +128,7 @@ class AdmissionForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['course_name'].empty_label = "Select Course"
 
-
+#===========================ENROLLMENT FORM=======================================
 
 class EnrollmentForm(forms.ModelForm):
 

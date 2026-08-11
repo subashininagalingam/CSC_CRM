@@ -1,40 +1,144 @@
  // ====================== BLOCK EMPLOYEE ID EDITING ======================
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", function () {
+
+    const form = document.getElementById("staffMgmtForm");
+
+    if (!form) return;
+
+    // =========================
+    // EMPLOYEE ID
+    // =========================
     const employeeIdInput = document.querySelector('[name="employee_id"]');
 
-    if (!employeeIdInput) return;
+    if (employeeIdInput) {
+        // Allow manual typing, paste, edit
+        employeeIdInput.readOnly = false;
+        employeeIdInput.removeAttribute("readonly");
 
-    const originalEmployeeId = employeeIdInput.value;
+        // Basic validation
+        employeeIdInput.addEventListener("input", function () {
+            this.value = this.value.trimStart();
+        });
+    }
 
-    // Make it readonly
-    employeeIdInput.readOnly = true;
 
-    // Stop typing
-    employeeIdInput.addEventListener('keydown', (e) => {
-        e.preventDefault();
+    // =========================
+    // PASSWORD
+    // =========================
+    const passwordInput = document.querySelector('[name="password"]');
+    const confirmPasswordInput = document.querySelector('[name="confirm_password"]');
+
+    if (passwordInput && confirmPasswordInput) {
+
+        confirmPasswordInput.addEventListener("input", function () {
+
+            if (passwordInput.value !== confirmPasswordInput.value) {
+                confirmPasswordInput.setCustomValidity(
+                    "Passwords do not match."
+                );
+            } else {
+                confirmPasswordInput.setCustomValidity("");
+            }
+
+        });
+
+        passwordInput.addEventListener("input", function () {
+
+            if (confirmPasswordInput.value !== "") {
+
+                if (passwordInput.value !== confirmPasswordInput.value) {
+                    confirmPasswordInput.setCustomValidity(
+                        "Passwords do not match."
+                    );
+                } else {
+                    confirmPasswordInput.setCustomValidity("");
+                }
+
+            }
+
+        });
+    }
+
+
+    // =========================
+    // FORM SUBMIT
+    // =========================
+    form.addEventListener("submit", function (event) {
+
+        let valid = true;
+
+        if (employeeIdInput) {
+
+            const employeeId = employeeIdInput.value.trim();
+
+            if (employeeId === "") {
+
+                employeeIdInput.setCustomValidity(
+                    "Employee ID is required."
+                );
+
+                valid = false;
+
+            } else {
+
+                employeeIdInput.setCustomValidity("");
+
+            }
+        }
+
+
+        if (passwordInput && confirmPasswordInput) {
+
+            if (passwordInput.value === "") {
+
+                passwordInput.setCustomValidity(
+                    "Password is required."
+                );
+
+                valid = false;
+
+            } else {
+
+                passwordInput.setCustomValidity("");
+
+            }
+
+
+            if (confirmPasswordInput.value === "") {
+
+                confirmPasswordInput.setCustomValidity(
+                    "Please confirm your password."
+                );
+
+                valid = false;
+
+            } else if (
+                passwordInput.value !== confirmPasswordInput.value
+            ) {
+
+                confirmPasswordInput.setCustomValidity(
+                    "Passwords do not match."
+                );
+
+                valid = false;
+
+            } else {
+
+                confirmPasswordInput.setCustomValidity("");
+
+            }
+        }
+
+
+        if (!valid) {
+            event.preventDefault();
+            form.reportValidity();
+        }
+
     });
 
-    // Stop paste
-    employeeIdInput.addEventListener('paste', (e) => {
-        e.preventDefault();
-    });
-
-    // Stop drag/drop text
-    employeeIdInput.addEventListener('drop', (e) => {
-        e.preventDefault();
-    });
-
-    // If any extension like FakeFiller changes it, restore old value
-    employeeIdInput.addEventListener('input', () => {
-        employeeIdInput.value = originalEmployeeId;
-    });
-
-    employeeIdInput.addEventListener('change', () => {
-        employeeIdInput.value = originalEmployeeId;
-    });
-});
-    
+});    
 // ===================== EMAIL + PHONE VALIDATION =============================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1110,7 +1214,247 @@ function validateMonthlyTarget() {
 
 
 
+// ================= EMERGENCY CONTACT NAME VALIDATION =================
 
+document.addEventListener('DOMContentLoaded', () => {
+
+    const emergencyNameInput = document.getElementById('emergencyContactNameInput');
+    const emergencyNameError = document.getElementById('emergencyContactNameError');
+
+    if (!emergencyNameInput || !emergencyNameError) return;
+
+    const MAX_LENGTH = 40;
+
+    function validateEmergencyName() {
+
+        let value = emergencyNameInput.value;
+
+        // Allow only letters and spaces
+        value = value.replace(/[^a-zA-Z\s]/g, '');
+
+        // Limit to 40 characters
+        value = value.substring(0, MAX_LENGTH);
+
+        emergencyNameInput.value = value;
+
+        const trimmedValue = value.trim();
+
+        if (trimmedValue === '') {
+            emergencyNameError.textContent = 'Emergency contact name is required.';
+            emergencyNameInput.classList.add('error-input');
+            return false;
+        }
+
+        if (trimmedValue.length < 3) {
+            emergencyNameError.textContent = 'Name must contain at least 3 characters.';
+            emergencyNameInput.classList.add('error-input');
+            return false;
+        }
+
+        if (trimmedValue.length > MAX_LENGTH) {
+            emergencyNameError.textContent = 'Name should not exceed 40 characters.';
+            emergencyNameInput.classList.add('error-input');
+            return false;
+        }
+
+        emergencyNameError.textContent = '';
+        emergencyNameInput.classList.remove('error-input');
+        return true;
+    }
+
+    emergencyNameInput.addEventListener('input', validateEmergencyName);
+    emergencyNameInput.addEventListener('blur', validateEmergencyName);
+
+});
+
+// ================= EMERGENCY CONTACT PHONE VALIDATION =================
+
+document.addEventListener('DOMContentLoaded', () => {
+
+    const form = document.getElementById('staffMgmtForm');
+    const emergencyPhoneInput = document.getElementById('emergencyContactPhoneInput');
+    const emergencyPhoneError = document.getElementById('emergencyContactPhoneError');
+
+    if (!form || !emergencyPhoneInput || !emergencyPhoneError) return;
+
+    function showError(message) {
+        emergencyPhoneError.textContent = message;
+        emergencyPhoneInput.classList.add('error-input');
+    }
+
+    function clearError() {
+        emergencyPhoneError.textContent = '';
+        emergencyPhoneInput.classList.remove('error-input');
+    }
+
+    function validateEmergencyPhone() {
+
+        const phone = emergencyPhoneInput.value.trim();
+
+        if (phone === '') {
+            showError('Emergency contact phone number is required.');
+            return false;
+        }
+
+        const phoneRegex = /^\+91[6-9]\d{9}$/;
+
+        if (!phoneRegex.test(phone)) {
+            showError('Phone number should start with +91 and contain a valid 10-digit Indian mobile number.');
+            return false;
+        }
+
+        clearError();
+        return true;
+    }
+
+    emergencyPhoneInput.addEventListener('input', function () {
+
+        let value = this.value;
+
+        // Allow only + and digits
+        value = value.replace(/[^0-9+]/g, '');
+
+        // Only one + at the beginning
+        if (value.startsWith('+')) {
+            value = '+' + value.substring(1).replace(/\+/g, '');
+        } else {
+            value = value.replace(/\+/g, '');
+        }
+
+        // Maximum length: +91 + 10 digits = 13 characters
+        if (value.length > 13) {
+            value = value.substring(0, 13);
+        }
+
+        this.value = value;
+
+        validateEmergencyPhone();
+    });
+
+    emergencyPhoneInput.addEventListener('blur', validateEmergencyPhone);
+
+    form.addEventListener('submit', function (e) {
+
+        if (!validateEmergencyPhone()) {
+            e.preventDefault();
+            emergencyPhoneInput.focus();
+        }
+
+    }, true);
+
+});
+
+// ================= SKILLS VALIDATION =================
+
+document.addEventListener('DOMContentLoaded', () => {
+
+    const form = document.getElementById('staffMgmtForm');
+    const skillsTypedInput = document.getElementById('skillsTypedInput');
+    const skillsHiddenInput = document.getElementById('skillsInput');
+    const skillsError = document.getElementById('skillsError');
+
+    if (!form || !skillsTypedInput || !skillsHiddenInput || !skillsError) return;
+
+    const MAX_SKILL_LENGTH = 30;
+
+    function showError(message) {
+        skillsError.textContent = message;
+        skillsTypedInput.classList.add('error-input');
+    }
+
+    function clearError() {
+        skillsError.textContent = '';
+        skillsTypedInput.classList.remove('error-input');
+    }
+
+    function validateSkills() {
+
+        const raw = skillsTypedInput.value.trim();
+
+        if (raw === '') {
+            showError('Please enter at least one skill.');
+            skillsHiddenInput.value = '[]';
+            return false;
+        }
+
+        const enteredSkills = raw
+            .split(',')
+            .map(skill => skill.trim())
+            .filter(skill => skill !== '');
+
+        if (enteredSkills.length === 0) {
+            showError('Please enter valid skills.');
+            skillsHiddenInput.value = '[]';
+            return false;
+        }
+
+        const uniqueSkills = [];
+        const seen = new Set();
+
+        for (let skill of enteredSkills) {
+
+            // Maximum length
+            if (skill.length > MAX_SKILL_LENGTH) {
+                skill = skill.substring(0, MAX_SKILL_LENGTH);
+            }
+
+            // Minimum length
+            if (skill.length < 2) {
+                showError('Each skill must contain at least 2 characters.');
+                return false;
+            }
+
+            // ✔ Letters, spaces, +, #, . and - only
+            if (!/^[A-Za-z+#.\-\s]+$/.test(skill)) {
+                showError(
+                    'Skills can contain only letters. Numbers are not allowed.'
+                );
+                return false;
+            }
+
+            const key = skill.toLowerCase();
+
+            if (!seen.has(key)) {
+                seen.add(key);
+                uniqueSkills.push(skill);
+            }
+        }
+
+        skillsHiddenInput.value = JSON.stringify(uniqueSkills);
+
+        clearError();
+        return true;
+    }
+
+    // Remove unwanted characters while typing
+    skillsTypedInput.addEventListener('input', () => {
+
+        skillsTypedInput.value = skillsTypedInput.value.replace(
+            /[^A-Za-z,#.+\-\s]/g,
+            ''
+        );
+
+        validateSkills();
+    });
+
+    skillsTypedInput.addEventListener('blur', validateSkills);
+
+    form.addEventListener('submit', function (e) {
+
+        if (!validateSkills()) {
+            e.preventDefault();
+
+            skillsTypedInput.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+
+            skillsTypedInput.focus();
+        }
+
+    }, true);
+
+});
 // ================= REPORTING MANAGER — ROLE-BASED FILTER =================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1180,77 +1524,3 @@ document.addEventListener('DOMContentLoaded', () => {
     filterReportingManagers();
 });
 
-
-// ================= SKILLS — TYPED INPUT (comma-separated names) =================
-
-document.addEventListener('DOMContentLoaded', () => {
-    const skillsTypedInput = document.getElementById('skillsTypedInput');
-    const skillsHiddenInput = document.getElementById('skillsInput');
-
-    if (!skillsTypedInput || !skillsHiddenInput) return;
-
-    const MAX_SKILL_LENGTH = 30;
-
-    // Pre-fill typed input from existing hidden JSON (edit page)
-    try {
-        if (skillsHiddenInput.value) {
-            const existing = JSON.parse(skillsHiddenInput.value);
-            if (Array.isArray(existing) && existing.length > 0) {
-                const names = existing.map(s => (typeof s === 'string' ? s : s.name));
-                skillsTypedInput.value = names.join(', ');
-            }
-        }
-    } catch (e) {
-        // ignore, start blank
-    }
-
-    function parseTypedSkills(raw) {
-        const skills = raw
-            .split(',')
-            .map(s => s.trim())
-            .filter(s => s.length > 0)
-            .map(s => s.length > MAX_SKILL_LENGTH ? s.substring(0, MAX_SKILL_LENGTH) : s);
-
-        const seen = new Set();
-        const unique = [];
-
-        skills.forEach(skill => {
-            const key = skill.toLowerCase();
-            if (!seen.has(key)) {
-                seen.add(key);
-                unique.push(skill);
-            }
-        });
-
-        return unique;
-    }
-
-    // While typing — only update hidden field, no preview shown
-    skillsTypedInput.addEventListener('input', () => {
-        const raw = skillsTypedInput.value.trim();
-
-        if (!raw) {
-            skillsHiddenInput.value = '[]';
-            if (typeof checkChanges === 'function') checkChanges();
-            return;
-        }
-
-        const skills = parseTypedSkills(raw);
-        skillsHiddenInput.value = JSON.stringify(skills);
-
-        if (typeof checkChanges === 'function') checkChanges();
-    });
-
-    // On page load — sync hidden field from existing value (edit mode)
-    (function initialSync() {
-        const raw = skillsTypedInput.value.trim();
-
-        if (!raw) {
-            skillsHiddenInput.value = '[]';
-            return;
-        }
-
-        const skills = parseTypedSkills(raw);
-        skillsHiddenInput.value = JSON.stringify(skills);
-    })();
-});
