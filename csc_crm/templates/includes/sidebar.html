@@ -13,6 +13,7 @@
             </a>
         </li>
         
+        {% if request.user.staff_profile.role.role_name in "Admin,Manager,Sales Exec Lead,Sales Exec" %}
 
         <li>
             <a href="{% url 'leads:lead_capture_list' %}"
@@ -21,6 +22,21 @@
                 <span>Leads Module</span>
             </a>
         </li>
+        {% endif %}
+
+        {% if request.user.staff_profile.role.role_name in "HR" %}
+
+        <li>
+            <a href="{% url 'leads:lead_pipeline_view' %}"
+               class="{% if request.resolver_match.namespace == 'leads' %}active{% endif %}">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>Leads Module</span>
+            </a>
+        </li>
+        {% endif %}
+
+    {% if request.user.staff_profile.role.role_name in "Admin,Manager" %}
+
 <li>
        
        <a href="{% url 'fee_dashboard' %}" class="{% if request.resolver_match.url_name == 'fee_dashboard' or request.resolver_match.url_name == 'student_list' or request.resolver_match.url_name == 'search_students' or request.resolver_match.url_name == 'view_student' or request.resolver_match.url_name == 'edit_student' or request.resolver_match.url_name == 'delete_student' or request.resolver_match.url_name == 'generate_receipt' or request.resolver_match.url_name == 'preview_receipt' %}active{% endif %}">
@@ -28,6 +44,22 @@
         <span>Student Module</span>
     </a>
 </li>
+{% endif %}
+
+ {% if request.user.staff_profile.role.role_name in "HR,Trainer" %}
+<li>
+       
+       <a href="{% url 'student_list' %}" class="{% if request.resolver_match.url_name == 'fee_dashboard' or request.resolver_match.url_name == 'student_list' or request.resolver_match.url_name == 'search_students' or request.resolver_match.url_name == 'view_student' or request.resolver_match.url_name == 'edit_student' or request.resolver_match.url_name == 'delete_student' or request.resolver_match.url_name == 'generate_receipt' or request.resolver_match.url_name == 'preview_receipt' %}active{% endif %}">
+        <i class="fa-solid fa-user-graduate"></i>
+        <span>Student Module</span>
+    </a>
+</li>
+{% endif %}
+
+
+
+    {% if request.user.staff_profile.role.role_name in "Admin,Manager,HR,Trainer" %}
+        
         <li>
               <a href="{% url 'dashboard' %}"
                class="{% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'batches_page' or request.resolver_match.url_name == 'attendance_history' or request.resolver_match.url_name == 'absent_tracker' or request.resolver_match.url_name == 'low_attendance_alerts' or request.resolver_match.url_name == 'reports' %}active{% endif %}">
@@ -35,13 +67,18 @@
                 <span>Attendance Module</span>
             </a>
         </li>
+        {% endif %}
           
+        
+        {% if request.user.staff_profile.role.role_name in "Admin,Manager,Sales Exec Lead,Sales Exec" %}
+    
         <li>
        <a href="{% url 'student' %}" class="{% if request.resolver_match.url_name == 'student' or request.resolver_match.url_name == 'check_email' or request.resolver_match.url_name == 'check_phone' %}active{% endif %}">
         <i class="fa-solid fa-user-pen"></i>
         <span>Admission Module</span>
     </a>
 </li>
+{% endif %}
         
 
     </ul>

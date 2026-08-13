@@ -2,6 +2,7 @@
 {% load static %}
 {% block content %}
 
+
 <div class="management-container">
 
     <!-- ========================= HEADER SECTION ========================= -->
@@ -17,6 +18,7 @@
                 </div>
             </div>
 
+            {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" %}
             <form method="GET" class="header-action">
                 <select name="department" id="departmentFilter" class="filter-select department-filter">
                     <option value="">All Departments</option>
@@ -44,6 +46,7 @@
                 </a>
 
             </form>
+            {% endif %}
             
         </div>
      </div>
@@ -162,6 +165,8 @@
                                     <a href="{% url 'overview' staff.id %}" class="action-btn view-btn" title="View">
                                         <span class="action-icon"><i class="fa-solid fa-eye"></i></span>
                                     </a>
+
+                                    {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" %}
                                     <a href="{% url 'edit_staff' staff.id %}" class="action-btn edit-btn" title="Edit">
                                         <span class="action-icon"><i class="fa-duotone fa-solid fa-marker"></i></span>
                                     </a>
@@ -175,6 +180,7 @@
                                             title="Terminate">
                                             <span class="action-icon"><i class="fa-regular fa-trash-can"></i></span>
                                         </a>
+                                    {% endif %}
                                     {% endif %}
                                 </div>
                             </td>

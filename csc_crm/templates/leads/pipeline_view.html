@@ -120,7 +120,9 @@
                         <div class="empty-column">No leads</div>
                     {% endif %}
                     
+                    {% if request.user.staff_profile.role.role_name in "Admin,Manager,Sales Exec Lead,Sales Exec" %}
                     <a href="{% url 'leads:lead_capture_create' %}" class="add-lead-link">+ Add Lead</a>
+                    {% endif %}
                 </div>
                 <button type="button" class="scroll-nav-btn scroll-up-btn">▲</button>
                     <button type="button" class="scroll-nav-btn scroll-down-btn">▼</button>
@@ -156,7 +158,10 @@
                         <div class="empty-column">No leads</div>
                     {% endif %}
 
+                    {% if request.user.staff_profile.role.role_name in "Admin,Manager,Sales Exec Lead,Sales Exec" %}
                     <a href="{% url 'leads:lead_capture_create' %}" class="add-lead-link">+ Add Lead</a>
+                    {% endif %}
+
                 </div>
                 <button type="button" class="scroll-nav-btn scroll-up-btn">▲</button>
                     <button type="button" class="scroll-nav-btn scroll-down-btn">▼</button>
@@ -192,7 +197,10 @@
                         <div class="empty-column">No leads</div>
                     {% endif %}
                     
+                    {% if request.user.staff_profile.role.role_name in "Admin,Manager,Sales Exec Lead,Sales Exec" %}
                     <a href="{% url 'leads:lead_capture_create' %}" class="add-lead-link">+ Add Lead</a>
+                    {% endif %}
+
                 </div>
                 <button type="button" class="scroll-nav-btn scroll-up-btn">▲</button>
                     <button type="button" class="scroll-nav-btn scroll-down-btn">▼</button>
@@ -228,7 +236,10 @@
                         <div class="empty-column">No leads</div>
                     {% endif %}
 
+                    {% if request.user.staff_profile.role.role_name in "Admin,Manager,Sales Exec Lead,Sales Exec" %}
                     <a href="{% url 'leads:lead_capture_create' %}" class="add-lead-link">+ Add Lead</a>
+                    {% endif %}
+
                 </div>
                 <button type="button" class="scroll-nav-btn scroll-up-btn">▲</button>
                 <button type="button" class="scroll-nav-btn scroll-down-btn">▼</button>
@@ -265,7 +276,10 @@
                         <div class="empty-column">No leads</div>
                     {% endif %}
                     
+                    {% if request.user.staff_profile.role.role_name in "Admin,Manager,Sales Exec Lead,Sales Exec" %}
                     <a href="{% url 'leads:lead_capture_create' %}" class="add-lead-link">+ Add Lead</a>
+                    {% endif %}
+
                 </div>
                 <button type="button" class="scroll-nav-btn scroll-up-btn">▲</button>
                 <button type="button" class="scroll-nav-btn scroll-down-btn">▼</button>
@@ -301,7 +315,9 @@
                         <div class="empty-column">No leads</div>
                     {% endif %}
                     
+                    {% if request.user.staff_profile.role.role_name in "Admin,Manager,Sales Exec Lead,Sales Exec" %}
                     <a href="{% url 'leads:lead_capture_create' %}" class="add-lead-link">+ Add Lead</a>
+                    {% endif %}
                 </div>
                 <button type="button" class="scroll-nav-btn scroll-up-btn">▲</button>
                 <button type="button" class="scroll-nav-btn scroll-down-btn">▼</button>
@@ -343,7 +359,10 @@
                                     <td><span class="status-badge {{ lead.initial_status|lower }}">{{ lead.initial_status|title }}</span></td>
                                     <td>
                                         <a href="{% url 'leads:lead_capture_details' lead.id %}" class="btn-view">View</a>
+
+                                        {% if request.user.staff_profile.role.role_name in "Admin,Manager,Sales Exec Lead,Sales Exec" %}
                                         <a href="{% url 'leads:lead_capture_update' lead.id %}" class="btn-edit">Edit</a>
+                                        {% endif %}
                                     </td>
                                 </tr>
                                 {% endfor %}

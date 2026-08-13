@@ -54,11 +54,14 @@
                 <span class="login-times">Never Logged In</span>
             {% endif %}
         </div>
-
+        
+        
         <div class="over-header-buttons">
+            {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" %}
             <a href="{% url 'edit_staff' staff.id %}" class="over-edit-btn">
                 <i class="fas fa-pen"></i> Edit
             </a>
+            {% endif %}
             <a href="{% url 'staff_management' %}" class="over-back-btn">
                 <i class="fas fa-arrow-left"></i> Back
             </a>

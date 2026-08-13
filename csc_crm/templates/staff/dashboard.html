@@ -93,10 +93,12 @@
     </div>
 
     <!-- =================== OVERVIEW ROW: LEADS / STUDENTS / ATTENDANCE / DEPARTMENTS  ================== -->
-
+    
     <div class="dash-overview-grid">
 
         <!-- ========= LEAD OVERVIEW ========= -->
+         {% if request.user.staff_profile.role.role_name in "Admin,Manager,HR,Sales Exec Lead,Sales Exec" %}
+    
         <div class="dash-panel">
 
             <div class="dash-panel-header">
@@ -132,8 +134,11 @@
             </div>
 
         </div>
+        {% endif %}
 
         <!-- ============== STUDENT OVERVIEW ============== -->
+         {% if request.user.staff_profile.role.role_name in "Admin,Manager,HR,Trainer" %}
+    
          <div class="dash-panel">
 
             <div class="dash-panel-header">
@@ -165,8 +170,10 @@
             </div>
 
          </div>
+         {% endif %}
 
 <!-- ============================= ATTENDANCE SUMMARY ========================== -->
+ {% if request.user.staff_profile.role.role_name in "Admin,Manager,HR" %}
         <div class="dash-panel">
  
             <div class="dash-panel-header">
@@ -213,8 +220,10 @@
             </div>
  
         </div>
+        {% endif %}
  
         <!-- =========================DEPARTMENT OVERVIEW ========================= -->
+         {% if request.user.staff_profile.role.role_name in "Admin,Manager,HR" %}
         <div class="dash-panel">
  
             <div class="dash-panel-header">
@@ -237,11 +246,12 @@
             </div>
  
         </div>
+        {% endif %}
  
     </div>
  
     <!-- ================================  RECENT STAFF / RECENT STUDENTS / BATCH STRENGTH  ================================ -->
- 
+   {% if request.user.staff_profile.role.role_name in "Admin,Manager,HR" %}
     <div class="dash-lists-grid">
  
         <!-- ==================== RECENT STAFF =================== -->
@@ -278,8 +288,11 @@
             </div>
  
         </div>
+        {% endif %}
  
         <!-- ============================ RECENT STUDENTS ============================= -->
+         {% if request.user.staff_profile.role.role_name in "Admin,Manager,HR,Trainer" %}
+    
         <div class="dash-panel">
  
             <div class="dash-panel-header">
@@ -310,8 +323,11 @@
             </div>
  
         </div>
+        {% endif %}
  
         <!-- =================== BATCH STRENGTH ====================-->
+         {% if request.user.staff_profile.role.role_name in "Admin,Manager,HR,Trainer" %}
+    
         <div class="dash-panel">
  
             <div class="dash-panel-header">
@@ -349,11 +365,12 @@
             </div>
  
         </div>
+        {% endif %}
  
     </div>
 
     <!-- ================== QUICK ACTIONS ===================== -->
-
+     {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" %}
     <div class="dash-panel dash-quick-actions-panel">
 
         <h3>Quick Actions</h3>
@@ -373,6 +390,7 @@
         </div>
 
     </div>
+    {% endif %}
 
 </div>
 

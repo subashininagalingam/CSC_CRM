@@ -24,7 +24,10 @@
     <h1 class="sp-title">Staff Profile</h1>
     <p class="sp-subtitle">Complete employee information</p>
   </div>
+
+  {% if request.user.staff_profile.role.role_name in "Admin,Manager" %}
   <button class="sp-edit-btn" onclick="openEditModal()"><i class="fa fa-pencil"></i> Edit Profile</button>
+  {% endif %}
 </div>
 
 <!-- ========================================== TOP PROFILE CARD ==================================== -->
@@ -243,7 +246,7 @@
   </div>
 </div>
 
-# ===================================== Script ========================================
+<!-- ===================================== Script ======================================== -->
 
 {% block extra_js %}
 <script>

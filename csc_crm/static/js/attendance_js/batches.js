@@ -1,3 +1,13 @@
+// ===================== ROLE ACCESS =====================
+const userRole = "{{ request.user.staff_profile.role.role_name|escapejs }}";
+
+const canManageBatch = [
+    "Admin",
+    "Manager",
+    "Trainer"
+].includes(userRole);
+
+
 // JS for the Batches page: create/edit batch modal, client-side
 // filtering + pagination of the batch cards, and toast notifications.
 
@@ -390,18 +400,27 @@ function renderBatches(filtered) {
                     <button class="btn-view" onclick="window.location.href='/api/batch-preview/${batch.id}/'">
                         <i class="fa-regular fa-eye"></i> View
                     </button>
-                    ${isUpcoming
-                ? `<button class="btn-attendance" disabled>Upcoming</button>`
-                : (isCompleted || isCancelled)
-                    ? `<button class="btn-attendance" disabled>${statusLabel}</button>`
-                    : `<button class="btn-attendance"
-        onclick="window.location.href='/api/mark-attendance/${batch.id}/'">
-        ${batch.is_marked ? 'Update' : 'Mark'}
+
+                   ${isUpcoming
+    ? `<button class="btn-attendance" disabled>Upcoming</button>`
+
+    : (isCompleted || isCancelled)
+        ? `<button class="btn-attendance" disabled>${statusLabel}</button>`
+
+        : canManageBatch
+            ? `<button class="btn-attendance"
+                onclick="window.location.href='/api/mark-attendance/${batch.id}/'">
+                ${batch.is_marked ? 'Update' : 'Mark'}
+              </button>`
+            : ''
+}
+
+${canManageBatch
+    ? `<button class="btn-edit" onclick="editBatch(${batch.id})">
+           <i class="fa-solid fa-pen"></i> Edit
        </button>`
-            }
-                    <button class="btn-edit" onclick="editBatch(${batch.id})">
-                        <i class="fa-solid fa-pen"></i> Edit
-                    </button>
+    : ''
+}
                 </div>
 
             </div>

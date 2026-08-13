@@ -271,6 +271,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .form-group input[type="email"],
 .form-group input[type="tel"],
 .form-group input[type="date"],
+.form-group input[type="password"],
 .form-group input[type="number"],
 .form-group input:not([type]),
 .form-group select {
@@ -282,6 +283,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     color: var(--csc-text);
     background: var(--csc-white);
     font-family: inherit;
+    box-sizing: border-box;
 }
 
 .form-group-select,

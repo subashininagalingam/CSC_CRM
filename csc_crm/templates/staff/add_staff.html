@@ -108,49 +108,77 @@
                         </div>
 
                         <div class="form-group">
-                          <label class="form-label">Emergency Contact Name</label>
-                        <div class="input-wrapper">{{ form.emergency_contact_name }} <i class="fa-regular fa-user"></i></div>
-                        <span class="form-error" id="emergencyContactNameError"></span>
+                            <label class="form-label">Emergency Contact Name</label>
+                            <div class="input-wrapper">{{ form.emergency_contact_name }} <i class="fa-regular fa-user"></i></div>
                         </div>
 
                         <div class="form-group">
-                          <label class="form-label">Emergency Contact Phone</label>
-                         <div class="input-wrapper">{{ form.emergency_contact_phone }} <i class="fa-solid  fa-phone"></i></div>
-                         <span class="form-error" id="emergencyContactPhoneError"></span>
+                            <label class="form-label">Emergency Contact Phone</label>
+                            <div class="input-wrapper">{{ form.emergency_contact_phone }} <i class="fa-solid fa-phone"></i></div>
+                            <span class="form-error" id="phoneError"></span>
+                            <span class="form-error" id="emergencyContactPhoneError"></span>
                         </div>
+
+                        <!-- Password -->
+                    <div class="form-group">
+
+                        <label
+                            for="{{ form.password.id_for_label }}"
+                            class="form-label"
+                        >
+                            Password <span class="required">*</span>
+                        </label>
+
+                        <div class="input-wrapper">
+                            {{ form.password }}
+                            <i class="fa-solid fa-lock"></i>
+                        </div>
+
+                        {% if form.password.errors %}
+                            <span class="form-error">
+                                {{ form.password.errors.0 }}
+                            </span>
+                        {% else %}
+                            <span
+                                class="form-error"
+                                id="passwordError"
+                            ></span>
+                        {% endif %}
+
+                    </div>
+
+                    <!-- Confirm Password -->
+                    <div class="form-group">
+
+                        <label
+                            for="{{ form.confirm_password.id_for_label }}"
+                            class="form-label"
+                        >
+                            Confirm Password <span class="required">*</span>
+                        </label>
+
+                        <div class="input-wrapper">
+                            {{ form.confirm_password }}
+                            <i class="fa-solid fa-lock"></i>
+                        </div>
+
+                        {% if form.confirm_password.errors %}
+                            <span class="form-error">
+                                {{ form.confirm_password.errors.0 }}
+                            </span>
+                        {% else %}
+                            <span
+                                class="form-error"
+                                id="confirmPasswordError"
+                            ></span>
+                        {% endif %}
+
+                    </div>
 
                         <div class="form-group">
                             <label class="form-label">Address</label>
                             <div class="input-wrapper">{{ form.address }}</div>
                         </div>
-
-                        <!-- Password -->
-<div class="form-group">
-    <label for="password" class="form-label">
-        Password <span class="required">*</span>
-    </label>
-
-    <div class="input-wrapper">
-        {{ form.password }}
-        <i class="fa-solid fa-lock"></i>
-    </div>
-
-    <span class="form-error" id="passwordError"></span>
-</div>
-
-<!-- Confirm Password -->
-<div class="form-group">
-    <label for="confirm_password" class="form-label">
-        Confirm Password <span class="required">*</span>
-    </label>
-
-    <div class="input-wrapper">
-        {{ form.confirm_password }}
-        <i class="fa-solid fa-lock"></i>
-    </div>
-
-    <span class="form-error" id="confirmPasswordError"></span>
-</div>
       
                 </div>
              </fieldset>
@@ -215,59 +243,188 @@
 
                 </div>
               </fieldset>
-               
+               <!-- ========================================================= -->
+            <!-- DOCUMENTS -->
+            <!-- ========================================================= -->
 
-              <!-- ============================ FILES AND DOCUMENTS SECTION ============================= -->
-               <fieldset class="staff-mgmt-form-section">
-                    <legend class="section-title">
-                        <span class="section-bar"></span>
-                        <i class="fa-regular fa-file-lines"></i>
-                        Documents
-                    </legend>
+            <fieldset class="staff-mgmt-form-section">
 
-                    <div class="form-row two-columns">
+                <legend class="section-title">
+
+                    <span class="section-bar"></span>
+
+                    <i class="fa-regular fa-file-lines"></i>
+
+                    Documents
+
+                </legend>
+
+
+                <div class="form-row two-columns">
+
+                    <!-- PROFILE PHOTO -->
+                    <!-- ============================ PASSPORT SIZE PHOTO ============================ -->
+
+<div class="form-group">
+
+    <label class="form-label">
+        Passport Size Photo
+    </label>
+
+    <div
+        class="file-upload-wrapper"
+        id="photoUploadWrapper"
+    >
+
+        <div
+            class="upload-dropzone"
+            id="photoDropzone"
+        >
+
+            <div class="upload-icon">
+                <i class="fa-solid fa-arrow-up-from-bracket"></i>
+            </div>
+
+            <p class="upload-text">
+                <span
+                    class="upload-link"
+                    id="photoUploadLink"
+                >
+                    Click to upload
+                </span>
+                or drag & drop
+            </p>
+
+            <p class="upload-hint">
+                PNG, JPG up to 2MB
+            </p>
+
+            {{ form.profile_photo }}
+
+        </div>
+
+        <button
+            type="button"
+            id="removePhotoBtn"
+            class="remove-file-btn"
+            style="display:none;"
+        >
+            &times;
+        </button>
+
+    </div>
+
+    <div class="upload-progress">
+        <div
+            class="progress-bar"
+            id="photoProgressBar"
+        ></div>
+    </div>
+
+    <span
+        id="progressText"
+        class="upload-status"
+    >
+        No file selected
+    </span>
+
+    <span
+        id="profilePhotoError"
+        class="form-error"
+    ></span>
+
+</div>
+
+
+                    <!-- DOCUMENT UPLOAD -->
                     <div class="form-group">
-                        <label for="{{ form.profile_photo.id_for_label }}" class="form-label">Passport Size Photo</label>
-                        <div class="file-upload-wrapper">
-                            <div class="upload-dropzone">
-                                <div class="upload-icon">
-                                    <i class="fa-solid fa-arrow-up-from-bracket"></i>
-                                </div>
-                                <p class="upload-text"><span class="upload-link">Click to upload</span> or drag &amp; drop</p>
-                                <p class="upload-hint">PNG, JPG up to 2MB</p>
-                                {{ form.profile_photo }}
-                            </div>
-                            <button type="button" id="removePhotoBtn" class="remove-file-btn">&times;</button>
-                        </div>
-                        <div class="upload-progress">
-                            <div class="progress-bar" id="photoProgressBar"></div>
-                        </div>
-                        <span id="progressText" class="upload-status">No file selected</span>
-                        <span class="form-error" id="profilePhotoError"></span>
-                    </div>
-                    <div class="form-group">
-                        <label for="documentInput" class="form-label">
-                            Upload Documents (Resume, ID Proof, Certificate as PDF)<span class="required">*</span>
+
+                        <label
+                            for="documentInput"
+                            class="form-label"
+                        >
+                            Upload Documents
+                            <span class="required">*</span>
                         </label>
+
+
                         <div class="file-upload-wrapper">
+
                             <div class="upload-dropzone">
+
                                 <div class="upload-icon">
                                     <i class="fa-solid fa-arrow-up-from-bracket"></i>
                                 </div>
-                                <p class="upload-text"><span class="upload-link">Click to upload</span>or drag &amp; drop</p>
-                                <p class="upload-hint">PDF up to 5MB</p>
-                                <input type="file" name="documents" id="documentInput" class="form-control" accept=".pdf,.jpg,.jpeg,.png" multiple>
+
+                                <p class="upload-text">
+
+                                    <span class="upload-link">
+                                        Click to upload
+                                    </span>
+
+                                    or drag &amp; drop
+
+                                </p>
+
+                                <p class="upload-hint">
+                                    PDF, JPG, PNG up to 5MB
+                                </p>
+
+
+                                <input
+                                    type="file"
+                                    name="documents"
+                                    id="documentInput"
+                                    class="form-control"
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    multiple
+                                >
+
                             </div>
-                            <button type="button" id="removeDocumentBtn" class="remove-file-btn">&times;</button>
+
+
+                            <button
+                                type="button"
+                                id="removeDocumentBtn"
+                                class="remove-file-btn"
+                            >
+                                &times;
+                            </button>
+
                         </div>
+
+
                         <div class="upload-progress">
-                            <div class="progress-bar" id="documentProgressBar"></div>
+
+                            <div
+                                class="progress-bar"
+                                id="documentProgressBar"
+                            ></div>
+
                         </div>
-                        <span id="documentprogressText" class="upload-status">No file selected</span>
-                        <span class="form-error" id="documentError"></span>
+
+
+                        <span
+                            id="documentprogressText"
+                            class="upload-status"
+                        >
+                            No file selected
+                        </span>
+
+
+                        <span
+                            class="form-error"
+                            id="documentError"
+                        ></span>
+
                     </div>
+
                 </div>
-               </fieldset>
+
+            </fieldset>
+
+
+              
 
                <!-- ================== PERFORMANCE SECTION ================= -->
 
@@ -308,8 +465,8 @@
 
 </div>
 
-<!-- {% block extra_js %}
+{% block extra_js %}
     <script src="{% static 'js/staff_js/add_staff.js' %}"></script>
-{% endblock %} -->
+{% endblock %}
 
 {% endblock %}

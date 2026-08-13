@@ -119,11 +119,15 @@ Student List
 
     <!-- DOWNLOAD -->
     <div class="table-container">
+
+        {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" %}
         <div>
         <a href="{% url 'student' %}">
             <button id="btn2" class="btn2">+ Add New Student</button>
         </a>
         </div>
+        {% endif %}
+
         <div>
         <form method="GET" id="downloadForm">
 
@@ -178,7 +182,9 @@ Student List
             <th>Admission Status</th>
             <th>Joined</th>
             <th>Profile</th>
+            {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" %}
             <th>Action</th>
+            {% endif %}
             <th></th>
         </tr>
 
@@ -256,6 +262,7 @@ Student List
             </td>
 
             <!-- ACTION -->
+             {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" %}
             <td class="dropdown">
                 <button class="dots" onclick="toggleDropdown(this)">⋮</button>
 
@@ -264,6 +271,7 @@ Student List
                     <a href="{% url 'delete_student' student.id %}" onclick="confirmDelete(event, this.href)">Delete</a>
                 </div>
             </td>
+            {% endif %}
         </tr>
         {% endwith %}
         {% empty %}

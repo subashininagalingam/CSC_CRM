@@ -65,6 +65,8 @@
                     </select>
                 </div>
 
+
+                {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" %}
                 <div class="field">
                     <label><i class="fa-regular fa-circle-check"></i> Status</label>
                     <select name="status">
@@ -85,6 +87,7 @@
                         <option value="Pending" {% if request.GET.payment_status == "Pending" %}selected{% endif %}>Pending</option>
                     </select>
                 </div>
+                {% endif %}
 
             </div>
 
@@ -179,6 +182,7 @@
                 <td class="profile-cell">
     <a href="{% url 'view_student' student.id %}"><button>View</button></a>
 
+    {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" %}
     <div class="kebab-wrapper">
         <button type="button" class="kebab-btn" onclick="toggleKebabMenu(event, this)">
             <i class="fa-solid fa-ellipsis-vertical"></i>
@@ -195,6 +199,7 @@
             </a>
         </div>
     </div>
+    {% endif %}
 </td>
             </tr>
             {% endwith %}

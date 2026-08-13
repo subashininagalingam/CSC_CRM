@@ -243,96 +243,64 @@ def _get_staff_roles_map():
     }
 
 
+
 @login_required(login_url='staff_login')
 @role_required(['Admin', 'Manager'])
 def add_staff(request):
-    """Add new staff member"""
-
     if request.method == 'POST':
         form = StaffForm(request.POST, request.FILES)
 
         if form.is_valid():
             documents = request.FILES.getlist('documents')
 
-            # ================= DOCUMENT VALIDATION =================
             if not documents:
-                form.add_error(
-                    None,
-                    'At least one document is required.'
-                )
-
-                context = {
+                form.add_error(None, 'At least one document is required.')
+                return render(request, 'staff/add_staff.html', {
                     'page_title': 'Add New Staff',
-                    'form': form,
-                    'staff_roles_map': _get_staff_roles_map(),
-                }
+                    'form': form
+                })
 
-                return render(
-                    request,
-                    'staff/add_staff.html',
-                    context
-                )
-
-            # ================= STAFF SAVE =================
             staff = form.save(commit=False)
 
-            # ================= CREATE LINKED AUTH USER =================
+            # ===== CREATE USER ACCOUNT FOR LOGIN =====
             password = form.cleaned_data.get('password')
+            employee_id = form.cleaned_data.get('employee_id')
             email = form.cleaned_data.get('email')
 
             user = User.objects.create_user(
-                username=form.cleaned_data.get('employee_id'),
+                username=employee_id,
                 email=email,
                 password=password
             )
 
             staff.user = user
-
-            # Save staff
             staff.save()
 
-            # ================= DOCUMENTS =================
             for document in documents:
                 StaffDocument.objects.create(
                     staff=staff,
                     document=document
                 )
 
-            # ================= SUCCESS MESSAGE =================
             messages.success(
                 request,
                 f"Staff member '{staff.full_name()}' added successfully!"
             )
 
-            return redirect(
-                'overview',
-                staff_id=staff.id
-            )
-
+            return redirect('overview', staff_id=staff.id)
         else:
             print(form.errors)
-
     else:
         form = StaffForm(
-            initial={
-                'employee_id': generate_employee_id()
-            }
+            initial={'employee_id': generate_employee_id()}
         )
 
-    # ================= CONTEXT =================
     context = {
         'page_title': 'Add New Staff',
         'form': form,
         'staff_roles_map': _get_staff_roles_map(),
     }
-
-    return render(
-        request,
-        'staff/add_staff.html',
-        context
-    )
-
-
+    return render(request, 'staff/add_staff.html', context)
 
 # ============================= CHECK EMAIL EXISTING (FOR VALIDATION) ===============================
 
@@ -369,35 +337,73 @@ def check_phone(request):
     })
 
 # ========================== UPDATING STAFF ===================================
-
 @login_required(login_url='staff_login')
 @role_required(['Admin', 'Manager'])
 def edit_staff(request, id):
-    """Update existing staff"""
 
     staff = get_object_or_404(Staff, id=id)
 
+    # =========================================================
+    # REPORTING MANAGER DROPDOWN
+    # =========================================================
+    reporting_managers = Staff.objects.filter(
+        status='active'
+    ).exclude(
+        id=staff.id
+    ).select_related('role')
+
     if request.method == 'POST':
-        form = EditStaffForm(request.POST, request.FILES, instance=staff)
+
+        form = EditStaffForm(
+            request.POST,
+            request.FILES,
+            instance=staff
+        )
+
+        # IMPORTANT
+        form.fields['reporting_manager'].queryset = reporting_managers
+
         if form.is_valid():
-            form.save()
-            messages.success(request, f"Staff member '{staff.full_name()}' Updated sucessfully!")
-        
-            return redirect('overview', staff_id=staff.id)
-        else:
-            print(form.errors)
+
+            staff = form.save(commit=False)
+
+            # Password empty -> old password remains
+            password = form.cleaned_data.get('password')
+
+            if password:
+                staff.set_password(password)
+
+            staff.save()
+
+            messages.success(
+                request,
+                f'{staff.full_name()} updated successfully.'
+            )
+
+            return redirect('staff_management')
+
     else:
-        form = StaffForm(instance=staff)
+
+        form = EditStaffForm(instance=staff)
+
+        # IMPORTANT
+        form.fields['reporting_manager'].queryset = reporting_managers
 
     context = {
-        'page_title':f"Edit '{staff.full_name}'",
-        'form':form,
-        'staff':staff,
+        'form': form,
+        'staff': staff,
+        'page_title': 'Edit Staff',
+
+        # IMPORTANT FOR JS
         'staff_roles_map': _get_staff_roles_map(),
+
     }
 
-    return render(request, 'staff/edit_staff.html', context)
-
+    return render(
+        request,
+        'staff/edit_staff.html',
+        context
+    )
 # ============================= STAFF DELETE ==================================
 
 @login_required(login_url='staff_login')

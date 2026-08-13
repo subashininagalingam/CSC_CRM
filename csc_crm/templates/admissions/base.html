@@ -54,23 +54,25 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
 {% if request.user.is_authenticated and request.user.staff_profile %}
 <div class="sidebar-user-main">
-<div class="sidebar-user">
+    <div class="sidebar-user">
 
-    <div class="sidebar-user-avatar">
-        {{ request.user.staff_profile.get_initials }}
+        <div class="sidebar-user-avatar">
+            {{ request.user.staff_profile.get_initials }}
+        </div>
+
+        <div class="sidebar-user-info">
+            <p class="sidebar-user-name">
+                {{ request.user.staff_profile.full_name }}
+            </p>
+
+            <p class="sidebar-user-role">
+                <small>{{ request.user.staff_profile.employee_id }}</small>
+                -
+                {{ request.user.staff_profile.role.get_role_name_display }}
+            </p>
+        </div>
+
     </div>
-
-    <div class="sidebar-user-info">
-        <p class="sidebar-user-name">
-            {{ request.user.staff_profile.full_name }}
-        </p>
-
-        <p class="sidebar-user-role">
-            {{ request.user.staff_profile.role.get_role_name_display }}
-        </p>
-    </div>
-
-</div>
 </div>
 {% endif %}
 
@@ -89,10 +91,12 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
 {% else %}
 
+     {% if request.user.staff_profile.role.role_name in "Admin,Manager" %}
     <a href="{% url 'fee_dashboard' %}"
        class="{% if request.resolver_match.url_name == 'fee_dashboard' %}active{% endif %}">
         Fee Management
     </a>
+    {% endif %}
 
     <a href="{% url 'student_list' %}"
        class="{% if request.resolver_match.url_name == 'student_list' %}active{% endif %}">

@@ -298,6 +298,8 @@ View Student
             <p><span>Last Payment Date</span><strong>{{ payments.last.date|default:"—" }}</strong></p>
         </div>
 
+
+{% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" %}
         <div class="card summary-card">
                     <div class="notes-box">
                         <h4><i class="fas fa-file-alt icon-blue"></i> Notes</h4>
@@ -316,6 +318,7 @@ View Student
                         </div>
                     </div>
                 </div>
+                {% endif %}
     </div>
 
 </div>

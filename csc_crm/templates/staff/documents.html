@@ -257,7 +257,8 @@
                             <a href="{{ doc.document.url }}" target="_blank" class="doc-action-btn view" title="View Document">
                                 <i class="fa fa-eye"></i>
                             </a>
-
+.
+                            {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" %}
                             <button
                                 type="button"
                                 class="doc-action-btn delete"
@@ -266,6 +267,9 @@
                             >
                                 <i class="fa fa-trash"></i>
                             </button>
+                            {% endif %}
+
+
                         </div>
 
                     </div>

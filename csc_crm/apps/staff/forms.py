@@ -382,21 +382,66 @@ class StaffForm(forms.ModelForm):
         return photo
         
 
-        # def clean_monthly_target(self):
-        #     target = self.cleaned_data['monthly_target']
+class EditStaffForm(StaffForm):
+    """
+    Edit existing Staff member.
 
-        #     if target <= 0:
-        #         raise forms.ValidationError(
-        #             "Monthly target cannot be negative."
-        #         )
-        #     return target
-    
-class EditStaffForm(forms.ModelForm):
+    Password fields are optional:
+    - Leave password blank -> old password remains unchanged.
+    - Enter new password + confirm password -> password will be changed.
+    """
 
-    class Meta:
+    password = forms.CharField(
+        required=False,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter new password',
+            'autocomplete': 'new-password',
+        })
+    )
+
+    confirm_password = forms.CharField(
+        required=False,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Confirm new password',
+            'autocomplete': 'new-password',
+        })
+    )
+
+    class Meta(StaffForm.Meta):
         model = Staff
+        fields = StaffForm.Meta.fields
 
-        exclude = ['documents']
+    def clean(self):
+        cleaned_data = super().clean()
+
+        password = cleaned_data.get('password')
+        confirm_password = cleaned_data.get('confirm_password')
+
+        # Password is optional while editing
+        if password or confirm_password:
+
+            if not password:
+                self.add_error(
+                    'password',
+                    'Please enter the new password.'
+                )
+
+            if not confirm_password:
+                self.add_error(
+                    'confirm_password',
+                    'Please confirm the new password.'
+                )
+
+            if password and confirm_password:
+                if password != confirm_password:
+                    self.add_error(
+                        'confirm_password',
+                        'Passwords do not match.'
+                    )
+
+        return cleaned_data
     
 class StaffFilterForm(forms.Form):
     """Form for filtering staff"""

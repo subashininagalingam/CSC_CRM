@@ -35,9 +35,13 @@ Student Attendance - Batches
                     <p>Manage training batches and daily attendance</p>
                 </div>
             </div>
+
+            {% if request.user.staff_profile.role.role_name in "Admin,Manager,Trainer" %}
             <button class="btn-new-batch" data-bs-toggle="modal" data-bs-target="#batchModal">
                 <i class="fa-solid fa-plus"></i> New Batch
             </button>
+            {% endif %}
+
         </div>
 
         <!-- TOP CARDS -->

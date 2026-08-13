@@ -18,7 +18,11 @@
                 <a href="{% url 'leads:lead_capture_download_pdf' lead.id %}" class="btn-primary" id="downloadPdfBtn">
                 <i class="fa-solid fa-download"></i> <span class="btn-text">Download</span>
                 </a>
+
+                {% if request.user.staff_profile.role.role_name in "Admin,Manager,Sales Exec Lead,Sales Exec" %}
                 <a href="{% url 'leads:lead_capture_update' lead.id %}" class="btn-primary">Edit Lead</a>
+                {% endif %}
+
                 <a href="{% url 'leads:lead_capture_list' %}" class="btn-outline">
                     <i class="fa-solid fa-arrow-left"></i> Back to Lead List
                 </a>

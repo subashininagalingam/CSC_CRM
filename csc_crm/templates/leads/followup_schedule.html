@@ -434,7 +434,9 @@
                             <div class="action-buttons">
 
                                 <!-- Log Call -->
+                                 {% if request.user.staff_profile.role.role_name in "Admin,Manager,Sales Exec Lead,Sales Exec" %}
                                 <a href="{% url 'leads:call_logs' %}" class="log-call-btn">  📞 Log Call </a>
+                                {% endif %}
 
 
                                 <!-- Three Dot -->
@@ -456,7 +458,7 @@
 
                                         </a>
 
-
+                                        {% if request.user.staff_profile.role.role_name in "Admin,Manager,Sales Exec Lead,Sales Exec" %}
                                         {% if not lead.followup_completed %}
 
                                             <!-- Mark Completed -->
@@ -464,7 +466,7 @@
                                                   action="{% url 'leads:mark_followup_completed' lead.id %}">
 
                                                 {% csrf_token %}
-
+                                                     
                                                 <button type="submit">
 
                                                     ✓ Mark Completed
@@ -481,6 +483,7 @@
 
                                             </span>
 
+                                        {% endif %}
                                         {% endif %}
 
                                     </div>

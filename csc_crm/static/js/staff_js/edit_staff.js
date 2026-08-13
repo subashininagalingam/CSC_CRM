@@ -1,1220 +1,1661 @@
+// ============================================================
+// EDIT STAFF - COMPLETE JS
+// ============================================================
 
-// ================================= GLOBAL VALIDATION FOR FORM =================================
+document.addEventListener("DOMContentLoaded", function () {
+    "use strict";
 
-function isFormValid() {
-    const phone = document.getElementById('phoneInput').value.trim();
+    const form = document.getElementById("staffMgmtForm");
+    if (!form) return;
 
-    const dobError = document.getElementById('dateOfBirthError').textContent.trim();
-    const dojError = document.getElementById('dateOfJoiningError').textContent.trim();
-    const phoneError = document.getElementById('phoneError').textContent.trim();
-    const emailError = document.getElementById('emailError').textContent.trim();
+    console.log("EDIT STAFF JS LOADED");
 
-    const indianPhonePattern = /^\+91[\s-]?[6-9]\d{9}$/;
+    // ========================================================
+    // HELPERS
+    // ========================================================
 
-    if (!indianPhonePattern.test(phone)) {
-        return false;
+    const $ = (id) => document.getElementById(id);
+
+    const field = (name, id) =>
+        (id && $(id)) || document.querySelector(`[name="${name}"]`);
+
+    const value = (input) =>
+        input ? String(input.value || "").trim() : "";
+
+    function error(input, errorEl, message) {
+        if (errorEl) errorEl.textContent = message;
+        if (input) input.classList.add("error-input");
     }
 
-    if (dobError !== '') {
-        return false;
+    function clearError(input, errorEl) {
+        if (errorEl) errorEl.textContent = "";
+        if (input) input.classList.remove("error-input");
     }
 
-    if (dojError !== '') {
-        return false;
-    }
+    // ========================================================
+    // FIELDS
+    // ========================================================
 
-    if (phoneError !== '') {
-        return false;
-    }
+    const employeeId = field("employee_id", "employeeIdInput");
+    const firstName = field("first_name", "firstNameInput");
+    const lastName = field("last_name", "lastNameInput");
+    const email = field("email", "emailInput");
+    const phone = field("phone", "phoneInput");
 
-    if (emailError !== '') {
-        return false;
-    }
+    const dob = field("date_of_birth", "dateOfBirthInput");
+    const doj = field("date_of_joining", "dateOfJoiningInput");
 
-    return true;
-}
+    const gender = field("gender", "genderInput");
+    const bloodGroup = field("blood_group", "bloodGroupInput");
 
-// ====================== BLOCK EMPLOYEE ID EDITING ======================
+    const emergencyName =
+        field("emergency_contact_name", "emergencyContactNameInput");
 
-document.addEventListener('DOMContentLoaded', () => {
-    const employeeIdInput = document.querySelector('[name="employee_id"]');
+    const emergencyPhone =
+        field("emergency_contact_phone", "emergencyContactPhoneInput");
 
-    if (!employeeIdInput) return;
+    const role = field("role", "roleInput");
+    const department = field("department", "departmentInput");
+    const status = field("status", "statusInput");
 
-    const originalEmployeeId = employeeIdInput.value;
+    const reportingManager =
+        field("reporting_manager", "reportingManagerInput");
 
-    // Make it readonly
-    employeeIdInput.readOnly = true;
+    const password = field("password", "passwordInput");
+    const confirmPassword =
+        field("confirm_password", "confirmPasswordInput");
 
-    // Stop typing
-    employeeIdInput.addEventListener('keydown', (e) => {
-        e.preventDefault();
-    });
+    const skillsInput = $("skillsTypedInput");
+    const skillsHidden = field("skills", "skillsInput");
 
-    // Stop paste
-    employeeIdInput.addEventListener('paste', (e) => {
-        e.preventDefault();
-    });
+    const monthlyTarget =
+        field("monthly_target", "monthlyTargetInput");
 
-    // Stop drag/drop text
-    employeeIdInput.addEventListener('drop', (e) => {
-        e.preventDefault();
-    });
+    const performanceRating =
+        field("performance_rating", "performanceRatingInput");
 
-    // If any extension like FakeFiller changes it, restore old value
-    employeeIdInput.addEventListener('input', () => {
-        employeeIdInput.value = originalEmployeeId;
-    });
+    const updateBtn = $("updateStaffBtn");
 
-    employeeIdInput.addEventListener('change', () => {
-        employeeIdInput.value = originalEmployeeId;
-    });
-});
+    // ========================================================
+    // ERRORS
+    // ========================================================
 
-// ============================ EDIT FORM UPDATE BTN DISABLED ============================
-
-let checkChanges;
-
-document.addEventListener('DOMContentLoaded', () => {
-
-    const form = document.getElementById('staffMgmtForm');
-    const updateBtn = document.getElementById('updateStaffBtn');
-
-    const originalValues = {};
-
-    form.querySelectorAll('input, select, textarea').forEach(field => {
-
-        originalValues[field.name] = field.value;
-
-    });
-
-    checkChanges = function () {
-
-        let changed = false;
-
-        form.querySelectorAll('input, select, textarea').forEach(field => {
-
-            if (field.value !== originalValues[field.name]) {
-                changed = true;
-            }
-
-        });
-
-        updateBtn.disabled = !(changed && isFormValid());
-
+    const errors = {
+        firstName: $("firstNameError"),
+        lastName: $("lastNameError"),
+        email: $("emailError"),
+        phone: $("phoneError"),
+        dob: $("dateOfBirthError"),
+        doj: $("dateOfJoiningError"),
+        role: $("roleError"),
+        status: $("statusError"),
+        emergencyName: $("emergencyContactNameError"),
+        emergencyPhone: $("emergencyContactPhoneError"),
+        password: $("passwordError"),
+        confirmPassword: $("confirmPasswordError"),
+        skills: $("skillsError"),
+        monthlyTarget: $("monthlyTargetError"),
+        performance: $("performanceRatingError")
     };
 
-    form.querySelectorAll('input, select, textarea').forEach(field => {
+    // ========================================================
+    // ORIGINAL VALUES
+    // ========================================================
 
-        field.addEventListener('input', checkChanges);
-        field.addEventListener('change', checkChanges);
+    const original = {
+        firstName: value(firstName),
+        lastName: value(lastName),
+        email: value(email),
+        phone: value(phone),
 
-    });
+        dob: dob ? dob.value : "",
+        doj: doj ? doj.value : "",
 
-});
+        gender: gender ? gender.value : "",
+        bloodGroup: bloodGroup ? bloodGroup.value : "",
 
-// =================================== EDIT EMAIL VALIDATION ===================================
+        emergencyName: value(emergencyName),
+        emergencyPhone: value(emergencyPhone),
 
-document.addEventListener('DOMContentLoaded', () => {
+        role: role ? role.value : "",
+        department: department ? department.value : "",
+        status: status ? status.value : "",
 
-    const form = document.getElementById('staffMgmtForm');
-    const emailInput = document.getElementById('emailInput');
-    const emailError = document.getElementById('emailError');
-    const staffId = document.getElementById('staffId').value;
+        reportingManager:
+            reportingManager ? reportingManager.value : "",
 
-    if (!form || !emailInput || !emailError || !staffId) return;
+        monthlyTarget:
+            monthlyTarget ? monthlyTarget.value : "",
 
-    let emailValid = true;
-    let isEmailSubmitRunning = false;
+        performanceRating:
+            performanceRating ? performanceRating.value : ""
+    };
 
-    const allowedDomainEndings = [
-        '.com',
-        '.in',
-        '.co.in',
-        '.org',
-        '.org.in',
-        '.net',
-        '.edu',
-        '.edu.in',
-        '.ac.in'
-    ];
+    // ========================================================
+    // EMPLOYEE ID
+    // ========================================================
 
-    function showEmailError(message) {
-        emailError.textContent = message;
-        emailInput.classList.add('error-input');
-        emailValid = false;
+    if (employeeId) {
+        employeeId.readOnly = true;
     }
 
-    function clearEmailError() {
-        emailError.textContent = '';
-        emailInput.classList.remove('error-input');
-        emailValid = true;
-    }
-
-    function validateEmailFormat() {
-        const email = emailInput.value.trim().toLowerCase();
-
-        if (email === '') {
-            showEmailError('Email is required.');
-            return false;
-        }
-
-        const basicEmailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-
-        if (!basicEmailPattern.test(email)) {
-            showEmailError('Please enter a valid email address.');
-            return false;
-        }
-
-        const domain = email.substring(email.lastIndexOf('@') + 1);
-
-        const isAllowedDomain = allowedDomainEndings.some(ending => {
-            return domain.endsWith(ending);
-        });
-
-        if (!isAllowedDomain) {
-            showEmailError(
-                'Please enter an email with a valid domain like .com, .in, .co.in, .org, .net, .edu, or .ac.in.'
-            );
-            return false;
-        }
-
-        clearEmailError();
-        return true;
-    }
-
-    async function checkDuplicateEmail() {
-        const email = emailInput.value.trim();
-
-        try {
-            const response = await fetch(
-                `/staff/check-email/?email=${encodeURIComponent(email)}&staff_id=${staffId}`
-            );
-
-            const data = await response.json();
-
-            if (data.exists) {
-                showEmailError('This email already exists!');
-                return false;
-            }
-
-            clearEmailError();
-            return true;
-
-        } catch (error) {
-            console.log('Email check error:', error);
-            showEmailError('Unable to check email right now. Please try again.');
-            return false;
-        }
-    }
-
-    async function validateEmailFully() {
-        const isFormatValid = validateEmailFormat();
-
-        if (!isFormatValid) {
-            if (typeof checkChanges === 'function') {
-                checkChanges();
-            }
-            return false;
-        }
-
-        const isDuplicateValid = await checkDuplicateEmail();
-
-        if (typeof checkChanges === 'function') {
-            checkChanges();
-        }
-
-        return isDuplicateValid;
-    }
-
-    emailInput.addEventListener('input', () => {
-        validateEmailFormat();
-
-        if (typeof checkChanges === 'function') {
-            checkChanges();
-        }
-    });
-
-    emailInput.addEventListener('blur', async () => {
-        await validateEmailFully();
-    });
-
-    form.addEventListener('submit', async function (e) {
-
-        if (isEmailSubmitRunning) {
-            return;
-        }
-
-        e.preventDefault();
-        e.stopImmediatePropagation();
-
-        const isEmailValid = await validateEmailFully();
-
-        if (!isEmailValid) {
-            emailInput.focus();
-            return;
-        }
-
-        isEmailSubmitRunning = true;
-        form.requestSubmit();
-
-        setTimeout(() => {
-            isEmailSubmitRunning = false;
-        }, 0);
-
-    }, true);
-
-});
-// =================================== PHONE VALIDATION ===================================
-
-document.addEventListener('DOMContentLoaded', () => {
-
-    const form = document.getElementById('staffMgmtForm');
-    const phoneInput = document.getElementById('phoneInput');
-    const phoneError = document.getElementById('phoneError');
-    const staffId = document.getElementById('staffId').value;
-
-    let phoneValid = true;
-
-    function showPhoneError(message) {
-        phoneError.textContent = message;
-        phoneInput.classList.add('error-input');
-    }
-
-    function clearPhoneError() {
-        phoneError.textContent = '';
-        phoneInput.classList.remove('error-input');
-    }
-
-    function validatePhoneFormat() {
-        const phone = phoneInput.value.trim();
-
-        if (phone === '') {
-            showPhoneError('Phone number is required.');
-            phoneValid = false;
-            return false;
-        }
-
-        const indianPhonePattern = /^\+91[\s-]?[6-9]\d{9}$/;
-
-        if (!indianPhonePattern.test(phone)) {
-            showPhoneError('Phone number should start with +91 and contain a valid 10-digit Indian mobile number.');
-            phoneValid = false;
-            return false;
-        }
-
-        clearPhoneError();
-        phoneValid = true;
-        return true;
-    }
-
-    async function checkDuplicatePhone() {
-        const phone = phoneInput.value.trim();
-
-        try {
-            const response = await fetch(
-                `/staff/check-phone/?phone=${encodeURIComponent(phone)}&staff_id=${staffId}`
-            );
-
-            const data = await response.json();
-
-            if (data.exists) {
-                showPhoneError('This phone number already exists!');
-                phoneValid = false;
-                return false;
-            }
-
-            clearPhoneError();
-            phoneValid = true;
-            return true;
-
-        } catch (error) {
-            console.log('Phone check error:', error);
-            showPhoneError('Unable to check phone number right now.');
-            phoneValid = false;
-            return false;
-        }
-    }
-
-    async function validatePhoneFully() {
-        const isFormatValid = validatePhoneFormat();
-
-        if (!isFormatValid) {
-            if (typeof checkChanges === 'function') {
-                checkChanges();
-            }
-            return false;
-        }
-
-        const isDuplicateValid = await checkDuplicatePhone();
-
-        if (typeof checkChanges === 'function') {
-            checkChanges();
-        }
-
-        return isDuplicateValid;
-    }
-
-    phoneInput.addEventListener('input', () => {
-        // Allow only digits, +, space and hyphen
-        phoneInput.value = phoneInput.value.replace(/[^0-9+\s-]/g, '');
-
-        validatePhoneFormat();
-
-        if (typeof checkChanges === 'function') {
-            checkChanges();
-        }
-    });
-
-    phoneInput.addEventListener('blur', async () => {
-        await validatePhoneFully();
-    });
-
-    form.addEventListener('submit', function (e) {
-        if (!validatePhoneFormat() || !phoneValid) {
-            e.preventDefault();
-            phoneInput.focus();
-        }
-    });
-
-});
-// ========================== FIRST & LAST NAME CONTAINS ONLY STRINGS ============================
-
-document.addEventListener('DOMContentLoaded', ()=>{
-    const firstNameInput = document.getElementById('firstNameInput');
-    
-    firstNameInput.addEventListener('input', ()=>{
-        firstNameInput.value = firstNameInput.value.replace(/[^a-zA-Z\s]/g, '');
-    });
-
-    const lastNameInput = document.getElementById('lastNameInput');
-
-    lastNameInput.addEventListener('input', ()=>{
-        lastNameInput.value = lastNameInput.value.replace(/[^a-zA-Z\s]/g, '');
-    });
-})
-
-// ================================== DOB & DOJ ENHANCING ==================================
-
-document.addEventListener('DOMContentLoaded', ()=>{
-    const dateOfBirthInput = document.getElementById('dateOfBirthInput');
-    const dateOfJoiningInput = document.getElementById('dateOfJoiningInput');
-
-    function enableFullDatePicker(input){
-        input.addEventListener('click', ()=>{
-            if(input.showPicker){
-                input.showPicker();
-            }
-        });
-    }
-
-    enableFullDatePicker(dateOfBirthInput);
-    enableFullDatePicker(dateOfJoiningInput);
-
-});
-
-// ======================== DOB + DOJ VALIDATION ============================
-
-document.addEventListener('DOMContentLoaded', () => {
-
-    const form = document.getElementById('staffMgmtForm');
-
-    const dateOfBirthInput = document.getElementById('dateOfBirthInput');
-    const dateOfJoiningInput = document.getElementById('dateOfJoiningInput');
-
-    const dateOfBirthError = document.getElementById('dateOfBirthError');
-    const dateOfJoiningError = document.getElementById('dateOfJoiningError');
-
-    if (!form || !dateOfBirthInput || !dateOfJoiningInput) return;
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    dateOfBirthInput.setAttribute('max', today.toISOString().split('T')[0]);
-
-    function calculateAgeOnJoining(dob, doj) {
-        let age = doj.getFullYear() - dob.getFullYear();
-
-        const monthDiff = doj.getMonth() - dob.getMonth();
-
-        if (
-            monthDiff < 0 ||
-            (monthDiff === 0 && doj.getDate() < dob.getDate())
-        ) {
-            age--;
-        }
-
-        return age;
-    }
-
-    function validateDOBAndDOJ() {
-
-        let isValid = true;
-
-        dateOfBirthError.textContent = '';
-        dateOfJoiningError.textContent = '';
-
-        dateOfBirthInput.classList.remove('error-input');
-        dateOfJoiningInput.classList.remove('error-input');
-
-        const dobValue = dateOfBirthInput.value;
-        const dojValue = dateOfJoiningInput.value;
-
-        const dob = dobValue ? new Date(dobValue) : null;
-        const doj = dojValue ? new Date(dojValue) : null;
-
-        if (!dojValue) {
-            dateOfJoiningError.textContent = 'Date of Joining is required';
-            dateOfJoiningInput.classList.add('error-input');
-            isValid = false;
-        }
-
-        if (dob && dob > today) {
-            dateOfBirthError.textContent = 'Date of birth cannot be in the future';
-            dateOfBirthInput.classList.add('error-input');
-            isValid = false;
-        }
-
-        if (dob && doj) {
-
-            if (dob > doj) {
-                dateOfBirthError.textContent =
-                    'Date of birth cannot be after date of joining';
-
-                dateOfBirthInput.classList.add('error-input');
-                dateOfJoiningInput.classList.add('error-input');
-
-                isValid = false;
-            } else {
-                const ageOnJoining = calculateAgeOnJoining(dob, doj);
-
-                if (ageOnJoining < 18) {
-                    dateOfJoiningError.textContent =
-                        'Employee must be at least 18 years old on date of joining';
-
-                    dateOfBirthInput.classList.add('error-input');
-                    dateOfJoiningInput.classList.add('error-input');
-
-                    isValid = false;
-                }
-            }
-        }
-
-        if (typeof checkChanges === 'function') {
-            checkChanges();
-        }
-
-        return isValid;
-    }
-
-    dateOfBirthInput.addEventListener('change', validateDOBAndDOJ);
-    dateOfBirthInput.addEventListener('input', validateDOBAndDOJ);
-
-    dateOfJoiningInput.addEventListener('change', validateDOBAndDOJ);
-    dateOfJoiningInput.addEventListener('input', validateDOBAndDOJ);
-
-    validateDOBAndDOJ();
-
-    form.addEventListener('submit', (e) => {
-        if (!validateDOBAndDOJ()) {
-            e.preventDefault();
-        }
-    });
-
-});
-// ============================== DEPARTMENT & ROLE AUTOMATICALLY SELECTED ==============================
-
-document.addEventListener('DOMContentLoaded', () => {
-    const roleInput = document.getElementById('roleInput');
-    const departmentInput = document.getElementById('departmentInput');
-
-    if (!roleInput || !departmentInput) return;
+    // ========================================================
+    // ROLE -> DEPARTMENT
+    // ========================================================
 
     const roleDepartmentMap = {
-        'Developer': 'Technical',
-        'Trainer': 'Technical',
+        "Developer": "Technical",
+        "Trainer": "Technical",
 
-        'Admin': 'Management',
-        'Manager': 'Management',
-        'HR': 'Management',
+        "Admin": "Management",
+        "Manager": "Management",
+        "HR": "Management",
 
-        'Sales Exec': 'Sales Department',
-        'Sales Exec Lead': 'Sales Department',
+        "Sales Exec": "Sales Department",
+        "Sales Exec Lead": "Sales Department",
 
-        'Digital Marketing': 'Marketing',
-        'Content Creator': 'Marketing',
-        'Marketing Lead': 'Marketing',
+        "Digital Marketing": "Marketing",
+        "Content Creator": "Marketing",
+        "Marketing Lead": "Marketing"
     };
 
-    function autoSelectDepartment() {
-        const selectedRoleText =
-            roleInput.options[roleInput.selectedIndex].text.trim();
+    function getRoleText() {
+        if (!role) return "";
 
-        const departmentName = roleDepartmentMap[selectedRoleText];
+        const option =
+            role.options[role.selectedIndex];
 
-        if (!departmentName) {
-            departmentInput.value = '';
-            return;
-        }
+        return option
+            ? option.text.trim()
+            : "";
+    }
 
-        for (let option of departmentInput.options) {
-            if (option.text.trim() === departmentName) {
-                departmentInput.value = option.value;
+    function setDepartmentFromRole() {
+        if (!role || !department) return;
+
+        const roleText = getRoleText();
+        const departmentName =
+            roleDepartmentMap[roleText];
+
+        if (!departmentName) return;
+
+        for (const option of department.options) {
+            if (
+                option.text.trim().toLowerCase() ===
+                departmentName.toLowerCase()
+            ) {
+                department.value = option.value;
                 break;
             }
         }
+    }
 
-        if (typeof checkChanges === 'function') {
-            checkChanges();
+    if (department) {
+        department.disabled = true;
+    }
+
+    // ========================================================
+    // REPORTING MANAGER
+    // ========================================================
+
+    /*
+        IMPORTANT:
+
+        Django must send ALL possible staff in the
+        reporting_manager <select>.
+
+        Example:
+
+        <option value="10">Arun Kumar</option>
+        <option value="11">Suresh Kumar</option>
+
+        JavaScript will then filter them according to role.
+    */
+
+    const REPORTING_RULES = {
+        "Admin": [],
+        "Manager": ["Admin"],
+
+        "Developer": ["Manager"],
+        "Trainer": ["Manager"],
+        "HR": ["Manager"],
+
+        "Sales Exec Lead": ["Manager"],
+        "Marketing Lead": ["Manager"],
+
+        "Sales Exec": ["Sales Exec Lead"],
+
+        "Digital Marketing": ["Marketing Lead"],
+        "Content Creator": ["Marketing Lead"]
+    };
+
+    /*
+        Read role information from:
+
+        <script id="staffRolesData" type="application/json">
+            ...
+        </script>
+    */
+
+    let staffRoles = {};
+
+    const staffRolesElement =
+        $("staffRolesData");
+
+    if (staffRolesElement) {
+        try {
+            staffRoles =
+                JSON.parse(
+                    staffRolesElement.textContent
+                ) || {};
+        } catch (e) {
+            console.error(
+                "staffRolesData JSON error:",
+                e
+            );
         }
     }
 
-    roleInput.addEventListener('change', autoSelectDepartment);
+    /*
+        Save ALL manager options once.
 
-    // Block user from manually changing department
-    departmentInput.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-    });
+        DO NOT use the already-filtered list.
+    */
 
-    departmentInput.addEventListener('keydown', (e) => {
-        e.preventDefault();
-    });
+    let managerOptions = [];
 
-    departmentInput.addEventListener('focus', () => {
-        departmentInput.blur();
-    });
-});
+    if (reportingManager) {
+        managerOptions =
+            Array.from(
+                reportingManager.options
+            ).filter(
+                option => option.value !== ""
+            );
 
-// ============================== IMAGE UPLOAD HANDLING ==============================
-
-document.addEventListener('DOMContentLoaded', () => {
-
-    const photoInput = document.getElementById('profilePhotoInput');
-    const removePhotoBtn = document.getElementById('removePhotoBtn');
-    const progressBar = document.getElementById('photoProgressBar');
-    const progressText = document.getElementById('progressText');
-    const currentPhotoSection = document.getElementById('currentPhotoSection');
-
-    if (!photoInput || !removePhotoBtn || !progressBar || !progressText) return;
-
-    let previousFiles = [];
-    let interval = null;
-
-    function resetUploadUI() {
-        progressBar.style.width = '0%';
-        progressText.textContent = 'No file selected';
-        removePhotoBtn.style.display = 'none';
-
-        if (currentPhotoSection) {
-            currentPhotoSection.style.display = '';
-        }
-
-        if (typeof checkChanges === 'function') {
-            checkChanges();
-        }
+        console.log(
+            "Reporting manager options:",
+            managerOptions
+        );
     }
 
-    function showUploadedUI(message = '✓ Image Uploaded') {
-        progressBar.style.width = '100%';
-        progressText.textContent = message;
-        removePhotoBtn.style.display = 'flex';
+    function getManagerRole(option) {
 
-        if (currentPhotoSection) {
-            currentPhotoSection.style.display = 'none';
+        if (!option) return "";
+
+        // First try data-role directly
+        if (option.dataset.role) {
+            return option.dataset.role.trim();
         }
 
-        if (typeof checkChanges === 'function') {
-            checkChanges();
+        // Then try JSON object
+        const data =
+            staffRoles[option.value];
+
+        if (typeof data === "string") {
+            return data.trim();
         }
+
+        if (data && typeof data === "object") {
+
+            return (
+                data.role ||
+                data.role_name ||
+                data.staff_role ||
+                ""
+            ).toString().trim();
+        }
+
+        return "";
     }
 
-    function startProgress() {
-        let progress = 0;
+    function filterReportingManagers() {
 
-        if (interval) {
-            clearInterval(interval);
-        }
-
-        progressBar.style.width = '0%';
-        progressText.textContent = '0% Uploaded';
-
-        interval = setInterval(() => {
-            progress += 10;
-
-            progressBar.style.width = progress + '%';
-            progressText.textContent = progress + '% Uploaded';
-
-            if (progress >= 100) {
-                clearInterval(interval);
-                progressText.textContent = '✓ Image Uploaded';
-            }
-
-        }, 50);
-    }
-
-    photoInput.addEventListener('click', () => {
-        previousFiles = Array.from(photoInput.files);
-    });
-
-    photoInput.addEventListener('change', () => {
-
-        // User opened file explorer and clicked Cancel
-        if (photoInput.files.length === 0) {
-
-            if (previousFiles.length > 0) {
-                const dataTransfer = new DataTransfer();
-
-                previousFiles.forEach(file => {
-                    dataTransfer.items.add(file);
-                });
-
-                photoInput.files = dataTransfer.files;
-                showUploadedUI('✓ Image Uploaded');
-                return;
-            }
-
-            resetUploadUI();
+        if (!role || !reportingManager) {
             return;
         }
 
-        previousFiles = Array.from(photoInput.files);
+        const selectedRole =
+            getRoleText();
 
-        if (currentPhotoSection) {
-            currentPhotoSection.style.display = 'none';
+        console.log(
+            "Selected role:",
+            selectedRole
+        );
+
+        const allowedRoles =
+            REPORTING_RULES[selectedRole];
+
+        /*
+            ADMIN
+            No reporting manager
+        */
+
+        if (
+            selectedRole === "Admin" ||
+            allowedRoles === null ||
+            typeof allowedRoles === "undefined" &&
+            selectedRole === ""
+        ) {
+            reportingManager.value = "";
+            reportingManager.required = false;
+
+            reportingManager.innerHTML =
+                '<option value="">---------</option>';
+
+            const group =
+                $("reportingManagerGroup");
+
+            if (group) {
+                group.style.display = "none";
+            }
+
+            return;
         }
 
-        removePhotoBtn.style.display = 'flex';
+        /*
+            Show reporting manager field
+        */
 
-        startProgress();
+        const group =
+            $("reportingManagerGroup");
 
-        if (typeof checkChanges === 'function') {
-            checkChanges();
-        }
-    });
-
-    removePhotoBtn.addEventListener('click', () => {
-        photoInput.value = '';
-        previousFiles = [];
-
-        if (interval) {
-            clearInterval(interval);
+        if (group) {
+            group.style.display = "";
         }
 
-        resetUploadUI();
-    });
+        reportingManager.required = true;
 
-});
+        /*
+            Remember currently selected manager
+        */
 
-// ====================== EDIT PAGE: SHOW / HIDE MONTHLY TARGET BASED ON ROLE ======================
+        const currentValue =
+            reportingManager.value;
 
-document.addEventListener('DOMContentLoaded', () => {
+        /*
+            Rebuild options
+        */
 
-    const form = document.getElementById('staffMgmtForm');
-    const roleInput = document.getElementById('roleInput');
+        reportingManager.innerHTML = "";
 
-    const monthlyTargetGroup = document.getElementById('monthlyTargetGroup');
-    const monthlyTargetInput = document.getElementById('monthlyTargetInput');
-    const monthlyTargetError = document.getElementById('monthlyTargetError');
+        const placeholder =
+            document.createElement("option");
 
-    if (!form || !roleInput || !monthlyTargetGroup || !monthlyTargetInput || !monthlyTargetError) {
-        console.log('Edit monthly target validation elements not found');
-        return;
-    }
+        placeholder.value = "";
+        placeholder.textContent = "---------";
 
-    const rolesNeedMonthlyTarget = [
-        'manager',
-        'sales exec',
-        'sales exec lead'
-    ];
+        reportingManager.appendChild(
+            placeholder
+        );
 
-    // Match this with your models.py
-    // If model is max_digits=10, decimal_places=2
-    const MAX_MONTHLY_TARGET = 99999999.99;
-    const MAX_WHOLE_DIGITS = 8;
+        /*
+            Add only allowed managers
+        */
 
-    function normalizeRole(role) {
-        return role
-            .trim()
-            .toLowerCase()
-            .replace(/_/g, ' ')
-            .replace(/\s+/g, ' ');
-    }
+        managerOptions.forEach(
+            function (option) {
 
-    function getSelectedRoleText() {
-        const selectedOption = roleInput.options[roleInput.selectedIndex];
-        return selectedOption ? normalizeRole(selectedOption.textContent) : '';
-    }
+                const managerRole =
+                    getManagerRole(option);
 
-    function showMonthlyTargetError(message) {
-        monthlyTargetError.textContent = message;
-        monthlyTargetInput.classList.add('error-input');
-    }
+                console.log(
+                    "Manager:",
+                    option.text,
+                    "Role:",
+                    managerRole
+                );
 
-    function clearMonthlyTargetError() {
-        monthlyTargetError.textContent = '';
-        monthlyTargetInput.classList.remove('error-input');
-    }
+                if (
+                    allowedRoles.includes(
+                        managerRole
+                    )
+                ) {
 
-    function isMonthlyTargetRequired() {
-        const selectedRole = getSelectedRoleText();
-        return rolesNeedMonthlyTarget.includes(selectedRole);
-    }
+                    const newOption =
+                        option.cloneNode(true);
 
-    function sanitizeMonthlyTargetInput() {
-        let value = monthlyTargetInput.value;
+                    reportingManager.appendChild(
+                        newOption
+                    );
+                }
+            }
+        );
 
-        // Allow only digits and one dot
-        value = value.replace(/[^0-9.]/g, '');
+        /*
+            Restore old manager if still valid
+        */
 
-        // Prevent multiple dots
-        const parts = value.split('.');
-        if (parts.length > 2) {
-            value = parts[0] + '.' + parts.slice(1).join('');
-        }
+        const exists =
+            Array.from(
+                reportingManager.options
+            ).some(
+                option =>
+                    option.value === currentValue
+            );
 
-        // Allow only 2 decimal places
-        if (value.includes('.')) {
-            const [whole, decimal] = value.split('.');
-            value = whole + '.' + decimal.substring(0, 2);
-        }
-
-        monthlyTargetInput.value = value;
-    }
-
-    function toggleMonthlyTarget() {
-        if (isMonthlyTargetRequired()) {
-            monthlyTargetGroup.style.display = '';
-
-            monthlyTargetInput.disabled = false;
-            monthlyTargetInput.required = true;
-            monthlyTargetInput.setAttribute('required', 'required');
+        if (exists) {
+            reportingManager.value =
+                currentValue;
         } else {
-            monthlyTargetGroup.style.display = 'none';
-
-            monthlyTargetInput.value = '';
-            monthlyTargetInput.disabled = true;
-            monthlyTargetInput.required = false;
-            monthlyTargetInput.removeAttribute('required');
-
-            clearMonthlyTargetError();
+            reportingManager.value = "";
         }
 
-        if (typeof checkChanges === 'function') {
-            checkChanges();
-        }
+        checkChanges();
     }
 
-    function validateMonthlyTarget() {
-        if (!isMonthlyTargetRequired()) {
-            clearMonthlyTargetError();
+    // ========================================================
+    // ROLE CHANGE
+    // ========================================================
+
+    if (role) {
+
+        role.addEventListener(
+            "change",
+            function () {
+
+                setDepartmentFromRole();
+
+                filterReportingManagers();
+
+                toggleMonthlyTarget();
+
+                validateRole();
+
+                validateMonthlyTarget();
+
+                checkChanges();
+            }
+        );
+    }
+
+    // ========================================================
+    // ROLE VALIDATION
+    // ========================================================
+
+    function validateRole() {
+
+        if (!role) return true;
+
+        if (!role.value) {
+
+            error(
+                role,
+                errors.role,
+                "Role is required."
+            );
+
+            return false;
+        }
+
+        clearError(
+            role,
+            errors.role
+        );
+
+        return true;
+    }
+
+    // ========================================================
+    // STATUS
+    // ========================================================
+
+    function validateStatus() {
+
+        if (!status) return true;
+
+        if (!status.value) {
+
+            error(
+                status,
+                errors.status,
+                "Status is required."
+            );
+
+            return false;
+        }
+
+        clearError(
+            status,
+            errors.status
+        );
+
+        return true;
+    }
+
+    if (status) {
+        status.addEventListener(
+            "change",
+            function () {
+                validateStatus();
+                checkChanges();
+            }
+        );
+    }
+
+    // ========================================================
+    // EMAIL
+    // ========================================================
+
+    const emailPattern =
+        /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+    function validateEmail() {
+
+        if (!email) return true;
+
+        const val =
+            value(email).toLowerCase();
+
+        if (!val) {
+
+            error(
+                email,
+                errors.email,
+                "Email is required."
+            );
+
+            return false;
+        }
+
+        if (!emailPattern.test(val)) {
+
+            error(
+                email,
+                errors.email,
+                "Please enter a valid email address."
+            );
+
+            return false;
+        }
+
+        clearError(
+            email,
+            errors.email
+        );
+
+        return true;
+    }
+
+    async function duplicateEmail() {
+
+        if (!email || !validateEmail()) {
+            return false;
+        }
+
+        const current =
+            value(email);
+
+        if (
+            current.toLowerCase() ===
+            original.email.toLowerCase()
+        ) {
             return true;
         }
 
-        const value = monthlyTargetInput.value.trim();
+        try {
 
-        if (value === '') {
-            showMonthlyTargetError('Monthly target is required.');
+            const response =
+                await fetch(
+                    `/staff/check-email/?email=${encodeURIComponent(current)}`
+                );
+
+            const data =
+                await response.json();
+
+            if (data.exists) {
+
+                error(
+                    email,
+                    errors.email,
+                    "This email already exists!"
+                );
+
+                return false;
+            }
+
+            clearError(
+                email,
+                errors.email
+            );
+
+            return true;
+
+        } catch (e) {
+
+            console.error(e);
+
+            return true;
+        }
+    }
+
+    if (email) {
+
+        email.addEventListener(
+            "input",
+            function () {
+                validateEmail();
+                checkChanges();
+            }
+        );
+
+        email.addEventListener(
+            "blur",
+            duplicateEmail
+        );
+    }
+
+    // ========================================================
+    // PHONE
+    // ========================================================
+
+    const indianPhone =
+        /^\+91[6-9]\d{9}$/;
+
+    function sanitizePhone(input) {
+
+        if (!input) return;
+
+        let val =
+            input.value.replace(
+                /[^0-9+]/g,
+                ""
+            );
+
+        if (val.startsWith("+")) {
+
+            val =
+                "+" +
+                val.substring(1)
+                    .replace(/\+/g, "");
+
+        } else {
+
+            val =
+                val.replace(/\+/g, "");
+        }
+
+        input.value =
+            val.substring(0, 13);
+    }
+
+    function validatePhone() {
+
+        if (!phone) return true;
+
+        const val =
+            value(phone);
+
+        if (!val) {
+
+            error(
+                phone,
+                errors.phone,
+                "Phone number is required."
+            );
+
             return false;
         }
 
-        const validAmountPattern = /^\d+(\.\d{1,2})?$/;
+        if (!indianPhone.test(val)) {
 
-        if (!validAmountPattern.test(value)) {
-            showMonthlyTargetError('Monthly target must contain only numbers.');
+            error(
+                phone,
+                errors.phone,
+                "Enter valid +91 Indian mobile number."
+            );
+
             return false;
         }
 
-        const [wholePart] = value.split('.');
+        clearError(
+            phone,
+            errors.phone
+        );
 
-        if (wholePart.length > MAX_WHOLE_DIGITS) {
-            showMonthlyTargetError('Monthly target must not exceed ₹99,999,999.99.');
-            return false;
-        }
-
-        const target = Number(value);
-
-        if (target <= 0) {
-            showMonthlyTargetError('Monthly target must be greater than 0.');
-            return false;
-        }
-
-        if (target > MAX_MONTHLY_TARGET) {
-            showMonthlyTargetError('Monthly target must not exceed ₹99,999,999.99.');
-            return false;
-        }
-
-        clearMonthlyTargetError();
         return true;
     }
 
-    roleInput.addEventListener('change', () => {
-        toggleMonthlyTarget();
-        validateMonthlyTarget();
+    async function duplicatePhone() {
 
-        if (typeof checkChanges === 'function') {
-            checkChanges();
-        }
-    });
-
-    monthlyTargetInput.addEventListener('keydown', (e) => {
-        const blockedKeys = ['e', 'E', '+', '-'];
-
-        if (blockedKeys.includes(e.key)) {
-            e.preventDefault();
-        }
-    });
-
-    monthlyTargetInput.addEventListener('input', () => {
-        sanitizeMonthlyTargetInput();
-        validateMonthlyTarget();
-
-        if (typeof checkChanges === 'function') {
-            checkChanges();
-        }
-    });
-
-    monthlyTargetInput.addEventListener('blur', () => {
-        validateMonthlyTarget();
-
-        if (typeof checkChanges === 'function') {
-            checkChanges();
-        }
-    });
-
-    form.addEventListener('submit', function (e) {
-        toggleMonthlyTarget();
-
-        const isMonthlyTargetValid = validateMonthlyTarget();
-
-        if (!isMonthlyTargetValid) {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-
-            monthlyTargetInput.scrollIntoView({
-                behavior: 'smooth',
-                block: 'center'
-            });
-
-            monthlyTargetInput.focus();
+        if (!phone || !validatePhone()) {
             return false;
         }
-    }, true);
 
-    toggleMonthlyTarget();
-});
+        const current =
+            value(phone);
 
+        if (current === original.phone) {
+            return true;
+        }
 
+        try {
 
+            const response =
+                await fetch(
+                    `/staff/check-phone/?phone=${encodeURIComponent(current)}`
+                );
 
+            const data =
+                await response.json();
 
+            if (data.exists) {
 
-// ================= EMERGENCY CONTACT NAME VALIDATION =================
+                error(
+                    phone,
+                    errors.phone,
+                    "This phone number already exists!"
+                );
 
-document.addEventListener('DOMContentLoaded', () => {
+                return false;
+            }
 
-    const emergencyNameInput = document.getElementById('emergencyContactNameInput');
-    const emergencyNameError = document.getElementById('emergencyContactNameError');
+            clearError(
+                phone,
+                errors.phone
+            );
 
-    if (!emergencyNameInput || !emergencyNameError) return;
+            return true;
 
-    const MAX_LENGTH = 40;
+        } catch (e) {
+
+            console.error(e);
+
+            return true;
+        }
+    }
+
+    if (phone) {
+
+        phone.addEventListener(
+            "input",
+            function () {
+
+                sanitizePhone(phone);
+                validatePhone();
+                checkChanges();
+            }
+        );
+
+        phone.addEventListener(
+            "blur",
+            duplicatePhone
+        );
+    }
+
+    // ========================================================
+    // NAME
+    // ========================================================
+
+    function validateName(
+        input,
+        errorEl,
+        label
+    ) {
+
+        if (!input) return true;
+
+        input.value =
+            input.value
+                .replace(
+                    /[^a-zA-Z\s]/g,
+                    ""
+                )
+                .substring(0, 50);
+
+        if (!value(input)) {
+
+            error(
+                input,
+                errorEl,
+                `${label} is required.`
+            );
+
+            return false;
+        }
+
+        clearError(
+            input,
+            errorEl
+        );
+
+        return true;
+    }
+
+    if (firstName) {
+
+        firstName.addEventListener(
+            "input",
+            function () {
+
+                validateName(
+                    firstName,
+                    errors.firstName,
+                    "First name"
+                );
+
+                checkChanges();
+            }
+        );
+    }
+
+    if (lastName) {
+
+        lastName.addEventListener(
+            "input",
+            function () {
+
+                validateName(
+                    lastName,
+                    errors.lastName,
+                    "Last name"
+                );
+
+                checkChanges();
+            }
+        );
+    }
+
+    // ========================================================
+    // EMERGENCY CONTACT
+    // ========================================================
 
     function validateEmergencyName() {
 
-        let value = emergencyNameInput.value;
+        if (!emergencyName) return true;
 
-        // Allow only letters and spaces
-        value = value.replace(/[^a-zA-Z\s]/g, '');
+        emergencyName.value =
+            emergencyName.value.replace(
+                /[^a-zA-Z\s]/g,
+                ""
+            );
 
-        // Limit to 40 characters
-        value = value.substring(0, MAX_LENGTH);
+        clearError(
+            emergencyName,
+            errors.emergencyName
+        );
 
-        emergencyNameInput.value = value;
-
-        const trimmedValue = value.trim();
-
-        if (trimmedValue === '') {
-            emergencyNameError.textContent = 'Emergency contact name is required.';
-            emergencyNameInput.classList.add('error-input');
-            return false;
-        }
-
-        if (trimmedValue.length < 3) {
-            emergencyNameError.textContent = 'Name must contain at least 3 characters.';
-            emergencyNameInput.classList.add('error-input');
-            return false;
-        }
-
-        if (trimmedValue.length > MAX_LENGTH) {
-            emergencyNameError.textContent = 'Name should not exceed 40 characters.';
-            emergencyNameInput.classList.add('error-input');
-            return false;
-        }
-
-        emergencyNameError.textContent = '';
-        emergencyNameInput.classList.remove('error-input');
         return true;
-    }
-
-    emergencyNameInput.addEventListener('input', validateEmergencyName);
-    emergencyNameInput.addEventListener('blur', validateEmergencyName);
-
-});
-
-// ================= EMERGENCY CONTACT PHONE VALIDATION =================
-
-document.addEventListener('DOMContentLoaded', () => {
-
-    const form = document.getElementById('staffMgmtForm');
-    const emergencyPhoneInput = document.getElementById('emergencyContactPhoneInput');
-    const emergencyPhoneError = document.getElementById('emergencyContactPhoneError');
-
-    if (!form || !emergencyPhoneInput || !emergencyPhoneError) return;
-
-    function showError(message) {
-        emergencyPhoneError.textContent = message;
-        emergencyPhoneInput.classList.add('error-input');
-    }
-
-    function clearError() {
-        emergencyPhoneError.textContent = '';
-        emergencyPhoneInput.classList.remove('error-input');
     }
 
     function validateEmergencyPhone() {
 
-        const phone = emergencyPhoneInput.value.trim();
+        if (!emergencyPhone) return true;
 
-        if (phone === '') {
-            showError('Emergency contact phone number is required.');
+        const val =
+            value(emergencyPhone);
+
+        if (!val) {
+
+            clearError(
+                emergencyPhone,
+                errors.emergencyPhone
+            );
+
+            return true;
+        }
+
+        if (!indianPhone.test(val)) {
+
+            error(
+                emergencyPhone,
+                errors.emergencyPhone,
+                "Enter valid +91 Indian mobile number."
+            );
+
             return false;
         }
 
-        const phoneRegex = /^\+91[6-9]\d{9}$/;
+        clearError(
+            emergencyPhone,
+            errors.emergencyPhone
+        );
 
-        if (!phoneRegex.test(phone)) {
-            showError('Phone number should start with +91 and contain a valid 10-digit Indian mobile number.');
-            return false;
-        }
-
-        clearError();
         return true;
     }
 
-    emergencyPhoneInput.addEventListener('input', function () {
+    if (emergencyName) {
 
-        let value = this.value;
-
-        // Allow only + and digits
-        value = value.replace(/[^0-9+]/g, '');
-
-        // Only one + at the beginning
-        if (value.startsWith('+')) {
-            value = '+' + value.substring(1).replace(/\+/g, '');
-        } else {
-            value = value.replace(/\+/g, '');
-        }
-
-        // Maximum length: +91 + 10 digits = 13 characters
-        if (value.length > 13) {
-            value = value.substring(0, 13);
-        }
-
-        this.value = value;
-
-        validateEmergencyPhone();
-    });
-
-    emergencyPhoneInput.addEventListener('blur', validateEmergencyPhone);
-
-    form.addEventListener('submit', function (e) {
-
-        if (!validateEmergencyPhone()) {
-            e.preventDefault();
-            emergencyPhoneInput.focus();
-        }
-
-    }, true);
-
-});
-
-// ================= SKILLS VALIDATION =================
-
-document.addEventListener('DOMContentLoaded', () => {
-
-    const form = document.getElementById('staffMgmtForm');
-    const skillsTypedInput = document.getElementById('skillsTypedInput');
-    const skillsHiddenInput = document.getElementById('skillsInput');
-    const skillsError = document.getElementById('skillsError');
-
-    if (!form || !skillsTypedInput || !skillsHiddenInput || !skillsError) return;
-
-    const MAX_SKILL_LENGTH = 30;
-
-    function showError(message) {
-        skillsError.textContent = message;
-        skillsTypedInput.classList.add('error-input');
+        emergencyName.addEventListener(
+            "input",
+            function () {
+                validateEmergencyName();
+                checkChanges();
+            }
+        );
     }
 
-    function clearError() {
-        skillsError.textContent = '';
-        skillsTypedInput.classList.remove('error-input');
+    if (emergencyPhone) {
+
+        emergencyPhone.addEventListener(
+            "input",
+            function () {
+
+                sanitizePhone(
+                    emergencyPhone
+                );
+
+                validateEmergencyPhone();
+                checkChanges();
+            }
+        );
+    }
+
+    // ========================================================
+    // PASSWORD
+    // ========================================================
+
+    function validatePassword() {
+
+        if (!password || !confirmPassword) {
+            return true;
+        }
+
+        /*
+            Blank = keep old password
+        */
+
+        if (
+            !password.value &&
+            !confirmPassword.value
+        ) {
+
+            clearError(
+                password,
+                errors.password
+            );
+
+            clearError(
+                confirmPassword,
+                errors.confirmPassword
+            );
+
+            return true;
+        }
+
+        if (
+            password.value !==
+            confirmPassword.value
+        ) {
+
+            error(
+                confirmPassword,
+                errors.confirmPassword,
+                "Passwords do not match."
+            );
+
+            return false;
+        }
+
+        clearError(
+            password,
+            errors.password
+        );
+
+        clearError(
+            confirmPassword,
+            errors.confirmPassword
+        );
+
+        return true;
+    }
+
+    if (password) {
+
+        password.addEventListener(
+            "input",
+            function () {
+
+                validatePassword();
+                checkChanges();
+            }
+        );
+    }
+
+    if (confirmPassword) {
+
+        confirmPassword.addEventListener(
+            "input",
+            function () {
+
+                validatePassword();
+                checkChanges();
+            }
+        );
+    }
+
+    // ========================================================
+    // DATE
+    // ========================================================
+
+    function parseDate(val) {
+
+        if (!val) return null;
+
+        const parts =
+            val.split("-").map(Number);
+
+        if (parts.length !== 3) {
+            return null;
+        }
+
+        const date =
+            new Date(
+                parts[0],
+                parts[1] - 1,
+                parts[2]
+            );
+
+        date.setHours(0, 0, 0, 0);
+
+        return date;
+    }
+
+    function validateDates() {
+
+        let valid = true;
+
+        clearError(
+            dob,
+            errors.dob
+        );
+
+        clearError(
+            doj,
+            errors.doj
+        );
+
+        const dobDate =
+            dob ? parseDate(dob.value) : null;
+
+        const dojDate =
+            doj ? parseDate(doj.value) : null;
+
+        const today =
+            new Date();
+
+        today.setHours(
+            0, 0, 0, 0
+        );
+
+        if (
+            dob &&
+            dob.value &&
+            !dobDate
+        ) {
+
+            error(
+                dob,
+                errors.dob,
+                "Invalid date of birth."
+            );
+
+            valid = false;
+        }
+
+        if (
+            dobDate &&
+            dobDate > today
+        ) {
+
+            error(
+                dob,
+                errors.dob,
+                "Date of birth cannot be in the future."
+            );
+
+            valid = false;
+        }
+
+        if (
+            doj &&
+            !doj.value
+        ) {
+
+            error(
+                doj,
+                errors.doj,
+                "Date of joining is required."
+            );
+
+            valid = false;
+        }
+
+        if (
+            dobDate &&
+            dojDate &&
+            dojDate < dobDate
+        ) {
+
+            error(
+                doj,
+                errors.doj,
+                "Date of joining cannot be before date of birth."
+            );
+
+            valid = false;
+        }
+
+        return valid;
+    }
+
+    if (dob) {
+        dob.addEventListener(
+            "change",
+            function () {
+                validateDates();
+                checkChanges();
+            }
+        );
+    }
+
+    if (doj) {
+        doj.addEventListener(
+            "change",
+            function () {
+                validateDates();
+                checkChanges();
+            }
+        );
+    }
+
+    // ========================================================
+    // SKILLS
+    // ========================================================
+
+    function loadSkills() {
+
+        if (!skillsInput || !skillsHidden) {
+            return;
+        }
+
+        const raw =
+            skillsHidden.value.trim();
+
+        if (!raw) return;
+
+        try {
+
+            const parsed =
+                JSON.parse(raw);
+
+            if (Array.isArray(parsed)) {
+
+                skillsInput.value =
+                    parsed
+                        .map(
+                            s =>
+                                typeof s === "string"
+                                    ? s
+                                    : s.name
+                        )
+                        .filter(Boolean)
+                        .join(", ");
+            }
+
+        } catch (e) {
+
+            console.warn(
+                "Existing skills could not be parsed."
+            );
+        }
     }
 
     function validateSkills() {
 
-        const raw = skillsTypedInput.value.trim();
-
-        if (raw === '') {
-            showError('Please enter at least one skill.');
-            skillsHiddenInput.value = '[]';
-            return false;
+        if (!skillsInput || !skillsHidden) {
+            return true;
         }
 
-        const enteredSkills = raw
-            .split(',')
-            .map(skill => skill.trim())
-            .filter(skill => skill !== '');
+        const raw =
+            skillsInput.value.trim();
 
-        if (enteredSkills.length === 0) {
-            showError('Please enter valid skills.');
-            skillsHiddenInput.value = '[]';
-            return false;
+        if (!raw) {
+
+            skillsHidden.value = "[]";
+
+            clearError(
+                skillsInput,
+                errors.skills
+            );
+
+            return true;
         }
 
-        const uniqueSkills = [];
-        const seen = new Set();
+        const skills =
+            raw.split(",")
+                .map(s => s.trim())
+                .filter(Boolean);
 
-        for (let skill of enteredSkills) {
+        for (const skill of skills) {
 
-            // Maximum length
-            if (skill.length > MAX_SKILL_LENGTH) {
-                skill = skill.substring(0, MAX_SKILL_LENGTH);
-            }
+            if (/\d/.test(skill)) {
 
-            // Minimum length
-            if (skill.length < 2) {
-                showError('Each skill must contain at least 2 characters.');
-                return false;
-            }
-
-            // ✔ Letters, spaces, +, #, . and - only
-            if (!/^[A-Za-z+#.\-\s]+$/.test(skill)) {
-                showError(
-                    'Skills can contain only letters. Numbers are not allowed.'
+                error(
+                    skillsInput,
+                    errors.skills,
+                    "Skills should not contain numbers."
                 );
+
                 return false;
-            }
-
-            const key = skill.toLowerCase();
-
-            if (!seen.has(key)) {
-                seen.add(key);
-                uniqueSkills.push(skill);
             }
         }
 
-        skillsHiddenInput.value = JSON.stringify(uniqueSkills);
+        skillsHidden.value =
+            JSON.stringify(skills);
 
-        clearError();
+        clearError(
+            skillsInput,
+            errors.skills
+        );
+
         return true;
     }
 
-    // Remove unwanted characters while typing
-    skillsTypedInput.addEventListener('input', () => {
+    if (skillsInput) {
 
-        skillsTypedInput.value = skillsTypedInput.value.replace(
-            /[^A-Za-z,#.+\-\s]/g,
-            ''
+        skillsInput.addEventListener(
+            "input",
+            function () {
+
+                skillsInput.value =
+                    skillsInput.value.replace(
+                        /[^A-Za-z\s,.+#-]/g,
+                        ""
+                    );
+
+                validateSkills();
+                checkChanges();
+            }
         );
+    }
 
-        validateSkills();
-    });
+    loadSkills();
 
-    skillsTypedInput.addEventListener('blur', validateSkills);
+    // ========================================================
+    // MONTHLY TARGET
+    // ========================================================
 
-    form.addEventListener('submit', function (e) {
+    const monthlyGroup =
+        $("monthlyTargetGroup");
 
-        if (!validateSkills()) {
-            e.preventDefault();
+    const targetRoles = [
+        "manager",
+        "sales exec",
+        "sales exec lead"
+    ];
 
-            skillsTypedInput.scrollIntoView({
-                behavior: 'smooth',
-                block: 'center'
-            });
+    function isTargetRole() {
 
-            skillsTypedInput.focus();
-        }
+        return targetRoles.includes(
+            getRoleText()
+                .toLowerCase()
+                .trim()
+        );
+    }
 
-    }, true);
+    function toggleMonthlyTarget() {
 
-});
-// ================= REPORTING MANAGER — ROLE-BASED FILTER =================
-
-document.addEventListener('DOMContentLoaded', () => {
-    const roleInput = document.getElementById('roleInput');
-    const reportingManagerGroup = document.getElementById('reportingManagerGroup');
-    const reportingManagerInput = document.getElementById('reportingManagerInput');
-
-    if (!roleInput || !reportingManagerGroup || !reportingManagerInput) return;
-
-    const staffRolesDataEl = document.getElementById('staffRolesData');
-    const staffRoles = staffRolesDataEl ? JSON.parse(staffRolesDataEl.textContent) : {};
-
-    const REPORTING_MANAGER_RULES = {
-        'Admin': null,
-        'Manager': ['Admin'],
-        'Developer': ['Manager'],
-        'Trainer': ['Manager'],
-        'HR': ['Manager'],
-        'Sales Exec Lead': ['Manager'],
-        'Marketing Lead': ['Manager'],
-        'Digital Marketing': ['Marketing Lead'],
-        'Content Creator': ['Marketing Lead'],
-        'Sales Exec': ['Sales Exec Lead'],
-    };
-
-    const allOptions = Array.from(reportingManagerInput.options).filter(opt => opt.value !== '');
-    const placeholderOption = Array.from(reportingManagerInput.options).find(opt => opt.value === '')
-        || new Option('---------', '');
-
-    function filterReportingManagers() {
-        const selectedRoleText = roleInput.options[roleInput.selectedIndex]
-            ? roleInput.options[roleInput.selectedIndex].text.trim()
-            : '';
-
-        const allowedRoles = REPORTING_MANAGER_RULES.hasOwnProperty(selectedRoleText)
-            ? REPORTING_MANAGER_RULES[selectedRoleText]
-            : 'ANY';
-
-        if (allowedRoles === null || !selectedRoleText) {
-            reportingManagerGroup.style.display = 'none';
-            reportingManagerInput.value = '';
-            reportingManagerInput.required = false;
-            if (typeof checkChanges === 'function') checkChanges();
+        if (!monthlyGroup || !monthlyTarget) {
             return;
         }
 
-        reportingManagerGroup.style.display = '';
+        if (isTargetRole()) {
 
-        reportingManagerInput.innerHTML = '';
-        reportingManagerInput.appendChild(placeholderOption.cloneNode(true));
+            monthlyGroup.style.display = "";
+            monthlyTarget.disabled = false;
 
-        allOptions.forEach(opt => {
-            const staffRole = staffRoles[opt.value];
+        } else {
 
-            if (allowedRoles === 'ANY' || (staffRole && allowedRoles.includes(staffRole))) {
-                reportingManagerInput.appendChild(opt.cloneNode(true));
-            }
-        });
-
-        reportingManagerInput.value = '';
-
-        if (typeof checkChanges === 'function') checkChanges();
+            monthlyGroup.style.display = "none";
+            monthlyTarget.disabled = true;
+        }
     }
 
-    roleInput.addEventListener('change', filterReportingManagers);
+    function validateMonthlyTarget() {
+
+        if (!monthlyTarget) {
+            return true;
+        }
+
+        if (!isTargetRole()) {
+            return true;
+        }
+
+        if (!value(monthlyTarget)) {
+
+            error(
+                monthlyTarget,
+                errors.monthlyTarget,
+                "Monthly target is required."
+            );
+
+            return false;
+        }
+
+        const amount =
+            Number(monthlyTarget.value);
+
+        if (
+            isNaN(amount) ||
+            amount <= 0 ||
+            amount > 1000000
+        ) {
+
+            error(
+                monthlyTarget,
+                errors.monthlyTarget,
+                "Enter a valid monthly target."
+            );
+
+            return false;
+        }
+
+        clearError(
+            monthlyTarget,
+            errors.monthlyTarget
+        );
+
+        return true;
+    }
+
+    if (monthlyTarget) {
+
+        monthlyTarget.addEventListener(
+            "input",
+            function () {
+
+                monthlyTarget.value =
+                    monthlyTarget.value.replace(
+                        /[^0-9.]/g,
+                        ""
+                    );
+
+                validateMonthlyTarget();
+                checkChanges();
+            }
+        );
+    }
+
+    // ========================================================
+    // PERFORMANCE
+    // ========================================================
+
+    function validatePerformance() {
+
+        if (!performanceRating) {
+            return true;
+        }
+
+        const rating =
+            Number(performanceRating.value);
+
+        if (
+            !performanceRating.value ||
+            rating < 1 ||
+            rating > 5
+        ) {
+
+            error(
+                performanceRating,
+                errors.performance,
+                "Performance rating must be between 1 and 5."
+            );
+
+            return false;
+        }
+
+        clearError(
+            performanceRating,
+            errors.performance
+        );
+
+        return true;
+    }
+
+    if (performanceRating) {
+
+        performanceRating.addEventListener(
+            "change",
+            function () {
+
+                validatePerformance();
+                checkChanges();
+            }
+        );
+    }
+
+    // ========================================================
+    // CHANGE DETECTION
+    // ========================================================
+
+    function checkChanges() {
+
+        if (!updateBtn) return;
+
+        const changed =
+            value(firstName) !== original.firstName ||
+            value(lastName) !== original.lastName ||
+            value(email) !== original.email ||
+            value(phone) !== original.phone ||
+
+            (dob && dob.value !== original.dob) ||
+            (doj && doj.value !== original.doj) ||
+
+            (gender && gender.value !== original.gender) ||
+            (bloodGroup &&
+                bloodGroup.value !== original.bloodGroup) ||
+
+            value(emergencyName) !==
+                original.emergencyName ||
+
+            value(emergencyPhone) !==
+                original.emergencyPhone ||
+
+            (role &&
+                role.value !== original.role) ||
+
+            (department &&
+                department.value !== original.department) ||
+
+            (status &&
+                status.value !== original.status) ||
+
+            (reportingManager &&
+                reportingManager.value !==
+                    original.reportingManager) ||
+
+            (monthlyTarget &&
+                monthlyTarget.value !==
+                    original.monthlyTarget) ||
+
+            (performanceRating &&
+                performanceRating.value !==
+                    original.performanceRating) ||
+
+            (password &&
+                password.value !== "") ||
+
+            (confirmPassword &&
+                confirmPassword.value !== "") ||
+
+            (skillsHidden &&
+                skillsHidden.value !== "") ;
+
+        updateBtn.disabled = !changed;
+    }
+
+    window.checkChanges =
+        checkChanges;
+
+    // ========================================================
+    // SUBMIT
+    // ========================================================
+
+    let submitting = false;
+
+    form.addEventListener(
+        "submit",
+        async function (event) {
+
+            event.preventDefault();
+
+            if (submitting) return;
+
+            const results = [
+
+                validateName(
+                    firstName,
+                    errors.firstName,
+                    "First name"
+                ),
+
+                validateName(
+                    lastName,
+                    errors.lastName,
+                    "Last name"
+                ),
+
+                validateEmail(),
+
+                validatePhone(),
+
+                validateEmergencyName(),
+
+                validateEmergencyPhone(),
+
+                validatePassword(),
+
+                validateDates(),
+
+                validateRole(),
+
+                validateStatus(),
+
+                validateSkills(),
+
+                validateMonthlyTarget(),
+
+                validatePerformance()
+            ];
+
+            if (results.includes(false)) {
+
+                const firstError =
+                    form.querySelector(
+                        ".error-input"
+                    );
+
+                if (firstError) {
+
+                    firstError.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center"
+                    });
+
+                    firstError.focus();
+                }
+
+                return;
+            }
+
+            const emailOK =
+                await duplicateEmail();
+
+            const phoneOK =
+                await duplicatePhone();
+
+            if (!emailOK || !phoneOK) {
+                return;
+            }
+
+            /*
+                Reporting manager is required for
+                every role except Admin.
+            */
+
+            const roleText =
+                getRoleText();
+
+            if (
+                roleText !== "Admin" &&
+                reportingManager &&
+                !reportingManager.value
+            ) {
+
+                alert(
+                    "Please select a Reporting Manager."
+                );
+
+                reportingManager.focus();
+
+                return;
+            }
+
+            if (
+                updateBtn &&
+                updateBtn.disabled
+            ) {
+                return;
+            }
+
+            submitting = true;
+
+            if (updateBtn) {
+
+                updateBtn.disabled = true;
+
+                updateBtn.innerHTML =
+                    '<i class="fa-solid fa-spinner fa-spin"></i> Updating...';
+            }
+
+            HTMLFormElement.prototype.submit.call(
+                form
+            );
+        }
+    );
+
+    // ========================================================
+    // INITIALIZE
+    // ========================================================
+
+    setDepartmentFromRole();
+
+    /*
+        VERY IMPORTANT:
+        Run reporting manager filter only AFTER
+        managerOptions has been collected.
+    */
 
     filterReportingManagers();
-});
 
+    toggleMonthlyTarget();
+
+    validateEmail();
+    validatePhone();
+
+    validateName(
+        firstName,
+        errors.firstName,
+        "First name"
+    );
+
+    validateName(
+        lastName,
+        errors.lastName,
+        "Last name"
+    );
+
+    validateEmergencyName();
+    validateEmergencyPhone();
+
+    validatePassword();
+    validateDates();
+    validateRole();
+    validateStatus();
+    validateSkills();
+    validateMonthlyTarget();
+    validatePerformance();
+
+    checkChanges();
+
+});
