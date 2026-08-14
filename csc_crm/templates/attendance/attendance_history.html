@@ -130,6 +130,7 @@
         </div>
 
         <!-- Course -->
+         {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" %}
         <div class="field-group">
             <label>Course</label>
             <select name="course_name" class="form-select">
@@ -139,6 +140,7 @@
                 {% endfor %}
             </select>
         </div>
+        {% endif %}
 
         <!-- Buttons -->
         <div class="filter-actions">

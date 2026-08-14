@@ -70,7 +70,8 @@
             <input type="text" id="studentNameFilter" placeholder="Student Name" class="filter-input">
 
 
-
+ 
+            {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" %}
             <select id="courseFilter" class="filter-select">
                 <option value="">Course</option>
 
@@ -81,6 +82,7 @@
                 {% endfor %}
 
             </select>
+            {% endif %}
 
             <select id="batchFilter" class="filter-select">
                 <option value="">Batch</option>
@@ -366,11 +368,13 @@
                 <i class="bi bi-eye"></i>
                 View
             </button>
-
+             
+            {% if request.user.staff_profile.role.role_name in "Admin,Manager,Trainer" %}
             <button type="button" onclick="openEditModal( '{{ student.tracker_id }}', '{{ student.admin_notes|default_if_none:""|escapejs }}' )">
                 <i class="bi bi-pencil-square"></i>
                 Edit
             </button>
+            {% endif %}
 
         </div>
 

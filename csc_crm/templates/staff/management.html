@@ -14,7 +14,15 @@
                 </div>
                 <div class="header-title-text">
                     <h1 class="page-title">Staff Management</h1>
+
+                    {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" or request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Marketing Lead" %}
                     <p class="page-subtitle">Manage and oversee all staff members</p>
+                    {% endif %}
+
+
+                    {% if request.user.staff_profile.role.role_name == "Trainer" or request.user.staff_profile.role.role_name == "Sales Exec" or request.user.staff_profile.role.role_name == "Developer" or request.user.staff_profile.role.role_name == "Content Creator" or request.user.staff_profile.role.role_name == "Digital Marketing" %}
+                    <p class="page-subtitle">Manage and see my page</p>
+                    {% endif %}
                 </div>
             </div>
 
@@ -60,12 +68,24 @@
                     <i class="fa-solid fa-users"></i>
                 </div>
                 <div class="list-title-text">
+
+                    {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" or request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Marketing Lead" %}
                     <h2 class="list-title">All Staff ({{ total_staff }})</h2>
                     <p class="list-subtitle">View and manage institute staff details</p>
+                    {% endif %}
+
+                    {% if request.user.staff_profile.role.role_name == "Trainer" or request.user.staff_profile.role.role_name == "Sales Exec" or request.user.staff_profile.role.role_name == "Developer" or request.user.staff_profile.role.role_name == "Content Creator" or request.user.staff_profile.role.role_name == "Digital Marketing" %}
+                    <h2 class="list-title">My Details</h2>
+                    <p class="list-subtitle">View my details</p>
+                    {% endif %}
+
+
                 </div>
             </div>
 
             <div class="list-actions">
+
+                {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" or request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Marketing Lead" %}
                 <div class="search-wrapper">
                     <input name="search"
                            type = text
@@ -78,7 +98,10 @@
                         <path d="M20 20l-4.3-4.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
                     </svg>
                 </div>
+                
+                
                 <button type="submit" class="btn-search">Search</button>
+                {% endif %}
                 <a href="{% url 'export_staff' %}?{{ request.GET.urlencode }}" class="btn-export">
                     <svg class="export-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M12 3v12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>

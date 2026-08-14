@@ -82,7 +82,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         <!-- Leads Tabs -->
       <div class="top-tabs">
 
-    {% if request.user.staff_profile.role.role_name in "Admin,Manager,Sales Exec Lead,Sales Exec" %}
+    {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Sales Exec" %}
     <a href="{% url 'leads:lead_capture_list' %}"
        class="{% if request.resolver_match.url_name == 'lead_capture_list' or request.resolver_match.url_name == 'lead_capture_create' %}active{% endif %}">
         Lead Capture
@@ -95,7 +95,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         Pipeline View
     </a>
 
-    {% if request.user.staff_profile.role.role_name in "Admin,Manager,Sales Exec Lead,Sales Exec" %}
+    {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Sales Exec" %}
     <a href="{% url 'leads:call_logs' %}"
        class="{% if request.resolver_match.url_name == 'call_logs' %}active{% endif %}">
         Call Log

@@ -83,11 +83,13 @@
            class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
             Dashboard
         </a>
-
+        
+        {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" %}
         <a href="{% url 'batches_page' %}"
            class="{% if request.resolver_match.url_name == 'batches_page' %}active{% endif %}">
             Batches
         </a>
+        {% endif%}
 
         <a href="{% url 'attendance_history' %}"
            class="{% if request.resolver_match.url_name == 'attendance_history' %}active{% endif %}">

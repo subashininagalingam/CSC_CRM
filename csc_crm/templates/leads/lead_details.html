@@ -19,7 +19,7 @@
                 <i class="fa-solid fa-download"></i> <span class="btn-text">Download</span>
                 </a>
 
-                {% if request.user.staff_profile.role.role_name in "Admin,Manager,Sales Exec Lead,Sales Exec" %}
+                {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Sales Exec" %}
                 <a href="{% url 'leads:lead_capture_update' lead.id %}" class="btn-primary">Edit Lead</a>
                 {% endif %}
 

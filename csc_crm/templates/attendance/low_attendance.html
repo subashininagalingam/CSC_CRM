@@ -37,6 +37,7 @@
                        class="filter-input" value="{{ filters.name }}">
             </div>
 
+            {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" %}
             <div class="field">
                 <label><i class="bi bi-mortarboard"></i> Courses</label>
                 <select name="course" id="courseFilter" class="filter-select">
@@ -48,6 +49,7 @@
                     {% endfor %}
                 </select>
             </div>
+            {% endif %}
 
             <div class="field">
                 <label><i class="bi bi-people"></i> Batches</label>

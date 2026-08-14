@@ -99,6 +99,26 @@ def staff_logout(request):
 def staff_management(request):
     """Display all staff members with filters and role permissions matrix"""
 
+    my_staff = getattr(request.user, 'staff_profile', None)
+    my_role = my_staff.role.role_name if my_staff and my_staff.role else None
+
+    allowed_roles = [
+        'Admin',
+        'Manager',
+        'HR',
+        'Sales Exec Lead',
+        'Marketing Lead',
+        'Sales Exec',
+        'Trainer',
+        'Digital Marketing',
+        'Content Creator',
+        'Developer',
+    ]
+
+    if my_role not in allowed_roles:
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('staff_dashboard')
+
     queryset = (
         Staff.objects
         .select_related('role', 'department')
@@ -112,6 +132,20 @@ def staff_management(request):
         )
         .order_by('-created_at')
     )
+
+    # Sales Exec Lead -> Sales department only
+    if my_role == 'Sales Exec Lead':
+        queryset = queryset.filter(department__dept_name='Sales')
+
+    # Marketing Lead -> Marketing department only
+    elif my_role == 'Marketing Lead':
+        queryset = queryset.filter(department__dept_name='Marketing')
+
+    # Sales Exec, Digital Marketing, Content Creator, Developer -> own record only
+    elif my_role in ['Sales Exec', 'Digital Marketing', 'Content Creator', 'Trainer', 'Developer']:
+        queryset = queryset.filter(id=my_staff.id)
+
+    # Admin, Manager, HR -> all departments (no filter)
 
     # Apply filters
     department = request.GET.get('department')
@@ -477,6 +511,9 @@ def quick_edit_staff(request, id):
 def export_staff(request):
     """Export staff list as CSV"""
 
+    my_staff = getattr(request.user, 'staff_profile', None)
+    my_role = my_staff.role.role_name if my_staff and my_staff.role else None
+
     response = HttpResponse(content_type ='text/csv')
     response['Content-Disposition'] = 'attachement; filename="staff_list.csv"'
 
@@ -488,6 +525,20 @@ def export_staff(request):
 
     # Get all staff
     staff_list = Staff.objects.select_related('role', 'department').all()
+
+    # Sales Exec Lead -> Sales department only
+    if my_role == 'Sales Exec Lead':
+        staff_list = staff_list.filter(department__dept_name='Sales')
+
+    # Marketing Lead -> Marketing department only
+    elif my_role == 'Marketing Lead':
+        staff_list = staff_list.filter(department__dept_name='Marketing')
+
+    # Sales Exec, Digital Marketing, Content Creator, Developer -> own record only
+    elif my_role in ['Sales Exec', 'Digital Marketing', 'Trainer', 'Content Creator', 'Developer']:
+        staff_list = staff_list.filter(id=my_staff.id)
+
+    # Admin, Manager, HR -> all staff (no filter)
 
     department = request.GET.get('department')
     role = request.GET.get('role')
@@ -1270,6 +1321,25 @@ def staff_dashboard(request):
 
     total_attendance = present + late + absent + leave
 
+    # My Attendance
+
+    my_staff = getattr(request.user, 'staff_profile', None)
+    
+    if my_staff:
+        my_attendance_qs = Attendance.objects.filter(staff=my_staff)
+        my_total_days = my_attendance_qs.count()
+        my_present_days = my_attendance_qs.filter(status='Present').count()
+        my_late_days = my_attendance_qs.filter(status='Late').count()
+        my_absent_days = my_attendance_qs.filter(status='Absent').count()
+        my_leave_days = my_attendance_qs.filter(status='Leave').count()
+    
+        my_score = my_present_days + (my_late_days * 0.5)
+        my_attendance_percentage = round((my_score / my_total_days) * 100) if my_total_days > 0 else 0
+    else:
+        my_present_days = my_late_days = my_absent_days = my_leave_days = 0
+        my_attendance_percentage = 0
+
+
     if total_attendance > 0:
         attendance_percentage = round(((present + late) / active_staff) * 100, 1)
     else:
@@ -1280,6 +1350,8 @@ def staff_dashboard(request):
         'On Leave' : on_leave,
         'Inactive' : inactive,
         'Terminated' : terminate,
+        'my_present_days': my_present_days,
+
     }
 
     roles = (StaffRole.objects.annotate(total_staff = Count('staff_members')))
@@ -1566,6 +1638,12 @@ def staff_dashboard(request):
         'upcoming_batches': upcoming_batches,
         'completed_batches': completed_batches,
         'batch_summary': batch_summary,
+
+        #My Attendance
+        'my_late_days': my_late_days,
+        'my_absent_days': my_absent_days,
+        'my_leave_days': my_leave_days,
+        'my_attendance_percentage': my_attendance_percentage,
     }
     return render( request, 'staff/dashboard.html', context)
 

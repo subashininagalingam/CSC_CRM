@@ -45,6 +45,8 @@
                     <input type="text" name="phone_no" maxlength="10" pattern="^\d{10}$" value="{{ request.GET.phone_no }}" placeholder="Enter phone number">
                 </div>
 
+
+                {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" %}
                 <div class="field">
                     <label><i class="fa-solid fa-book"></i> Course</label>
                     <select name="course_name">
@@ -54,6 +56,7 @@
                         {% endfor %}
                     </select>
                 </div>
+                {% endif %}
 
                 <div class="field">
                     <label><i class="fa-regular fa-calendar"></i> Batch</label>

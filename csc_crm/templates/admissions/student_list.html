@@ -42,7 +42,8 @@ Student List
                 <span class="stat-sub">Currently Active</span>
             </div>
         </div>
-
+        
+        {% if request.user.staff_profile.role.role_name in "Admin,Manager,HR" %}
         <div class="stat-card">
             <div class="stat-icon icon-orange"><i class="fa-solid fa-clock"></i></div>
             <div class="stat-info">
@@ -69,6 +70,7 @@ Student List
                 <span class="stat-sub">All Pending</span>
             </div>
         </div>
+        {% endif %}
 
         <div class="stat-card">
             <div class="stat-icon icon-purple"><i class="fa-solid fa-book"></i></div>
@@ -89,7 +91,8 @@ Student List
             placeholder="Search name">
 
         <input type="text" name="id" pattern="^\d{1,5}$" value="{{ request.GET.id }}" placeholder="Search ID">
-
+         
+        {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" %}
         <select name="course_name">
             <option value="">All Course</option>
             {% for c in courses %}
@@ -98,6 +101,7 @@ Student List
             </option>
             {% endfor %}
         </select>
+        {% endif %}
 
         <select name="batch">
                         <option value="">All Batch</option>
@@ -120,7 +124,7 @@ Student List
     <!-- DOWNLOAD -->
     <div class="table-container">
 
-        {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" %}
+       {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" %}
         <div>
         <a href="{% url 'student' %}">
             <button id="btn2" class="btn2">+ Add New Student</button>

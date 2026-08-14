@@ -3,8 +3,7 @@ const userRole = "{{ request.user.staff_profile.role.role_name|escapejs }}";
 
 const canManageBatch = [
     "Admin",
-    "Manager",
-    "Trainer"
+    "Manager"
 ].includes(userRole);
 
 

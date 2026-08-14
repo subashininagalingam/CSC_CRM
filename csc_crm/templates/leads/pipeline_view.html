@@ -120,7 +120,7 @@
                         <div class="empty-column">No leads</div>
                     {% endif %}
                     
-                    {% if request.user.staff_profile.role.role_name in "Admin,Manager,Sales Exec Lead,Sales Exec" %}
+                    {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Sales Exec" %}
                     <a href="{% url 'leads:lead_capture_create' %}" class="add-lead-link">+ Add Lead</a>
                     {% endif %}
                 </div>
@@ -158,7 +158,7 @@
                         <div class="empty-column">No leads</div>
                     {% endif %}
 
-                    {% if request.user.staff_profile.role.role_name in "Admin,Manager,Sales Exec Lead,Sales Exec" %}
+                    {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Sales Exec" %}
                     <a href="{% url 'leads:lead_capture_create' %}" class="add-lead-link">+ Add Lead</a>
                     {% endif %}
 
@@ -197,7 +197,7 @@
                         <div class="empty-column">No leads</div>
                     {% endif %}
                     
-                    {% if request.user.staff_profile.role.role_name in "Admin,Manager,Sales Exec Lead,Sales Exec" %}
+                    {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Sales Exec" %}
                     <a href="{% url 'leads:lead_capture_create' %}" class="add-lead-link">+ Add Lead</a>
                     {% endif %}
 
@@ -236,7 +236,7 @@
                         <div class="empty-column">No leads</div>
                     {% endif %}
 
-                    {% if request.user.staff_profile.role.role_name in "Admin,Manager,Sales Exec Lead,Sales Exec" %}
+                    {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Sales Exec" %}
                     <a href="{% url 'leads:lead_capture_create' %}" class="add-lead-link">+ Add Lead</a>
                     {% endif %}
 
@@ -276,7 +276,7 @@
                         <div class="empty-column">No leads</div>
                     {% endif %}
                     
-                    {% if request.user.staff_profile.role.role_name in "Admin,Manager,Sales Exec Lead,Sales Exec" %}
+                    {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Sales Exec" %}
                     <a href="{% url 'leads:lead_capture_create' %}" class="add-lead-link">+ Add Lead</a>
                     {% endif %}
 
@@ -315,7 +315,7 @@
                         <div class="empty-column">No leads</div>
                     {% endif %}
                     
-                    {% if request.user.staff_profile.role.role_name in "Admin,Manager,Sales Exec Lead,Sales Exec" %}
+                    {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Sales Exec" %}
                     <a href="{% url 'leads:lead_capture_create' %}" class="add-lead-link">+ Add Lead</a>
                     {% endif %}
                 </div>
@@ -360,7 +360,7 @@
                                     <td>
                                         <a href="{% url 'leads:lead_capture_details' lead.id %}" class="btn-view">View</a>
 
-                                        {% if request.user.staff_profile.role.role_name in "Admin,Manager,Sales Exec Lead,Sales Exec" %}
+                                        {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Sales Exec" %}
                                         <a href="{% url 'leads:lead_capture_update' lead.id %}" class="btn-edit">Edit</a>
                                         {% endif %}
                                     </td>

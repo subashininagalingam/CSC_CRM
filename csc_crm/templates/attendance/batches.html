@@ -36,7 +36,7 @@ Student Attendance - Batches
                 </div>
             </div>
 
-            {% if request.user.staff_profile.role.role_name in "Admin,Manager,Trainer" %}
+            {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "Trainer" %}
             <button class="btn-new-batch" data-bs-toggle="modal" data-bs-target="#batchModal">
                 <i class="fa-solid fa-plus"></i> New Batch
             </button>

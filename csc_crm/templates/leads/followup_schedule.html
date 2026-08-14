@@ -434,7 +434,7 @@
                             <div class="action-buttons">
 
                                 <!-- Log Call -->
-                                 {% if request.user.staff_profile.role.role_name in "Admin,Manager,Sales Exec Lead,Sales Exec" %}
+                                 {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Sales Exec" %}
                                 <a href="{% url 'leads:call_logs' %}" class="log-call-btn">  📞 Log Call </a>
                                 {% endif %}
 
@@ -458,7 +458,7 @@
 
                                         </a>
 
-                                        {% if request.user.staff_profile.role.role_name in "Admin,Manager,Sales Exec Lead,Sales Exec" %}
+                                        {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Sales Exec" %}
                                         {% if not lead.followup_completed %}
 
                                             <!-- Mark Completed -->

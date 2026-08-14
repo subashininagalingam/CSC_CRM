@@ -45,6 +45,7 @@
         <div class="filter-container">
 
 
+            {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" %}
             <select id="courseFilter" class="filter-input">
 
                 <option value="">
@@ -60,6 +61,9 @@
                 {% endfor %}
 
             </select>
+            {% endif %}
+ 
+
             <select id="batchFilter" class="filter-input">
 
                 <option value="">

@@ -23,7 +23,8 @@
     <!-- ========================== STAF SUMMARY CARD ========================== -->
 
     <div class="dash-stats-row">
-
+        
+        {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" %}
         <div class="dash-stat-card">
             <div class="dash-stat-icon icon-indigo">
                 <i class="fa-solid fa-user"></i>
@@ -89,6 +90,146 @@
                 <small>Out of 5</small>
             </div>
         </div>
+         {% endif %}
+
+        <!--=================== Trainer =======================-->
+        {% if request.user.staff_profile.role.role_name == "Trainer" %}
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-indigo">
+                <i class="fa-solid fa-user"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>Total Students</span>
+                <h2>{{ total_students }}</h2>
+                <small>All Courses</small>
+            </div>
+        </div>
+
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-green">
+                <i class="fa-solid fa-user-check"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>Active Students</span>
+                <h2>{{ active_students }}</h2>
+                <small>Currently active</small>
+            </div>
+        </div>
+
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-amber">
+                <i class="fa-regular fa-clock"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>On Leave</span>
+                <h2>{{ on_leave }}</h2>
+                <small>Currently On Leave</small>
+            </div>
+        </div>
+
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-gray">
+                <i class="fa-solid fa-user-slash"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>Inactive</span>
+                <h2>{{ inactive }}</h2>
+                <small>Not Active</small>
+            </div>
+        </div>
+
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-red">
+                <i class="fa-solid fa-power-off"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>Terminated</span>
+                <h2>{{ terminated }}</h2>
+                <small>This Month</small>
+            </div>
+        </div>
+
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-blue">
+                <i class="fa-solid fa-star"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>Average Rating</span>
+                <h2>{{ average_rating }}</h2>
+                <small>Out of 5</small>
+            </div>
+        </div>
+         {% endif %}
+
+         <!-- Sales Exec Lead , Sales Exec-->
+         {% if request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Sales Exec" %}
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-indigo">
+                <i class="fa-solid fa-user-plus"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>Total Leads</span>
+                <h2>{{ total_leads }}</h2>
+                <small>All Sources</small>
+            </div>
+        </div>
+
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-green">
+                <i class="fa-solid fa-user-check"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>Enrolled Leads</span>
+                <h2>{{ enrolled_leads }}</h2>
+                <small>Converted</small>
+            </div>
+        </div>
+
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-amber">
+                <i class="fa-regular fa-clock"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>Pending Follow-ups</span>
+                <h2>{{ due_today }}</h2>
+                <small>Due Today</small>
+            </div>
+        </div>
+
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-gray">
+                <i class="fa-solid fa-user-slash"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>Overdue</span>
+                <h2>{{ overdue_count }}</h2>
+                <small>Not Followed Up</small>
+            </div>
+        </div>
+
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-red">
+                <i class="fa-solid fa-user-xmark"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>Lost Leads</span>
+                <h2>{{ lost_leads }}</h2>
+                <small>This Month</small>
+            </div>
+        </div>
+
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-blue">
+                <i class="fa-solid fa-chart-line"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>Conversion Rate</span>
+                <h2>{{ conversion_rate }}%</h2>
+                <small>Leads to Enrollment</small>
+            </div>
+        </div>
+         {% endif %}
+
 
     </div>
 
@@ -97,7 +238,7 @@
     <div class="dash-overview-grid">
 
         <!-- ========= LEAD OVERVIEW ========= -->
-         {% if request.user.staff_profile.role.role_name in "Admin,Manager,HR,Sales Exec Lead,Sales Exec" %}
+        {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" or request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Sales Exec" %}
     
         <div class="dash-panel">
 
@@ -137,7 +278,7 @@
         {% endif %}
 
         <!-- ============== STUDENT OVERVIEW ============== -->
-         {% if request.user.staff_profile.role.role_name in "Admin,Manager,HR,Trainer" %}
+         {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" or request.user.staff_profile.role.role_name == "Trainer" %}
     
          <div class="dash-panel">
 
@@ -173,7 +314,7 @@
          {% endif %}
 
 <!-- ============================= ATTENDANCE SUMMARY ========================== -->
- {% if request.user.staff_profile.role.role_name in "Admin,Manager,HR" %}
+ {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" %}
         <div class="dash-panel">
  
             <div class="dash-panel-header">
@@ -221,9 +362,61 @@
  
         </div>
         {% endif %}
+
+
+        <!-- ============================= MY ATTENDANCE (Trainer / Sales Exec Lead / Sales Exec) ========================== -->
+{% if request.user.staff_profile.role.role_name == "Trainer" or request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Sales Exec" %}
+        <div class="dash-panel">
  
+            <div class="dash-panel-header">
+                <h3>Attendance Summary</h3>
+                <small>My Attendance</small> 
+            </div>
+ 
+            <div class="dash-mini-grid">
+ 
+                <div class="dash-mini-card mini-indigo">
+                    <div class="dash-mini-icon"><i class="fa-solid fa-user-check"></i></div>
+                    <h2>{{ my_present_days }}</h2>
+                    <span>Present Days</span>
+                </div>
+ 
+                <div class="dash-mini-card mini-amber">
+                    <div class="dash-mini-icon"><i class="fa-regular fa-clock"></i></div>
+                    <h2>{{ my_late_days }}</h2>
+                    <span>Late Days</span>
+                </div>
+ 
+                <div class="dash-mini-card mini-red">
+                    <div class="dash-mini-icon"><i class="fa-solid fa-user-xmark"></i></div>
+                    <h2>{{ my_absent_days }}</h2>
+                    <span>Absent Days</span>
+                </div>
+ 
+                <div class="dash-mini-card mini-blue">
+                    <div class="dash-mini-icon"><i class="fa-solid fa-person-walking-arrow-right"></i></div>
+                    <h2>{{ my_leave_days }}</h2>
+                    <span>Leave Days</span>
+                </div>
+ 
+            </div>
+ 
+            <div class="dash-attendance-progress">
+                <div class="dash-progress-top">
+                    <span>My Attendance</span>
+                    <strong>{{ my_attendance_percentage }}%</strong>
+                </div>
+                <div class="dash-progress-bar">
+                    <div class="dash-progress-fill" style="width: {{ my_attendance_percentage|default:0 }}%;"></div>
+                </div>
+            </div>
+ 
+        </div>
+        {% endif %}
+
+
         <!-- =========================DEPARTMENT OVERVIEW ========================= -->
-         {% if request.user.staff_profile.role.role_name in "Admin,Manager,HR" %}
+         {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" %}
         <div class="dash-panel">
  
             <div class="dash-panel-header">
@@ -251,7 +444,7 @@
     </div>
  
     <!-- ================================  RECENT STAFF / RECENT STUDENTS / BATCH STRENGTH  ================================ -->
-   {% if request.user.staff_profile.role.role_name in "Admin,Manager,HR" %}
+   {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" %}
     <div class="dash-lists-grid">
  
         <!-- ==================== RECENT STAFF =================== -->
@@ -289,9 +482,45 @@
  
         </div>
         {% endif %}
+
+    
+        <!-- ==================== RECENT LEADS =================== -->
+         {% if request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Sales Exec" %}
+        <div class="dash-panel">
+ 
+            <div class="dash-panel-header">
+                <h3>Recent Leads</h3>
+                <a href="{% url 'leads:lead_capture_list' %}">View All <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+ 
+            <div class="dash-person-list">
+                {% for lead in recent_leads %}
+                <div class="dash-person-item">
+ 
+                    <div class="dash-person-avatar">
+                        {{ lead.lead_name|slice:":1" }}
+                    </div>
+ 
+                    <div class="dash-person-body">
+                        <h5>{{ lead.lead_name }}</h5>
+                        <div class="dash-person-meta">
+                            <span><i class="fa-solid fa-book"></i> {{ lead.get_course_interested_display }}</span>
+                            <span><i class="fa-solid fa-user"></i> {{ lead.assigned_to.full_name|default:"Unassigned" }}</span>
+                            <span><i class="fa-solid fa-calendar-days"></i> {{ lead.created_at|date:"d M Y" }}</span>
+                        </div>
+                    </div>
+ 
+                </div>
+                {% empty %}
+                <p class="dash-empty">No leads found.</p>
+                {% endfor %}
+            </div>
+ 
+        </div>
+        {% endif %}
  
         <!-- ============================ RECENT STUDENTS ============================= -->
-         {% if request.user.staff_profile.role.role_name in "Admin,Manager,HR,Trainer" %}
+         {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" or request.user.staff_profile.role.role_name == "Trainer" %}
     
         <div class="dash-panel">
  
@@ -326,13 +555,17 @@
         {% endif %}
  
         <!-- =================== BATCH STRENGTH ====================-->
-         {% if request.user.staff_profile.role.role_name in "Admin,Manager,HR,Trainer" %}
+         {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" or request.user.staff_profile.role.role_name == "Trainer" %}
     
         <div class="dash-panel">
  
             <div class="dash-panel-header">
                 <h3>Batch Strength</h3>
+
+                {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" %}
                 <a href="{% url 'batches_page' %}">View All <i class="fa-solid fa-arrow-right"></i></a>
+                {% endif %}
+
             </div>
  
             <div class="dash-batch-chips">
@@ -370,27 +603,54 @@
     </div>
 
     <!-- ================== QUICK ACTIONS ===================== -->
-     {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" %}
+     
     <div class="dash-panel dash-quick-actions-panel">
 
         <h3>Quick Actions</h3>
 
+        
         <div class="dash-quick-actions-row">
 
-            <a href="{% url 'add_staff' %}" class="dash-action-btn action-indigo">
-                <span><i class="fa-solid fa-user-plus"></i> Add New Staff</span>
-                <i class="fa-solid fa-arrow-right"></i>
-            </a>
- 
             <a href="{% url 'staff_management' %}" class="dash-action-btn action-green">
                 <span><i class="fa-solid fa-user-group"></i> Staff Management</span>
                 <i class="fa-solid fa-arrow-right"></i>
             </a>
+
+            {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" %}
+            <a href="{% url 'add_staff' %}" class="dash-action-btn action-indigo">
+                <span><i class="fa-solid fa-user-plus"></i> Add New Staff</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </a>
+            {% endif%}
+            
+
+            <!--=== Trainer ====-->
+            {% if request.user.staff_profile.role.role_name == "Trainer" %}
+            <a href="{% url 'attendance_history' %}" class="dash-action-btn action-indigo">
+                <span><i class="fa-solid fa-user-plus"></i> Attendance History</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </a>
+            {% endif %}
+
+            <!--=============== HR =============-->
+            {% if request.user.staff_profile.role.role_name == "HR" %}
+            <a href="{% url 'attendance_history' %}" class="dash-action-btn action-indigo">
+                <span><i class="fa-solid fa-user-plus"></i> Attendance History</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </a>
+            {% endif %}
+
+            <!--=============== Sales Exec,Sales Exec Lead =============-->
+         {% if request.user.staff_profile.role.role_name == "Sales Exec" or request.user.staff_profile.role.role_name == "Sales Exec Lead" %}
+            <a href="{% url 'leads:lead_capture_list' %}" class="dash-action-btn action-indigo">
+                <span><i class="fa-solid fa-user-plus"></i> Lead Capture</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </a>
+            {% endif %}
             
         </div>
-
     </div>
-    {% endif %}
+   
 
 </div>
 
