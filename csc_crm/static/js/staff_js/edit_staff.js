@@ -77,6 +77,30 @@ document.addEventListener("DOMContentLoaded", function () {
     const updateBtn = $("updateStaffBtn");
 
     // ========================================================
+    // PHOTO FIELDS
+    // ========================================================
+
+    const photoInput =
+        $("profilePhotoInput") ||
+        document.querySelector('[name="profile_photo"]');
+
+    const photoBox = $("photoDropzone");
+    const removePhotoBtn = $("removePhotoBtn");
+    const photoProgress = $("photoProgressBar");
+    const photoText = $("progressText");
+    const photoError = $("profilePhotoError");
+
+    // ========================================================
+    // DOCUMENT FIELDS (kept optional — only wired if present)
+    // ========================================================
+
+    const documentInput = $("documentInput");
+    const removeDocBtn = $("removeDocumentBtn");
+    const documentProgress = $("documentProgressBar");
+    const documentText = $("documentprogressText");
+    const documentError = $("documentError");
+
+    // ========================================================
     // ERRORS
     // ========================================================
 
@@ -198,20 +222,6 @@ document.addEventListener("DOMContentLoaded", function () {
     // REPORTING MANAGER
     // ========================================================
 
-    /*
-        IMPORTANT:
-
-        Django must send ALL possible staff in the
-        reporting_manager <select>.
-
-        Example:
-
-        <option value="10">Arun Kumar</option>
-        <option value="11">Suresh Kumar</option>
-
-        JavaScript will then filter them according to role.
-    */
-
     const REPORTING_RULES = {
         "Admin": [],
         "Manager": ["Admin"],
@@ -228,14 +238,6 @@ document.addEventListener("DOMContentLoaded", function () {
         "Digital Marketing": ["Marketing Lead"],
         "Content Creator": ["Marketing Lead"]
     };
-
-    /*
-        Read role information from:
-
-        <script id="staffRolesData" type="application/json">
-            ...
-        </script>
-    */
 
     let staffRoles = {};
 
@@ -256,12 +258,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    /*
-        Save ALL manager options once.
-
-        DO NOT use the already-filtered list.
-    */
-
     let managerOptions = [];
 
     if (reportingManager) {
@@ -271,23 +267,16 @@ document.addEventListener("DOMContentLoaded", function () {
             ).filter(
                 option => option.value !== ""
             );
-
-        console.log(
-            "Reporting manager options:",
-            managerOptions
-        );
     }
 
     function getManagerRole(option) {
 
         if (!option) return "";
 
-        // First try data-role directly
         if (option.dataset.role) {
             return option.dataset.role.trim();
         }
 
-        // Then try JSON object
         const data =
             staffRoles[option.value];
 
@@ -296,7 +285,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         if (data && typeof data === "object") {
-
             return (
                 data.role ||
                 data.role_name ||
@@ -317,18 +305,8 @@ document.addEventListener("DOMContentLoaded", function () {
         const selectedRole =
             getRoleText();
 
-        console.log(
-            "Selected role:",
-            selectedRole
-        );
-
         const allowedRoles =
             REPORTING_RULES[selectedRole];
-
-        /*
-            ADMIN
-            No reporting manager
-        */
 
         if (
             selectedRole === "Admin" ||
@@ -352,10 +330,6 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        /*
-            Show reporting manager field
-        */
-
         const group =
             $("reportingManagerGroup");
 
@@ -365,16 +339,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         reportingManager.required = true;
 
-        /*
-            Remember currently selected manager
-        */
-
         const currentValue =
             reportingManager.value;
-
-        /*
-            Rebuild options
-        */
 
         reportingManager.innerHTML = "";
 
@@ -388,22 +354,11 @@ document.addEventListener("DOMContentLoaded", function () {
             placeholder
         );
 
-        /*
-            Add only allowed managers
-        */
-
         managerOptions.forEach(
             function (option) {
 
                 const managerRole =
                     getManagerRole(option);
-
-                console.log(
-                    "Manager:",
-                    option.text,
-                    "Role:",
-                    managerRole
-                );
 
                 if (
                     allowedRoles.includes(
@@ -420,10 +375,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }
         );
-
-        /*
-            Restore old manager if still valid
-        */
 
         const exists =
             Array.from(
@@ -701,7 +652,7 @@ document.addEventListener("DOMContentLoaded", function () {
             error(
                 phone,
                 errors.phone,
-                "Enter valid +91 Indian mobile number."
+                "Phone number should start with +91 and contain a valid 10-digit Indian mobile number."
             );
 
             return false;
@@ -864,10 +815,25 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!emergencyName) return true;
 
         emergencyName.value =
-            emergencyName.value.replace(
-                /[^a-zA-Z\s]/g,
-                ""
+            emergencyName.value
+                .replace(
+                    /[^a-zA-Z\s]/g,
+                    ""
+                )
+                .substring(0, 40);
+
+        const val = value(emergencyName);
+
+        if (val.length > 40) {
+
+            error(
+                emergencyName,
+                errors.emergencyName,
+                "Emergency contact name cannot exceed 40 characters."
             );
+
+            return false;
+        }
 
         clearError(
             emergencyName,
@@ -899,7 +865,7 @@ document.addEventListener("DOMContentLoaded", function () {
             error(
                 emergencyPhone,
                 errors.emergencyPhone,
-                "Enter valid +91 Indian mobile number."
+                "Phone number should start with +91 and contain a valid 10-digit Indian mobile number."
             );
 
             return false;
@@ -922,6 +888,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 checkChanges();
             }
         );
+
+        emergencyName.addEventListener(
+            "blur",
+            validateEmergencyName
+        );
     }
 
     if (emergencyPhone) {
@@ -938,6 +909,19 @@ document.addEventListener("DOMContentLoaded", function () {
                 checkChanges();
             }
         );
+
+        emergencyPhone.addEventListener(
+            "blur",
+            validateEmergencyPhone
+        );
+
+        emergencyPhone.addEventListener(
+            "focus",
+            function () {
+                if (this.value.trim() === "") return;
+                validateEmergencyPhone();
+            }
+        );
     }
 
     // ========================================================
@@ -948,6 +932,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (!password || !confirmPassword) {
             return true;
+        }
+
+        password.setAttribute("maxlength", "20");
+        confirmPassword.setAttribute("maxlength", "20");
+
+        if (password.value.length > 20) {
+            password.value = password.value.substring(0, 20);
+        }
+
+        if (confirmPassword.value.length > 20) {
+            confirmPassword.value = confirmPassword.value.substring(0, 20);
         }
 
         /*
@@ -970,6 +965,24 @@ document.addEventListener("DOMContentLoaded", function () {
             );
 
             return true;
+        }
+
+        if (!password.value) {
+            error(
+                password,
+                errors.password,
+                "Please enter the new password."
+            );
+            return false;
+        }
+
+        if (!confirmPassword.value) {
+            error(
+                confirmPassword,
+                errors.confirmPassword,
+                "Please confirm the new password."
+            );
+            return false;
         }
 
         if (
@@ -1009,6 +1022,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 checkChanges();
             }
         );
+
+        password.addEventListener(
+            "blur",
+            validatePassword
+        );
     }
 
     if (confirmPassword) {
@@ -1021,11 +1039,40 @@ document.addEventListener("DOMContentLoaded", function () {
                 checkChanges();
             }
         );
+
+        confirmPassword.addEventListener(
+            "blur",
+            validatePassword
+        );
     }
 
     // ========================================================
     // DATE
     // ========================================================
+
+    const todayForMax = new Date();
+    todayForMax.setHours(0, 0, 0, 0);
+
+    const todayString =
+        todayForMax.getFullYear() + "-" +
+        String(todayForMax.getMonth() + 1).padStart(2, "0") + "-" +
+        String(todayForMax.getDate()).padStart(2, "0");
+
+    if (dob) {
+        dob.setAttribute("max", todayString);
+
+        dob.addEventListener("click", () => {
+            if (dob.showPicker) dob.showPicker();
+        });
+    }
+
+    if (doj) {
+        doj.removeAttribute("max");
+
+        doj.addEventListener("click", () => {
+            if (doj.showPicker) doj.showPicker();
+        });
+    }
 
     function parseDate(val) {
 
@@ -1045,9 +1092,29 @@ document.addEventListener("DOMContentLoaded", function () {
                 parts[2]
             );
 
+        if (
+            date.getFullYear() !== parts[0] ||
+            date.getMonth() !== parts[1] - 1 ||
+            date.getDate() !== parts[2]
+        ) {
+            return null;
+        }
+
         date.setHours(0, 0, 0, 0);
 
         return date;
+    }
+
+    function calculateAge(dobDate, dojDate) {
+        let age = dojDate.getFullYear() - dobDate.getFullYear();
+        const monthDiff = dojDate.getMonth() - dobDate.getMonth();
+        if (
+            monthDiff < 0 ||
+            (monthDiff === 0 && dojDate.getDate() < dobDate.getDate())
+        ) {
+            age--;
+        }
+        return age;
     }
 
     function validateDates() {
@@ -1121,18 +1188,56 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         if (
-            dobDate &&
-            dojDate &&
-            dojDate < dobDate
+            doj &&
+            doj.value &&
+            !dojDate
         ) {
-
             error(
                 doj,
                 errors.doj,
-                "Date of joining cannot be before date of birth."
+                "Invalid date of joining."
             );
 
             valid = false;
+        }
+
+        if (
+            dobDate &&
+            dojDate
+        ) {
+
+            if (dojDate < dobDate) {
+
+                error(
+                    doj,
+                    errors.doj,
+                    "Date of joining cannot be before date of birth."
+                );
+
+                error(
+                    dob,
+                    errors.dob,
+                    "Date of joining cannot be before date of birth."
+                );
+
+                valid = false;
+
+            } else if (calculateAge(dobDate, dojDate) < 18) {
+
+                error(
+                    doj,
+                    errors.doj,
+                    "Employee must be at least 18 years old on date of joining."
+                );
+
+                error(
+                    dob,
+                    errors.dob,
+                    "Employee must be at least 18 years old on date of joining."
+                );
+
+                valid = false;
+            }
         }
 
         return valid;
@@ -1161,6 +1266,29 @@ document.addEventListener("DOMContentLoaded", function () {
     // ========================================================
     // SKILLS
     // ========================================================
+
+    const MAX_SKILL_LENGTH = 30;
+
+    function parseTypedSkills(raw) {
+        const skills = raw
+            .split(",")
+            .map(s => s.trim())
+            .filter(s => s.length > 0)
+            .map(s => s.length > MAX_SKILL_LENGTH ? s.substring(0, MAX_SKILL_LENGTH) : s);
+
+        const seen = new Set();
+        const unique = [];
+
+        skills.forEach(skill => {
+            const key = skill.toLowerCase();
+            if (!seen.has(key)) {
+                seen.add(key);
+                unique.push(skill);
+            }
+        });
+
+        return unique;
+    }
 
     function loadSkills() {
 
@@ -1221,24 +1349,37 @@ document.addEventListener("DOMContentLoaded", function () {
             return true;
         }
 
-        const skills =
+        const parts =
             raw.split(",")
                 .map(s => s.trim())
                 .filter(Boolean);
 
-        for (const skill of skills) {
+        for (const skill of parts) {
 
             if (/\d/.test(skill)) {
 
                 error(
                     skillsInput,
                     errors.skills,
-                    "Skills should not contain numbers."
+                    `Skill '${skill}' should not contain numbers.`
+                );
+
+                return false;
+            }
+
+            if (!/^[A-Za-z\s.+#-]+$/.test(skill)) {
+
+                error(
+                    skillsInput,
+                    errors.skills,
+                    `Skill '${skill}' contains invalid characters.`
                 );
 
                 return false;
             }
         }
+
+        const skills = parseTypedSkills(raw);
 
         skillsHidden.value =
             JSON.stringify(skills);
@@ -1267,6 +1408,28 @@ document.addEventListener("DOMContentLoaded", function () {
                 checkChanges();
             }
         );
+
+        skillsInput.addEventListener(
+            "blur",
+            validateSkills
+        );
+
+        skillsInput.addEventListener("keydown", (e) => {
+            if (/^[0-9]$/.test(e.key)) {
+                e.preventDefault();
+            }
+        });
+
+        skillsInput.addEventListener("paste", (e) => {
+            e.preventDefault();
+            const text = (e.clipboardData || window.clipboardData).getData("text");
+            const cleaned = text.replace(/[^A-Za-z\s,.+#-]/g, "");
+            const start = skillsInput.selectionStart;
+            const end = skillsInput.selectionEnd;
+            skillsInput.value =
+                skillsInput.value.substring(0, start) + cleaned + skillsInput.value.substring(end);
+            skillsInput.dispatchEvent(new Event("input"));
+        });
     }
 
     loadSkills();
@@ -1274,6 +1437,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // ========================================================
     // MONTHLY TARGET
     // ========================================================
+
+    const MAX_MONTHLY_TARGET = 1000000;
 
     const monthlyGroup =
         $("monthlyTargetGroup");
@@ -1303,12 +1468,35 @@ document.addEventListener("DOMContentLoaded", function () {
 
             monthlyGroup.style.display = "";
             monthlyTarget.disabled = false;
+            monthlyTarget.required = true;
+            monthlyTarget.setAttribute("required", "required");
 
         } else {
 
             monthlyGroup.style.display = "none";
+            monthlyTarget.value = "";
             monthlyTarget.disabled = true;
+            monthlyTarget.required = false;
+            monthlyTarget.removeAttribute("required");
+            clearError(monthlyTarget, errors.monthlyTarget);
         }
+    }
+
+    function sanitizeMonthlyTargetInput() {
+        if (!monthlyTarget) return;
+
+        let val = monthlyTarget.value;
+        val = val.replace(/[^0-9.]/g, "");
+
+        const parts = val.split(".");
+        if (parts.length > 2) val = parts[0] + "." + parts.slice(1).join("");
+
+        if (val.includes(".")) {
+            const [whole, decimal] = val.split(".");
+            val = whole + "." + decimal.substring(0, 2);
+        }
+
+        monthlyTarget.value = val;
     }
 
     function validateMonthlyTarget() {
@@ -1318,10 +1506,13 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         if (!isTargetRole()) {
+            clearError(monthlyTarget, errors.monthlyTarget);
             return true;
         }
 
-        if (!value(monthlyTarget)) {
+        const val = value(monthlyTarget);
+
+        if (!val) {
 
             error(
                 monthlyTarget,
@@ -1332,19 +1523,39 @@ document.addEventListener("DOMContentLoaded", function () {
             return false;
         }
 
-        const amount =
-            Number(monthlyTarget.value);
+        const validAmountPattern = /^\d+(\.\d{1,2})?$/;
 
-        if (
-            isNaN(amount) ||
-            amount <= 0 ||
-            amount > 1000000
-        ) {
+        if (!validAmountPattern.test(val)) {
 
             error(
                 monthlyTarget,
                 errors.monthlyTarget,
-                "Enter a valid monthly target."
+                "Monthly target must contain only numbers."
+            );
+
+            return false;
+        }
+
+        const amount =
+            Number(val);
+
+        if (amount <= 0) {
+
+            error(
+                monthlyTarget,
+                errors.monthlyTarget,
+                "Monthly target must be greater than 0."
+            );
+
+            return false;
+        }
+
+        if (amount > MAX_MONTHLY_TARGET) {
+
+            error(
+                monthlyTarget,
+                errors.monthlyTarget,
+                "Monthly target must not exceed \u20B910,00,000."
             );
 
             return false;
@@ -1364,16 +1575,21 @@ document.addEventListener("DOMContentLoaded", function () {
             "input",
             function () {
 
-                monthlyTarget.value =
-                    monthlyTarget.value.replace(
-                        /[^0-9.]/g,
-                        ""
-                    );
-
+                sanitizeMonthlyTargetInput();
                 validateMonthlyTarget();
                 checkChanges();
             }
         );
+
+        monthlyTarget.addEventListener(
+            "blur",
+            validateMonthlyTarget
+        );
+
+        monthlyTarget.addEventListener("keydown", (e) => {
+            const blockedKeys = ["e", "E", "+", "-"];
+            if (blockedKeys.includes(e.key)) e.preventDefault();
+        });
     }
 
     // ========================================================
@@ -1422,6 +1638,143 @@ document.addEventListener("DOMContentLoaded", function () {
                 checkChanges();
             }
         );
+    }
+
+    // ========================================================
+    // PASSPORT PHOTO UPLOAD
+    // ========================================================
+
+    if (photoInput) {
+
+        photoBox?.addEventListener("click", () => photoInput.click());
+
+        photoInput.addEventListener("change", () => {
+
+            const file = photoInput.files[0];
+
+            if (!file) return;
+
+            if (!file.type.startsWith("image/")) {
+
+                if (photoError) photoError.textContent = "Please select a valid image file.";
+                photoInput.value = "";
+                return;
+            }
+
+            if (file.size > 2 * 1024 * 1024) {
+
+                if (photoError) photoError.textContent = "Photo must be less than 2 MB.";
+                photoInput.value = "";
+                return;
+            }
+
+            if (photoError) photoError.textContent = "";
+            if (photoProgress) photoProgress.style.width = "100%";
+            if (photoText) photoText.textContent = "\u2713 New photo selected: " + file.name;
+            if (removePhotoBtn) removePhotoBtn.style.display = "flex";
+
+            checkChanges();
+        });
+
+        removePhotoBtn?.addEventListener("click", (e) => {
+
+            e.stopPropagation();
+
+            photoInput.value = "";
+
+            if (photoProgress) photoProgress.style.width = "0%";
+            if (photoText) photoText.textContent = "No new file selected";
+            if (photoError) photoError.textContent = "";
+            if (removePhotoBtn) removePhotoBtn.style.display = "none";
+
+            checkChanges();
+        });
+    }
+
+    // ========================================================
+    // DOCUMENTS (optional — only if the edit form has this field)
+    // ========================================================
+
+    let selectedDocFiles = new DataTransfer();
+    const allowedDocExtensions = ["pdf", "jpg", "jpeg", "png"];
+
+    function isAllowedDocument(file) {
+        const fileName = file.name.toLowerCase();
+        const extension = fileName.split(".").pop();
+        return allowedDocExtensions.includes(extension);
+    }
+
+    function updateDocumentUI() {
+        if (!documentProgress || !documentText || !removeDocBtn) return;
+
+        const fileCount = selectedDocFiles.files.length;
+
+        if (fileCount > 0) {
+            removeDocBtn.style.display = "flex";
+            documentProgress.style.width = "100%";
+            documentText.textContent = `${fileCount} document(s) selected`;
+        } else {
+            removeDocBtn.style.display = "none";
+            documentProgress.style.width = "0%";
+            documentText.textContent = "No file selected";
+        }
+    }
+
+    if (documentInput) {
+
+        documentInput.addEventListener("change", () => {
+
+            if (documentInput.files.length === 0) {
+                documentInput.files = selectedDocFiles.files;
+                updateDocumentUI();
+                return;
+            }
+
+            let hasInvalidFile = false;
+
+            Array.from(documentInput.files).forEach(file => {
+
+                if (!isAllowedDocument(file)) {
+                    hasInvalidFile = true;
+                    return;
+                }
+
+                const alreadyExists = Array.from(selectedDocFiles.files).some(
+                    existingFile =>
+                        existingFile.name === file.name &&
+                        existingFile.size === file.size &&
+                        existingFile.lastModified === file.lastModified
+                );
+
+                if (!alreadyExists) selectedDocFiles.items.add(file);
+            });
+
+            documentInput.files = selectedDocFiles.files;
+            updateDocumentUI();
+
+            if (hasInvalidFile && documentError) {
+                documentError.textContent = "Only PDF and image files are allowed.";
+                return;
+            }
+
+            if (documentError) documentError.textContent = "";
+
+            checkChanges();
+        });
+
+        removeDocBtn?.addEventListener("click", () => {
+
+            selectedDocFiles = new DataTransfer();
+            documentInput.value = "";
+            documentInput.files = selectedDocFiles.files;
+
+            if (documentProgress) documentProgress.style.width = "0%";
+            if (documentText) documentText.textContent = "No file selected";
+            if (removeDocBtn) removeDocBtn.style.display = "none";
+            if (documentError) documentError.textContent = "";
+
+            checkChanges();
+        });
     }
 
     // ========================================================
@@ -1479,7 +1832,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 confirmPassword.value !== "") ||
 
             (skillsHidden &&
-                skillsHidden.value !== "") ;
+                skillsHidden.value !== "") ||
+
+            (photoInput &&
+                photoInput.files &&
+                photoInput.files.length > 0) ||
+
+            (documentInput &&
+                documentInput.files &&
+                documentInput.files.length > 0);
 
         updateBtn.disabled = !changed;
     }
@@ -1579,6 +1940,9 @@ document.addEventListener("DOMContentLoaded", function () {
             if (
                 roleText !== "Admin" &&
                 reportingManager &&
+                reportingManager.style &&
+                $("reportingManagerGroup") &&
+                $("reportingManagerGroup").style.display !== "none" &&
                 !reportingManager.value
             ) {
 
@@ -1619,12 +1983,6 @@ document.addEventListener("DOMContentLoaded", function () {
     // ========================================================
 
     setDepartmentFromRole();
-
-    /*
-        VERY IMPORTANT:
-        Run reporting manager filter only AFTER
-        managerOptions has been collected.
-    */
 
     filterReportingManagers();
 

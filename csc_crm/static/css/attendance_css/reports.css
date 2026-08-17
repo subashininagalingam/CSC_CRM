@@ -1,11 +1,13 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 :root{
 
     --primary:#262170;
+    --primary-dark:#1c1852;
     --secondary:#FEF200;
 
     --white:#ffffff;
     --light:#f8f9fc;
+    --page-bg:#f4f5fa;
 
     --border:#e5e7eb;
 
@@ -28,6 +30,11 @@
 
 }
 
+.reports-page{
+
+    background:var(--page-bg);
+
+}
 
 
 /* =========================
@@ -39,7 +46,7 @@
     display:flex;
     justify-content:space-between;
     align-items:center;
-    margin-bottom:26px;
+    margin-bottom:20px;
     flex-wrap:wrap;
     gap:14px;
 
@@ -47,10 +54,11 @@
 
 .reports-topbar h5{
 
-    font-size:18px;
-    font-weight:700;
-    color:var(--primary);
+    font-size:22px;
+    font-weight:800;
+    color:var(--text);
     margin:0;
+    letter-spacing:-0.3px;
 
 }
 
@@ -80,7 +88,7 @@
     transition:0.3s;
     cursor:pointer;
     color:white;
-    text-decoration: none !important; 
+    text-decoration: none !important;
 
 }
 
@@ -124,6 +132,210 @@
 }
 
 /* =========================
+   FILTER CARD
+========================= */
+
+.filter-card{
+
+    background:var(--white);
+    border-radius:18px;
+    padding:20px 20px 8px;
+    margin:0 0 24px;
+    box-shadow:var(--shadow);
+    border:1px solid var(--border);
+
+}
+
+.filter-container{
+
+    display:grid;
+
+    grid-template-columns:
+    repeat(auto-fit, minmax(170px, 1fr));
+
+    gap:14px;
+
+    margin-bottom:16px;
+
+}
+
+.filter-field{
+
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+
+}
+
+.filter-label{
+
+    font-size:11.5px;
+    font-weight:700;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:0.4px;
+
+}
+
+.filter-input-icon{
+
+    position:relative;
+    display:flex;
+    align-items:center;
+
+}
+
+.filter-input-icon i{
+
+    position:absolute;
+    left:12px;
+    font-size:12px;
+    color:var(--muted);
+    pointer-events:none;
+
+}
+
+.filter-input-icon .filter-input{
+
+    padding-left:32px;
+
+}
+
+.date-range-group{
+
+    grid-column:span 2;
+    min-width:280px;
+
+}
+
+.date-range-inputs{
+
+    display:flex;
+    align-items:center;
+    gap:8px;
+
+}
+
+.date-range-inputs .filter-input-icon{
+
+    flex:1 1 0;
+    min-width:0;
+
+}
+
+.date-range-sep{
+
+    color:var(--muted);
+    font-weight:600;
+
+}
+
+.filter-input,
+.filter-select{
+
+    width:100%;
+
+    height:42px;
+
+    border:1px solid var(--border);
+
+    border-radius:10px;
+
+    padding:0 12px;
+
+    font-size:12px;
+
+    color:var(--text);
+
+    background:var(--white);
+
+    transition:.3s;
+
+}
+
+.filter-input:focus,
+.filter-select:focus{
+
+    outline:none;
+
+    border:2px solid var(--primary);
+
+    box-shadow:none;
+
+}
+
+.filter-actions-row{
+
+    display:flex;
+    gap:10px;
+    padding-bottom:18px;
+
+}
+
+.clear-btn,
+.apply-btn{
+
+    height:42px;
+
+    border:none;
+
+    border-radius:10px;
+
+    color:var(--white);
+
+    font-size:13px;
+
+    font-weight:600;
+
+    cursor:pointer;
+
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:0 18px;
+    transition:.3s;
+
+}
+
+.clear-btn{
+
+    background:#4b4a6b;
+
+}
+
+.clear-btn:hover{
+
+    background:#3d3c58;
+
+}
+
+.apply-btn{
+
+    background:var(--primary);
+
+}
+
+.apply-btn:hover{
+
+    background:var(--primary-dark);
+    box-shadow:0 6px 16px rgba(38,33,112,0.25);
+
+}
+
+.apply-btn:disabled,
+.clear-btn:disabled{
+
+    cursor:not-allowed;
+
+}
+
+.filter-message{
+
+    width:100%;
+
+}
+
+/* =========================
    CHART CARD
 ========================= */
 
@@ -146,16 +358,36 @@
 .chart-header{
 
     margin-bottom:18px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
 
 }
 
 .chart-header h4{
 
-    font-size:18px;
+    font-size:16px;
 
     font-weight:700;
 
     color:var(--text);
+
+}
+
+.batch-wise-header{
+
+    align-items:flex-start;
+
+}
+
+.batch-wise-header-actions{
+
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    gap:6px;
 
 }
 
@@ -182,6 +414,48 @@ canvas{
 
     max-width:100% !important;
     max-height:100% !important;
+
+}
+
+/* =========================
+   CHART EMPTY STATE
+========================= */
+
+.chart-empty-state{
+
+    display:none;
+    position:absolute;
+    inset:0;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    text-align:center;
+    padding:20px;
+    background:var(--white);
+    z-index:2;
+
+}
+
+.chart-empty-state.show{
+
+    display:flex;
+
+}
+
+.chart-empty-state i{
+
+    font-size:30px;
+    color:#cbd5e1;
+
+}
+
+.chart-empty-state p{
+
+    margin:0;
+    font-size:13px;
+    font-weight:600;
+    color:var(--muted);
 
 }
 .table-responsive{
@@ -286,20 +560,31 @@ width: 100%;
 .table thead th{
 
     color:var(--muted);
-    font-size:12px;
+    font-size:11.5px;
     font-weight:700;
-    padding:16px 12px;
+    padding:14px 12px;
     border-bottom:1px solid var(--border);
     white-space:nowrap;
-    letter-spacing:0.4px;
+    letter-spacing:0.5px;
+    background:var(--light);
 
+}
+
+.table thead th:first-child{
+    border-top-left-radius:10px;
+    border-bottom-left-radius:10px;
+}
+
+.table thead th:last-child{
+    border-top-right-radius:10px;
+    border-bottom-right-radius:10px;
 }
 
 .table tbody td{
 
-    padding:16px 12px;
+    padding:14px 12px;
     vertical-align:middle;
-    font-size:12px;
+    font-size:12.5px;
     color:var(--text);
     border-bottom:1px solid var(--border);
 
@@ -326,13 +611,13 @@ width: 100%;
 
 .student-avatar{
 
-    width:36px;
-    height:36px;
+    width:34px;
+    height:34px;
     border-radius:50%;
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:12px;
+    font-size:11px;
     font-weight:700;
     color:var(--white);
     background:var(--primary);
@@ -342,7 +627,7 @@ width: 100%;
 
 .student-cell span{
 
-    font-size:12px;
+    font-size:12.5px;
     font-weight:600;
     color:var(--primary);
 
@@ -388,7 +673,7 @@ width: 100%;
 
 .status-badge{
 
-    padding:7px 14px;
+    padding:6px 16px;
     border-radius:999px;
     font-size:12px;
     font-weight:700;
@@ -399,79 +684,28 @@ width: 100%;
 
 }
 .excellent-badge{
-    background:var(--light);
+    background:#dcfce7;
     color:var(--success);
 }
 
 .good-badge{
 
-    background:var(--light);
+    background:#e0e7ff;
     color:var(--primary);
 
 }
 
 .warning-badge{
 
-    background:var(--light);
+    background:#fef3c7;
     color:var(--warning);
 
 }
 
 .critical-badge{
 
-    background:var(--light);
+    background:#fee2e2;
     color:var(--danger);
-
-}
-
-/* REPORT FILTER */
-
-.filter-container{
-
-    display:grid;
-
-    grid-template-columns:
-    repeat(auto-fit, minmax(160px, 1fr));
-
-    gap:12px;
-
-    margin:18px 0 24px;
-
-}
-
-.date-range-group{
-
-    display:flex;
-
-    flex-wrap:nowrap;
-
-    align-items:center;
-
-    gap:8px;
-
-    grid-column: span 2;
-
-    min-width:280px;
-
-}
-
-.date-range-group .filter-input{
-
-    flex:1 1 0;
-
-    min-width:0;
-
-}
-
-.date-range-label{
-
-    flex:0 0 auto;
-
-    font-size:12px;
-
-    color:var(--text);
-
-    white-space:nowrap;
 
 }
 
@@ -487,58 +721,49 @@ width: 100%;
 
 }
 
-.filter-input,
-.filter-select{
 
+/* =========================================
+   CHARTS LAYOUT
+========================================= */
+
+.charts-top-row{
+
+    display:flex;
+    gap:20px;
     width:100%;
-
-    height:42px;
-
-    border:1px solid var(--border);
-
-    border-radius:10px;
-
-    padding:0 12px;
-
-    font-size:12px;
-
-    color:var(--text);
-
-    background:var(--white);
-
-    transition:.3s;
+    margin-bottom:20px;
 
 }
 
-.filter-input:focus,
-.filter-select:focus{
+.charts-top-row .monthly-chart-card{
 
-    outline:none;
-
-    border:2px solid var(--text);
-
-    box-shadow:none;
+    flex:2;
+    min-width:0;
+    min-height:340px;
 
 }
 
-.clear-btn{
+.charts-top-row .distribution-chart-card{
 
-    height:42px;
+    flex:1;
+    min-width:280px;
+    min-height:340px;
 
-    border:none;
+}
 
-    border-radius:10px;
+.charts-row {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+    margin-bottom: 24px;
+    height: 100%;
 
-    background:var(--primary);
+}
 
-    color:var(--white);
-
-    font-size:13px;
-
-    font-weight:600;
-
-    cursor:pointer;
-
+.charts-row .chart-card {
+    flex: 1;
+    min-width: 0;
+    min-height: 400px;
 }
 
 .chart-warning{
@@ -567,8 +792,54 @@ width: 100%;
 }
 
 /* =========================
+   TOAST
+========================= */
+
+.attendance-toast{
+    width: 100%;
+    margin: 0 0 4px;
+    padding: 10px;
+    text-align: center;
+    border-radius: 8px;
+    font-size: 14px;
+    overflow: hidden;
+    max-height: 200px;
+    transition:
+        opacity 0.4s ease,
+        max-height 0.4s ease 0.15s,
+        padding 0.4s ease 0.15s,
+        margin 0.4s ease 0.15s;
+}
+
+.attendance-toast.fade-out{
+    opacity: 0;
+    visibility: hidden;
+    max-height: 0;
+    padding: 0;
+    margin: 0;
+    border: 0;
+}
+
+/* =========================
    RESPONSIVE
 ========================= */
+
+@media(max-width:992px){
+
+    .charts-top-row{
+
+        flex-direction:column;
+
+    }
+
+    .charts-top-row .monthly-chart-card,
+    .charts-top-row .distribution-chart-card{
+
+        min-height:300px;
+
+    }
+
+}
 
 @media(max-width:768px){
 
@@ -613,6 +884,18 @@ width: 100%;
 
     }
 
+    .date-range-group{
+
+        grid-column:span 1;
+
+    }
+
+    .filter-actions-row{
+
+        flex-wrap:wrap;
+
+    }
+
 }
 @media(max-width:768px){
 
@@ -626,44 +909,8 @@ width: 100%;
 
     }
 
-}
-.filter-message{
-    grid-column: 3 / 6;
-}
-
-.attendance-toast{
-    width: 100%;
-    margin: 0;
-    padding: 10px;
-    text-align: center;
-    border-radius: 8px;
-    font-size: 14px;
-}
-/* =========================================
-   CHARTS SIDE-BY-SIDE (LEFT & RIGHT) LAYOUT
-========================================= */
-
-.charts-row {
-    display: flex;
-    gap: 20px;            
-    width: 100%;
-    margin-bottom: 24px;
-    margin-top: 30px;
-    height: 100%;
-
-}
-
-.charts-row .chart-card {
-    flex: 1;      
-    min-width: 0;  
-    min-height: 450px;
-}
-
-@media (max-width: 768px) {
     .charts-row {
         flex-direction: column;
     }
+
 }
-
-
- 

@@ -1,17 +1,52 @@
+//================ TOAST NOTIFICATION HELPER ==================//
+const TOAST_ICONS = {
+    success: "bi-check-circle-fill",
+    error: "bi-x-circle-fill",
+    warning: "bi-exclamation-triangle-fill"
+};
+
+//================ CSRF TOKEN ==================//
 const csrftoken = "{{ csrf_token }}";
 
 // ---------- helpers ----------
 
-function showPopup(message, isError = false) {
-    Swal.fire({
-        icon: isError ? "error" : "success",
-        title: isError ? "Failed" : "Success",
-        text: message,
-        timer: 2000,
-        showConfirmButton: false
-    });
+function showToast(message, type = 'success', duration = 3200) {
+
+    const container = document.getElementById('toastContainer');
+
+    if (!container) {
+        alert(message);
+        return;
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+
+    toast.innerHTML = `
+        <div class="toast-icon"><i class="fas ${TOAST_ICONS[type] || TOAST_ICONS.success}"></i></div>
+        <div class="toast-body">
+            <p class="toast-message">${message}</p>
+        </div>
+        <button type="button" class="toast-close" aria-label="Close">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+
+    container.appendChild(toast);
+
+    const removeToast = () => {
+        toast.classList.add('toast-hide');
+        setTimeout(() => toast.remove(), 300);
+    };
+
+    toast.querySelector('.toast-close').addEventListener('click', removeToast);
+
+    const timer = setTimeout(removeToast, duration);
+
+    toast.addEventListener('mouseenter', () => clearTimeout(timer));
 }
 
+//================ LOADING POPUP (SWEETALERT2) ==================//
 function showLoading(title) {
     Swal.fire({
         icon: "info",
@@ -22,6 +57,7 @@ function showLoading(title) {
     });
 }
 
+//================ BULK - SEND EMAIL TO ALL LOW ATTENDANCE STUDENTS ==================//
 function sendEmailAll() {
 
     Swal.fire({
@@ -40,21 +76,21 @@ function sendEmailAll() {
 
             Swal.close();
 
-            showPopup(data.message);
+            showToast(data.message, data.status === 'success' ? 'success' : 'error');
 
         })
 
         .catch(error => {
 
-            showPopup(
+            showToast(
                 "❌ Email Sending Failed",
-                true
-            );
+                "error");
 
         });
 
 }
 
+//================ BULK - SEND SMS TO ALL LOW ATTENDANCE STUDENTS ==================//
 function sendSMSAll() {
 
     Swal.fire({
@@ -73,21 +109,22 @@ function sendSMSAll() {
 
             Swal.close();
 
-            showPopup(data.message);
+            showToast(data.message, data.status === 'success' ? 'success' : 'error');
 
         })
 
         .catch(error => {
 
-            showPopup(
+            showToast(
                 "❌ SMS Sending Failed",
-                true
+                "error"         
             );
 
         });
 
 }
 
+//================ SEND MONTHLY REPORT ==================//
 function sendMonthlyReport() {
 
     Swal.fire({
@@ -106,21 +143,22 @@ function sendMonthlyReport() {
 
             Swal.close();
 
-            showPopup(data.message);
+            showToast(data.message, data.status === 'success' ? 'success' : 'error');
 
         })
 
         .catch(error => {
 
-            showPopup(
+            showToast(
                 "❌ Monthly Report Sending Failed",
-                true
+                "error"
             );
 
         });
 
 }
 
+//================ MAIL BUTTON CLICK HANDLER (LEGACY - SEE ajax-action-btn BELOW) ==================//
 document.querySelectorAll(".mail-btn").forEach(button => {
 
     button.addEventListener("click", function (e) {
@@ -156,15 +194,15 @@ document.querySelectorAll(".mail-btn").forEach(button => {
 
                 Swal.close();
 
-                showPopup(data.message);
+                showToast(data.message, data.status === 'success' ? 'success' : 'error');
 
             })
 
             .catch(error => {
 
-                showPopup(
+                showToast(
                     "❌ Notification Sending Failed",
-                    true
+                    "error"     
                 );
 
                 setTimeout(() => {
@@ -179,11 +217,13 @@ document.querySelectorAll(".mail-btn").forEach(button => {
 
 // ---------- last updated time ----------
 
+//================ SET "LAST UPDATED" TIMESTAMP ==================//
 document.getElementById("lastUpdatedTime").textContent =
     new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
 // ---------- per-row SMS / Email buttons ----------
 
+//================ PER-ROW SMS/EMAIL BUTTON HANDLER ==================//
 document.querySelectorAll(".ajax-action-btn").forEach(function (button) {
 
     button.addEventListener("click", function (e) {
@@ -196,11 +236,11 @@ document.querySelectorAll(".ajax-action-btn").forEach(function (button) {
             .then(response => response.json())
             .then(data => {
                 Swal.close();
-                showPopup(data.message);
+                showToast(data.message, data.status === 'success' ? 'success' : 'error');
             })
             .catch(() => {
                 Swal.close();
-                showPopup("❌ Notification Sending Failed", true);
+                showToast("❌ Notification Sending Failed", "error");
             });
 
     });
@@ -209,6 +249,7 @@ document.querySelectorAll(".ajax-action-btn").forEach(function (button) {
 
 // ---------- select all (per section) ----------
 
+//================ SELECT ALL CHECKBOX (PER SECTION) ==================//
 document.querySelectorAll(".select-all-checkbox").forEach(function (checkbox) {
 
     checkbox.addEventListener("change", function () {
@@ -225,6 +266,7 @@ document.querySelectorAll(".select-all-checkbox").forEach(function (checkbox) {
 
 // ---------- bulk send to selected rows in a section ----------
 
+//================ BULK SEND TO SELECTED ROWS (SMS/EMAIL) ==================//
 function sendSectionNotification(sectionId, type) {
 
     const section = document.getElementById(sectionId);
@@ -234,7 +276,7 @@ function sendSectionNotification(sectionId, type) {
     ).map(cb => parseInt(cb.dataset.id, 10));
 
     if (ids.length === 0) {
-        showPopup("Please select at least one student", true);
+        showToast("Please select at least one student", "error");
         return;
     }
 
@@ -264,19 +306,20 @@ function sendSectionNotification(sectionId, type) {
                 selectAll.checked = false;
             }
 
-            showPopup(data.message);
+            showToast(data.message, data.status === 'success' ? 'success' : 'error');
 
         })
 
         .catch(() => {
             Swal.close();
-            showPopup("❌ Notification Sending Failed", true);
+            showToast("❌ Notification Sending Failed", "error");
         });
 
 }
 
 // ---------- export dropdown ----------
 
+//================ EXPORT DROPDOWN TOGGLE (EXCEL) ==================//
 function toggleExportMenu(button) {
 
     const menu = button.nextElementSibling;
@@ -289,6 +332,7 @@ function toggleExportMenu(button) {
 
 }
 
+//================ EXPORT DROPDOWN - CLOSE ON OUTSIDE CLICK ==================//
 document.addEventListener("click", function (e) {
     if (!e.target.closest(".alert-section-actions")) {
         document.querySelectorAll(".export-menu").forEach(m => m.classList.remove("open"));
@@ -297,6 +341,7 @@ document.addEventListener("click", function (e) {
 
 // ---------- pagination (per section) ----------
 
+//================ PAGINATION SETUP (CRITICAL/WARNING SECTIONS) ==================//
 const PAGE_SIZE = 3;
 
 function setupPagination(sectionId, colorClass) {
@@ -374,10 +419,12 @@ setupPagination("warningSection", "warning");
 //          FILTER FORM VALIDATION
 // ==========================================
 
+//================ FILTER FORM ELEMENT REFS ==================//
 const lowAttendanceFilterForm = document.getElementById("filterForm");
 const studentNameFilter = document.getElementById("studentNameFilter");
 const percentageFilter = document.getElementById("percentageFilter");
 
+//================ INLINE FIELD ERROR HELPER (CREATE/REUSE ERROR TAG) ==================//
 // helper: create (or reuse) a small error tag right after a field
 function getLowAttendanceFieldError(input) {
 
@@ -406,6 +453,7 @@ const percentageError = getLowAttendanceFieldError(percentageFilter);
         STUDENT NAME — letters, numbers, spaces only
 =========================================*/
 
+//================ VALIDATE STUDENT NAME FILTER (LETTERS/NUMBERS/SPACES ONLY) ==================//
 function validateStudentNameFilter() {
 
     if (!studentNameFilter || !studentNameError) return true;
@@ -436,6 +484,7 @@ if (studentNameFilter) {
         ATTENDANCE % — number between 0 and 100
 =========================================*/
 
+//================ VALIDATE ATTENDANCE % FILTER (0-100) ==================//
 function validatePercentageFilter() {
 
     if (!percentageFilter || !percentageError) return true;
@@ -479,17 +528,50 @@ if (percentageFilter) {
 
 
 /*=========================================
+        AT LEAST ONE FIELD MUST BE FILLED
+=========================================*/
+
+//================ VALIDATE AT LEAST ONE FILTER FIELD FILLED ==================//
+const courseFilterEl = document.getElementById("courseFilter");
+const batchFilterEl = document.getElementById("batchFilter");
+const filterGeneralError = document.getElementById("filterGeneralError");
+
+function validateAtLeastOneFilter() {
+
+    if (!filterGeneralError) return true;
+
+    const nameVal = studentNameFilter ? studentNameFilter.value.trim() : "";
+    const courseVal = courseFilterEl ? courseFilterEl.value.trim() : "";
+    const batchVal = batchFilterEl ? batchFilterEl.value.trim() : "";
+    const percentVal = percentageFilter ? percentageFilter.value.trim() : "";
+
+    if (!nameVal && !courseVal && !batchVal && !percentVal) {
+        filterGeneralError.innerText = "Please enter at least one field to search";
+        filterGeneralError.style.display = "block";
+        return false;
+    }
+
+    filterGeneralError.innerText = "";
+    filterGeneralError.style.display = "none";
+    return true;
+
+}
+
+
+/*=========================================
         BLOCK SUBMIT IF ANYTHING IS INVALID
 =========================================*/
 
+//================ BLOCK FORM SUBMIT ON VALIDATION FAILURE ==================//
 if (lowAttendanceFilterForm) {
 
     lowAttendanceFilterForm.addEventListener("submit", function (e) {
 
         const validName = validateStudentNameFilter();
         const validPercentage = validatePercentageFilter();
+        const hasAnyFilter = validateAtLeastOneFilter();
 
-        if (!validName || !validPercentage) {
+        if (!validName || !validPercentage || !hasAnyFilter) {
             e.preventDefault();
         }
 
@@ -499,10 +581,15 @@ if (lowAttendanceFilterForm) {
 
 // ---------- filters ----------
 
+//================ CLEAR FILTERS BUTTON ==================//
 document.getElementById("clearFilters").addEventListener("click", function () {
 
     if (studentNameError) studentNameError.innerText = "";
     if (percentageError) percentageError.innerText = "";
+    if (filterGeneralError) {
+        filterGeneralError.innerText = "";
+        filterGeneralError.style.display = "none";
+    }
 
     window.location.href = window.location.pathname;
 });

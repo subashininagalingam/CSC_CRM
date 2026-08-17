@@ -2,20 +2,12 @@ from django import forms
 from .models import Batch
 from csc_crm.apps.staff.models import Staff
 
+#================ BATCH CREATE/EDIT FORM ==================#
 class BatchForm(forms.ModelForm):
 
     class Meta:
         model = Batch
-        fields = [
-            'batch_name',
-            'course',
-            'timing',
-            'start_time',
-            'end_time',
-            'start_date',
-            'end_date',
-            'trainer',
-        ]
+        fields = ['batch_name','course','timing','start_time','end_time','start_date','end_date','trainer',]
 
         widgets = {
             'batch_name': forms.TextInput(attrs={
@@ -58,6 +50,8 @@ class BatchForm(forms.ModelForm):
                 'class': 'form-select',
             }),
         }
+
+    #================ INIT - TRAINER DROPDOWN (ACTIVE TRAINERS ONLY) ==================#
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

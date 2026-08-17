@@ -17,8 +17,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const baseUrl = exportBtn.dataset.url;
         const params = new URLSearchParams({
-            search: searchInput.value,
-            assigned_to: staffSelect.value
+            search: searchInput ? searchInput.value : "",
+            assigned_to: staffSelect ? staffSelect.value : ""
         });
 
         exportBtn.href = `${baseUrl}?${params.toString()}`;
@@ -51,30 +51,34 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    searchBtn.addEventListener("click", function (e) {
-        e.preventDefault();
-        updateExportUrl();
-        loadData();
-    });
+    if (searchBtn) {
+        searchBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            updateExportUrl();
+            loadData();
+        });
+    }
 
-    staffSelect.addEventListener("change", function () {
-        updateExportUrl();
-        loadData();
-    });
+    if (staffSelect) {
+        staffSelect.addEventListener("change", function () {
+            updateExportUrl();
+            loadData();
+        });
+    }
 
-    clearBtn.addEventListener("click", function (e) {
-        e.preventDefault();
-        searchInput.value = "";
-        staffSelect.value = "";
-        updateExportUrl();
-        loadData();
-        history.replaceState(null, "", window.location.pathname);
-    });
+    if (clearBtn) {
+        clearBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            if (searchInput) searchInput.value = "";
+            if (staffSelect) staffSelect.value = "";
+            updateExportUrl();
+            loadData();
+            history.replaceState(null, "", window.location.pathname);
+        });
+    }
 
     updateExportUrl();
 });
-
-
 // Pagination (AJAX) - handles next/prev/number links
 document.addEventListener("click", function (e) {
     const link = e.target.closest(".ajax-page");
@@ -146,6 +150,7 @@ function initColumnScrollButtons() {
 
         const clickStep = 120;      // Single click scroll
         const holdStep = 20;        // Continuous scroll speed
+        const visibleCardLimit = 4; // Buttons show only beyond this many cards
         let interval = null;
         let longPress = false;
 
@@ -191,6 +196,16 @@ function initColumnScrollButtons() {
         downBtn.addEventListener("touchstart", () => startScroll(1));
 
         function toggleButtons() {
+
+            const cardCount = cardsBox.querySelectorAll(".lead-card").length;
+
+            // Fewer than 5 cards -> never show scroll buttons
+            if (cardCount <= visibleCardLimit) {
+                upBtn.classList.add("hidden");
+                downBtn.classList.add("hidden");
+                return;
+            }
+
             const atTop = cardsBox.scrollTop <= 0;
             const atBottom =
                 cardsBox.scrollTop + cardsBox.clientHeight >=

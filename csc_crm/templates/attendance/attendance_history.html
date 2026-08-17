@@ -42,7 +42,7 @@
                 </div>
                 <div>
                     <p class="stat-label">Present</p>
-                    <h3 class="stat-value stat-value-green">{{ total_present|default:"0" }}</h3>
+                    <h3 class="stat-value stat-value-green">{{ present|default:"0" }}</h3>
                 </div>
             </div>
 
@@ -70,12 +70,12 @@
 
     </div>
 
-    <!-- ============ FILTER FORM ============ -->
+     <!-- ============ FILTER FORM - SEARCH/STATUS/BATCH/COURSE/DATE ============ -->
     <form method="GET" class="filter-form" id="filterForm">
 
     <div class="filter-grid">
 
-        <!-- Search -->
+         <!-- ============ SEARCH FIELD ============ -->
         <div class="field-group">
             <label>Search Student</label>
             <div class="input-icon">
@@ -85,7 +85,7 @@
             </div>
         </div>
 
-        <!-- From Date -->
+        <!-- ============ FROM DATE FIELD ============ -->
         <div class="field-group">
             <label for="fromDate">From Date</label>
             <div class="input-icon">
@@ -95,7 +95,7 @@
             </div>
         </div>
 
-        <!-- To Date -->
+        <!-- ============ TO DATE FIELD ============ -->
         <div class="field-group">
             <label for="toDate">To Date</label>
             <div class="input-icon">
@@ -105,7 +105,7 @@
             </div>
         </div>
 
-        <!-- Status -->
+        <!-- ============ STATUS DROPDOWN ============ -->
         <div class="field-group">
             <label>Status</label>
             <select name="status" class="form-select">
@@ -116,7 +116,8 @@
             </select>
         </div>
 
-        <!-- Batch -->
+        <!-- ============ BATCH DROPDOWN ============ -->
+         
         <div class="field-group">
             <label>Batch</label>
             <select name="batch" class="form-select">
@@ -129,8 +130,8 @@
             </select>
         </div>
 
-        <!-- Course -->
-         {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" %}
+        <!-- ============ COURSE DROPDOWN ============ -->
+        {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" %}
         <div class="field-group">
             <label>Course</label>
             <select name="course_name" class="form-select">
@@ -142,7 +143,7 @@
         </div>
         {% endif %}
 
-        <!-- Buttons -->
+        <!-- ============ RESET / SEARCH BUTTONS ============ -->
         <div class="filter-actions">
 
             <button type="button" class="clear-btn" id="resetBtn">
@@ -165,7 +166,7 @@
         <p id="search-error"></p>
     </div>
 
-    <!-- ============ DOWNLOAD BAR ============ -->
+    <!-- ============ EXPORT (EXCEL/PDF) DOWNLOAD BAR ============ -->
     <form method="GET"
         action="{% url 'attendance_export' %}"
         class="download-form"
@@ -196,7 +197,7 @@
 
     </form>
 
-    <!-- ============ TABLE ============ -->
+    <!-- ============ ATTENDANCE RECORDS TABLE ============ -->
     <div class="report-card">
 
         <div class="table-responsive">
@@ -218,7 +219,8 @@
                 </thead>
 
                 <tbody>
-
+ 
+                    <!-- ============ TABLE ROW - PER ATTENDANCE RECORD ============ -->
                     {% for record in records %}
                     <tr class="attendance-row"
                         data-record-id="{{ record.id }}"
@@ -233,6 +235,7 @@
 
                         <td>{{ record.attendance_date|date:"F j, Y" }}</td>
 
+                        <!-- ============ STUDENT INFO CELL (PHOTO/INITIALS + NAME LINK) ============ -->
                         <td>
                             <div class="student-info">
 
@@ -245,7 +248,7 @@
                                 {% endif %}
 
                                 <span>
-                                    <a href="{% url 'view_student' record.enrollment.student.id %}" class="student-detail-btn" data-id="{{ record.enrollment.student.id }}">
+                                    <a href="#" class="student-detail-btn" data-id="{{ record.enrollment.student.id }}">
                                         {{ record.enrollment.student.first_name }} {{ record.enrollment.student.last_name }}
                                     </a>
                                 </span>
@@ -259,6 +262,7 @@
 
                         <td>{{ record.batch.batch_name }}</td>
 
+                        <!-- ============ STATUS BADGE CELL (PRESENT/ABSENT/LATE) ============ -->
                         <td>
                             {% if record.status == "Present" %}
                             <span class="badge-present">Present</span>
@@ -271,6 +275,7 @@
 
                         <td>{{ record.trainer }}</td>
 
+                        <!-- ============ ROW ACTION MENU (VIEW STUDENT) ============ -->
                         <td class="col-actions">
                             <div class="row-menu">
                                 <button type="button" class="row-menu-btn" data-id="{{ record.enrollment.student.id }}">
@@ -289,6 +294,7 @@
 
                     </tr>
 
+                    <!-- ============ EMPTY STATE (NO RECORDS FOUND) ============ -->
                     {% empty %}
 
                     <tr>
@@ -305,6 +311,7 @@
 
         </div>
 
+        <!-- ============ TABLE FOOTER - RECORD COUNT + PAGINATION ============ -->
         <div class="table-footer">
             <p class="footer-count">
                 Showing {{ records|length }} of {{ total_records|default:records|length }} records

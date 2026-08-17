@@ -29,7 +29,7 @@ from django.core.mail import send_mail
 from urllib import request
 from django.db import models
 from django.template.loader import render_to_string
-
+from django.contrib.auth.decorators import login_required
 
 # ================= STUDENT REGISTRATION ====================
 
@@ -453,7 +453,11 @@ def generate_receipt(request, pk):
 
 #=================== STUDENT LIST ====================
 
+@login_required(login_url='staff_login')
 def student_list(request):
+
+    my_staff = getattr(request.user, 'staff_profile', None)
+    my_role = my_staff.role.role_name if my_staff and my_staff.role else None
 
     students = Student.objects.prefetch_related(
         'payments',
@@ -461,12 +465,23 @@ def student_list(request):
         'admissions__course_name',
     ).all()
 
+    # Trainer -> only students from own assigned batches
+    if my_role == 'Trainer':
+        students = students.filter(
+            admissions__enrollment__batch__trainer=my_staff
+        ).distinct()
+
     student_filter = StudentFilter(request.GET, queryset=students)
     filtered_students = student_filter.qs.distinct().order_by('-id')
     paginator = Paginator(filtered_students, 10)  # Show 10 students per page
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
-    active_students = Admission.objects.filter(status="enrolled").count()
+
+    active_students_qs = Admission.objects.filter(status="enrolled")
+    if my_role == 'Trainer':
+        active_students_qs = active_students_qs.filter(enrollment__batch__trainer=my_staff)
+    active_students = active_students_qs.count()
+
     summary = get_fee_summary()
     format = request.GET.get('format')
 
@@ -536,15 +551,20 @@ def student_list(request):
 
         return response
 
+    batches_qs = Batch.objects.all()
+    if my_role == 'Trainer':
+        batches_qs = batches_qs.filter(trainer=my_staff)
+
     return render(request, 'admissions/student_list.html', {
         'page_obj': page_obj,
         'filter': student_filter,
         'courses': Course.objects.all(),
-        'batches': Batch.objects.all(),
+        'batches': batches_qs,
         'total_students': filtered_students.count(),
         'active_students': active_students,
         'summary': summary
     })
+
 #=================== EDIT STUDENT ====================
 
 def edit_student(request, id):
@@ -612,12 +632,22 @@ def delete_student(request, id):
 
 #=================== SEARCH STUDENTS ====================
 
+@login_required(login_url='staff_login')
 def search_students(request):
+
+    my_staff = getattr(request.user, 'staff_profile', None)
+    my_role = my_staff.role.role_name if my_staff and my_staff.role else None
 
     students = Student.objects.prefetch_related(
         'admissions__course_name',
         'admissions__enrollment'
     )
+
+    # Trainer -> only students from own assigned batches
+    if my_role == 'Trainer':
+        students = students.filter(
+            admissions__enrollment__batch__trainer=my_staff
+        )
 
     student_filter = StudentFilter(request.GET, queryset=students)
     filtered_students = student_filter.qs.distinct().order_by('-id')
@@ -691,15 +721,18 @@ def search_students(request):
     querydict.pop('format', None)
     base_query = querydict.urlencode()
 
+    batches_qs = Batch.objects.all()
+    if my_role == 'Trainer':
+        batches_qs = batches_qs.filter(trainer=my_staff)
+
     return render(request, "admissions/search_students.html", {
         'filter': student_filter,
         'page_obj': page_obj,
         'courses': Course.objects.all(),
-        'batches': Batch.objects.all(),
+        'batches': batches_qs,
         'per_page': per_page,
         'base_query': base_query,
     })
-
 #=================== VIEW STUDENT ====================
 def view_student(request, id):
 

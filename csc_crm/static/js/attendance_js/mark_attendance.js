@@ -1,7 +1,4 @@
-// JS for the Mark Attendance page: renders the student rows, tracks each
-// student's status/remarks in memory, and submits everything (plus the
-// syllabus log) to the bulk attendance API when the trainer confirms.
-
+//================ CSRF TOKEN HELPER (READ FROM COOKIE) ==================//
 console.log("Script Loaded");
 
 function getCookie(name) {
@@ -21,6 +18,7 @@ function getCookie(name) {
 
 const csrftoken = csrfToken;
 
+//================ AVATAR COLOR ASSIGNMENT (CYCLED PALETTE) ==================//
 function getAvatarColor(index) {
 
     const colors = [
@@ -35,6 +33,7 @@ function getAvatarColor(index) {
     return colors[index % colors.length];
 }
 
+//================ IN-MEMORY ATTENDANCE STATE ==================//
 let attendanceData = [];
 
 /* =========================
@@ -42,6 +41,7 @@ let attendanceData = [];
    (replaces browser alert())
 ========================= */
 
+//================ TOAST NOTIFICATION HELPER ==================//
 const TOAST_ICONS = {
     success: "fa-check",
     error: "fa-times",
@@ -93,6 +93,7 @@ function showToast(message, type = "success", duration = 6800) {
 }
 
 
+//================ RENDER STUDENT TABLE + BUILD IN-MEMORY ATTENDANCE DATA ==================//
 // Renders the student table body from the `students` data (injected by the
 // template) and builds the in-memory attendanceData array used for submission
 function loadStudents() {
@@ -168,6 +169,7 @@ function loadStudents() {
     updateCounts();
 }
 
+//================ SET STUDENT STATUS (PRESENT/ABSENT/LATE) ==================//
 function setStatus(index, status) {
 
     // update data
@@ -208,10 +210,12 @@ function setStatus(index, status) {
     updateCounts();
 }
 
+//================ SET REMARKS FOR A STUDENT ==================//
 function setRemark(index, value) {
     attendanceData[index].remarks = value;
 }
 
+//================ UPDATE PRESENT/ABSENT/LATE COUNTS + PERCENTAGE ==================//
 function updateCounts() {
 
     let present = 0, absent = 0, late = 0;
@@ -236,6 +240,7 @@ function updateCounts() {
         percentage + "% Present";
 }
 
+//================ SUBMIT ATTENDANCE + SYLLABUS LOG (BULK API) ==================//
 // Validates remarks, gathers the syllabus log fields, then posts the
 // whole batch's attendance + syllabus log to the bulk attendance API
 async function submitAttendance() {
@@ -333,6 +338,7 @@ if (response.ok) {
 }
 }
 
+//================ SEARCH STUDENTS BY NAME OR ID (CLIENT-SIDE) ==================//
 function searchStudents(searchText) {
 
     searchText = searchText.toLowerCase();
@@ -356,19 +362,21 @@ function searchStudents(searchText) {
     });
 }
 
+//================ INITIAL LOAD - RENDER STUDENTS + AVATAR COLORS ==================//
 loadStudents();
 
 document.querySelectorAll('.student-avatar').forEach((el, index) => {
     el.style.background = getAvatarColor(index);
 });
 
+//================ SEARCH INPUT LISTENER ==================//
 document.getElementById('searchInput')
     .addEventListener('input', function () {
 
         searchStudents(this.value);
     });
 
-
+//================ SYNC MODAL SUMMARY COUNTS ON MODAL SHOW ==================//
 document.getElementById('attendanceModal')
     .addEventListener('show.bs.modal', function () {
 
@@ -382,6 +390,7 @@ document.getElementById('attendanceModal')
             document.getElementById('lateCount').innerText;
     });
 
+//================ OPEN CONFIRM ATTENDANCE MODAL (WITH REMARKS VALIDATION) ==================//
 function openAttendanceModal() {
 
     for (let data of attendanceData) {
@@ -412,6 +421,7 @@ function openAttendanceModal() {
     modal.show();
 }
 
+//================ INITIAL ATTENDANCE PERCENTAGE (ON PAGE LOAD) ==================//
 const percentage =
     Math.round(
         (parseInt(document.getElementById('presentCount').innerText)
@@ -422,6 +432,7 @@ document.getElementById('attendancePercentage').innerText =
     percentage + "% Present";
 
 
+//================ TOGGLE DURATION UNIT DISPLAY (HOURS/MINUTES) ==================//
 function toggleUnit(inputId, unitId) {
 
     const input = document.getElementById(inputId);

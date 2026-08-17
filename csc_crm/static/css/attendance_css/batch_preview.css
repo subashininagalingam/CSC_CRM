@@ -1,5 +1,7 @@
 .bp-wrapper {
-    padding: 15px 25px;
+    padding: 15px 25px 40px;
+    min-height: calc(100vh - 80px); 
+    box-sizing: border-box;
 }
 
 .bp-breadcrumb {
@@ -174,6 +176,11 @@
 .bp-status-upcoming {
     background: #fef3c7;
     color: #b45309;
+}
+
+.bp-status-completed {
+    background: #e0e7ff;
+    color: #3730a3;
 }
 
 .bp-stats-grid {

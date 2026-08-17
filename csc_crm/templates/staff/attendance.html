@@ -55,42 +55,7 @@
     <p>Track your daily attendance and working hours.</p>
 </div>
       
-     
-{% if staff.status != 'terminated' and staff.role.role_name != "Admin" %}
-
-    {% if today_attendance and today_attendance.status == 'Leave' %}
-
-        <a class="staff-disabled-btn">
-            On Leave
-        </a>
-
-    {% elif today_attendance and today_attendance.status == 'Absent' %}
-
-        <a class="staff-disabled-btn">
-            Absent
-        </a>
-
-    {% elif show_checkout %}
-
-       <button
-    type="button"
-    class="staff-checkout-btn"
-    onclick="openAttendancePopup()">
-    Staff Check-Out
-</button>
-
-    {% else %}
-
-        <button
-    type="button"
-    class="staff-checkin-btn"
-    onclick="openAttendancePopup()">
-    Staff Check-In
-</button>
-
-    {% endif %}
-
-{% endif %}
+ 
 </div>
 
 <!-- ================================== PROFILE ======================= -->
@@ -560,19 +525,7 @@
     </div>
 </div>
 </div>
-<div id="attendancePopup" class="attendance-modal">
 
-    <div class="attendance-modal-box">
-
-        <button class="close-popup" onclick="closeAttendancePopup()">
-            ✕
-        </button>
-
-        {% include "staff/staff_checkin.html" %}
-
-    </div>
-
-</div>
 {% block extra_js %}
 <script src="{% static 'js/staff_js/attendance.js' %}"></script>
 {% endblock %}

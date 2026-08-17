@@ -12,7 +12,7 @@
 {% block content %}
 <div class="bp-wrapper">
 
-    <!-- Breadcrumb -->
+    <!-- ============ BREADCRUMB NAVIGATION ============ -->
     <div class="bp-breadcrumb">
         <a href="{% url 'dashboard' %}">Attendance Module</a>
         <span>&gt;</span>
@@ -21,6 +21,7 @@
         <span class="bp-breadcrumb-current">Batch Preview</span>
     </div>
 
+    <!-- ============ PAGE TITLE + BACK BUTTON ============ -->
     <div class="bp-header-row">
         <h1 class="bp-title">Batch Preview</h1>
 
@@ -31,7 +32,7 @@
         </div>
     </div>
 
-    <!-- Batch Summary Banner -->
+    <!-- ============ BATCH SUMMARY BANNER (COURSE, STATUS, DURATION) ============ -->
     <div class="bp-banner">
         <div class="bp-banner-icon">
             <i class="fa-solid fa-users"></i>
@@ -51,7 +52,7 @@
             </div>
 
             <div class="bp-banner-tags">
-                <span class="bp-tag">Batch ID: BATCH-0726-0{{ batch.id }}</span>
+                <span class="bp-tag">Batch ID: {{ batch_code }}</span>
                 <span class="bp-tag">Course: {{ batch.course.course_name }}</span>
             </div>
 
@@ -73,7 +74,7 @@
         </div>
     </div>
 
-    <!-- Stat Cards -->
+    <!-- ============ STAT CARDS (STUDENTS, TRAINER, TIMING, ATTENDANCE STATUS) ============ -->
     <div class="bp-stats-grid">
 
         <div class="bp-stat-card">
@@ -136,15 +137,16 @@
 
     </div>
 
-    <!-- Details + Today's Overview -->
+    <!-- ============ BATCH DETAILS + TODAY'S OVERVIEW PANELS ============ -->
     <div class="bp-details-grid">
 
+        <!-- ============ BATCH DETAILS PANEL ============ -->
         <div class="bp-panel">
             <h3 class="bp-panel-title">Batch Details</h3>
 
             <div class="bp-detail-row">
                 <span class="bp-detail-label"><i class="fa-regular fa-rectangle-list bp-icon"></i>Batch ID</span>
-                <span class="bp-detail-value">BATCH-0726-0{{ batch.id }}</span>
+                <span class="bp-detail-value">{{ batch_code }}</span>
             </div>
             <div class="bp-detail-row">
                 <span class="bp-detail-label"><i class="fa-solid fa-book bp-icon"></i>Course</span>
@@ -188,6 +190,7 @@
             </div>
         </div>
 
+        <!-- ============ TODAY'S ATTENDANCE OVERVIEW PANEL ============ -->
         <div class="bp-panel">
             <h3 class="bp-panel-title">Today's Overview</h3>
 

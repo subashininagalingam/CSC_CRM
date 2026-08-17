@@ -1,3 +1,4 @@
+//================ EXPORT FORMAT VALIDATION (BEFORE DOWNLOAD SUBMIT) ==================//
 function validateFormat() {
 
     const format = document.getElementById("format");
@@ -28,6 +29,7 @@ function validateFormat() {
 
 /* ============ SELECTED ROWS -> DOWNLOAD FORM ============ */
 
+//================ SYNC CHECKED ROW IDS INTO HIDDEN INPUT ==================//
 function syncSelectedIds() {
 
     const selectedIdsInput = document.getElementById("selectedIdsInput");
@@ -58,6 +60,7 @@ function syncSelectedIds() {
     }
 }
 
+//================ ROW CHECKBOX + SELECT-ALL LISTENERS ==================//
 document.addEventListener("DOMContentLoaded", function () {
 
     document.querySelectorAll(".row-check").forEach(cb => {
@@ -87,6 +90,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 /* ============ STUDENT SUMMARY MODAL ============ */
 
+//================ FETCH & RENDER STUDENT ATTENDANCE SUMMARY ==================//
 function openStudentSummary(studentId) {
 
     const modal = document.getElementById("attendanceModal");
@@ -164,6 +168,7 @@ function openStudentSummary(studentId) {
         });
 }
 
+//================ STUDENT SUMMARY MODAL - OPEN/CLOSE + NAME LINK HANDLER ==================//
 document.addEventListener("DOMContentLoaded", function () {
 
     const modal = document.getElementById("attendanceModal");
@@ -199,6 +204,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 /* ============ ROW 3-DOT ACTION MENU ============ */
 
+//================ ROW ACTION MENU - TOGGLE, SCROLL-CLOSE, OUTSIDE-CLICK-CLOSE ==================//
 document.addEventListener("DOMContentLoaded", function () {
 
     // Toggle a row's dropdown, closing any other open ones first
@@ -210,6 +216,7 @@ document.addEventListener("DOMContentLoaded", function () {
             e.stopPropagation();
 
             const menu = this.closest(".row-menu");
+            const dropdown = menu.querySelector(".row-menu-dropdown");
             const wasOpen = menu.classList.contains("open");
 
             document.querySelectorAll(".row-menu.open").forEach(m => {
@@ -217,12 +224,26 @@ document.addEventListener("DOMContentLoaded", function () {
             });
 
             if (!wasOpen) {
+
+                const rect = this.getBoundingClientRect();
+
+                dropdown.style.top = (rect.bottom + 4) + "px";
+                dropdown.style.left = "auto";
+                dropdown.style.right = (window.innerWidth - rect.right) + "px";
+
                 menu.classList.add("open");
             }
 
         });
 
     });
+
+    // close open dropdown on scroll (table scroll / page scroll)
+    document.addEventListener("scroll", function () {
+        document.querySelectorAll(".row-menu.open").forEach(m => {
+            m.classList.remove("open");
+        });
+    }, true);
 
     // "View" -> reuse the student summary modal
     document.querySelectorAll(".row-view-btn").forEach(btn => {
@@ -246,6 +267,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 /* ============ AVATAR COLORS ============ */
 
+//================ AVATAR COLOR ASSIGNMENT (CYCLED PALETTE) ==================//
 function getAvatarColor(index) {
 
     const colors = [
@@ -270,6 +292,7 @@ function applyAvatarColors() {
 
 }
 
+//================ APPLY AVATAR COLORS ON PAGE LOAD ==================//
 document.addEventListener("DOMContentLoaded", function () {
     applyAvatarColors();
 });
@@ -277,6 +300,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 /* ============ DATE FIELDS ============ */
 
+//================ DATE PICKER TRIGGER + FUTURE-DATE VALIDATION ==================//
 document.addEventListener("DOMContentLoaded", function () {
 
     const today = new Date().toISOString().split('T')[0];
@@ -321,9 +345,12 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 
-/* ============ RESET ============ */
+
+//================ RESET FILTERS BUTTON (CLEAR FORM + TABLE + SELECTIONS) ==================//
 
 document.getElementById("resetBtn").addEventListener("click", function () {
+
+    window.location.href = window.location.pathname;
 
     document.querySelectorAll("#filterForm input").forEach(input => {
         input.value = "";
@@ -362,6 +389,7 @@ function selectAllCheckbox() {
 
 /* ============ CLIENT-SIDE FILTERS ============ */
 
+//================ APPLY FILTERS (SEARCH/STATUS/BATCH/COURSE/DATE) TO TABLE ROWS ==================//
 function applyFilters() {
 
     const search =
@@ -445,6 +473,7 @@ function applyFilters() {
     syncSelectedIds();
 }
 
+//================ FILTER INPUT LISTENERS (KEYUP/CHANGE) ==================//
 document.addEventListener(
     "DOMContentLoaded",
     function () {

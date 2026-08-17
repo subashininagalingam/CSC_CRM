@@ -17,12 +17,18 @@ body {
 }
 
 .main-content {
-    padding-bottom: 30px;
+    padding: 15px 25px 40px;
+    min-height: calc(100vh - 80px); 
+    box-sizing: border-box;
 }
 
 .grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
+}
+
+.required{
+    color: red;
 }
 
 /* ============ TOAST NOTIFICATIONS ============ */
@@ -765,7 +771,7 @@ body {
 .form-select option { background: #fff; color: var(--text-dark); }
 
 .modal-body { padding: 26px; }
-.modal-dialog { display: flex; align-items: center; min-height: 100vh; }
+.modal-dialog { display: flex; align-items: center; min-height: 100vh; max-width: 700px; }
 
 .modal-footer {
     border-top: 1px solid var(--border-light);

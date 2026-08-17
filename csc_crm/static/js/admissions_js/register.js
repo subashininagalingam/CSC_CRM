@@ -57,22 +57,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (emailInput) emailInput.placeholder = "e.g. name@example.com";
 
-    // "+91 " is now a permanent, always-visible prefix baked into the
-    // field value itself (not just a placeholder) - the person can only
-    // ever type/see the 10 digits after it. Pre-fill both phone fields
-    // with it on load.
-    const PHONE_PREFIX = "+91 ";
-    if (phoneInput) phoneInput.value = PHONE_PREFIX;
-    if (guardianPhoneInput) guardianPhoneInput.value = PHONE_PREFIX;
-
-    // FIX: the Django field is CharField(max_length=10), so the rendered
-    // <input> carries maxlength="10" from the widget. Since we now bake
-    // "+91 " (4 chars) into the same field, that left only 6 characters
-    // of room for the actual number - typing got silently capped after
-    // 5-6 digits. Raise the HTML maxlength to fit "+91 " + 10 digits.
-    const PHONE_MAXLENGTH = PHONE_PREFIX.length + 10; // "+91 " + 10 digits = 14
-    if (phoneInput) phoneInput.setAttribute("maxlength", String(PHONE_MAXLENGTH));
-    if (guardianPhoneInput) guardianPhoneInput.setAttribute("maxlength", String(PHONE_MAXLENGTH));
+    // "+91" is now a static box rendered in HTML (.country-code), separate
+    // from the input itself - see register.html / register.css. The input
+    // only ever holds the 10 digits the person types, nothing is baked
+    // into its value, and its maxlength is a plain 10.
+    if (phoneInput) {
+        phoneInput.placeholder = "9876543210";
+        phoneInput.setAttribute("maxlength", "10");
+    }
+    if (guardianPhoneInput) {
+        guardianPhoneInput.placeholder = "9876543210";
+        guardianPhoneInput.setAttribute("maxlength", "10");
+    }
 
     // ===========================
     // REGEX
@@ -147,32 +143,20 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // "+91 " is a locked prefix baked into the field value. This re-applies
-    // it on every keystroke so it can never be deleted or edited - only the
-    // up-to-10 digits typed after it can change. Also keeps the cursor
-    // pinned to the end so typing feels natural.
-    function enforcePhonePrefix(input) {
-        let digits = input.value.replace(/\D/g, "");
-
-        // The prefix itself always contributes a leading "91" - drop it
-        // once so it isn't double-counted as part of the typed number.
-        if (digits.startsWith("91")) {
-            digits = digits.slice(2);
+    // Keeps a phone field limited to digits only, max 10 characters.
+    // No prefix to manage anymore - "+91" lives in its own static box
+    // in the HTML, so the input's value IS the 10-digit number.
+    function enforceDigitsOnly(input) {
+        const digits = input.value.replace(/\D/g, "").substring(0, 10);
+        if (input.value !== digits) {
+            input.value = digits;
         }
-
-        digits = digits.substring(0, 10);
-        input.value = PHONE_PREFIX + digits;
-
-        const end = input.value.length;
-        input.setSelectionRange(end, end);
     }
 
-    // Pulls out just the real 10-digit number typed after "+91 ".
+    // The input's value is already just the (up to) 10 digits typed -
+    // no prefix to strip out anymore.
     function extractTenDigitPhone(value) {
-        const digits = value.replace(/\D/g, "");
-        // First two digits are always the fixed "91" prefix - everything
-        // after that (up to 10 digits) is the actual number.
-        return digits.startsWith("91") ? digits.slice(2, 12) : digits.substring(0, 10);
+        return value.replace(/\D/g, "").substring(0, 10);
     }
 
     // ===========================
@@ -354,9 +338,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // ===========================
     // PHONE VALIDATION
     // ===========================
-    // "+91 " is a locked prefix baked into the field, and enforcePhonePrefix()
-    // keeps it that way on every keystroke - the person can only edit the
-    // 10 digits typed after it.
+    // "+91" is a static box next to the input (see register.html /
+    // register.css .country-code) - the input itself only ever holds
+    // digits, kept to 10 by enforceDigitsOnly() on every keystroke.
 
     function validatePhoneFormat() {
 
@@ -405,12 +389,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     phoneInput.addEventListener("input", () => {
-        enforcePhonePrefix(phoneInput);
+        enforceDigitsOnly(phoneInput);
         validatePhoneFormat();
     });
-    // Clicking/tabbing in should land the cursor after the prefix, not
-    // let the person select/overwrite it.
-    phoneInput.addEventListener("focus", () => enforcePhonePrefix(phoneInput));
     phoneInput.addEventListener("blur", async () => { await checkDuplicatePhone(); });
 
     // ===========================
@@ -469,10 +450,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     guardianPhoneInput.addEventListener("input", () => {
-        enforcePhonePrefix(guardianPhoneInput);
+        enforceDigitsOnly(guardianPhoneInput);
         validateGuardianPhoneFormat();
     });
-    guardianPhoneInput.addEventListener("focus", () => enforcePhonePrefix(guardianPhoneInput));
     guardianPhoneInput.addEventListener("blur", async () => { await checkDuplicateGuardianPhone(); });
 
     // Re-check guardian phone if the student phone changes after the fact
@@ -884,9 +864,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (isSubmitting) return;
 
-        // Normalize phone fields to plain 10-digit numbers in case the
-        // person clicks Save without ever leaving (blurring) the field -
-        // otherwise a raw "+91..." value could slip through to the server.
+        // Normalize phone fields to plain digit-only strings in case the
+        // person clicks Save without ever leaving (blurring) the field.
         phoneInput.value = extractTenDigitPhone(phoneInput.value);
         guardianPhoneInput.value = extractTenDigitPhone(guardianPhoneInput.value);
 

@@ -1,3 +1,53 @@
+// ---------- Auto-hide the "today's attendance status" toast after 5s ----------
+
+//================ AUTO-HIDE FILTER STATUS TOAST ==================//
+let filterMessageTimeout = null;
+
+function autoHideFilterMessage() {
+
+    const filterMessageEl = document.getElementById("filterMessage");
+    if (!filterMessageEl) return;
+
+    const toasts = filterMessageEl.querySelectorAll(".attendance-toast");
+    if (!toasts.length) return;
+
+    if (filterMessageTimeout) {
+        clearTimeout(filterMessageTimeout);
+    }
+
+    toasts.forEach(toast => toast.classList.remove("fade-out"));
+
+    filterMessageTimeout = setTimeout(() => {
+        toasts.forEach(toast => toast.classList.add("fade-out"));
+    }, 5000);
+}
+
+// Hide the message that was rendered directly by Django on first page load.
+autoHideFilterMessage();
+
+// ---------- Open the date picker on click anywhere in the From/To boxes ----------
+// By default, browsers only pop the calendar open when the tiny icon is
+// clicked. This makes the entire input box trigger it.
+
+//================ DATE INPUT - CLICK ANYWHERE OPENS PICKER ==================//
+["dateFromFilter", "dateToFilter"].forEach(id => {
+    const dateInput = document.getElementById(id);
+    if (!dateInput) return;
+
+    dateInput.addEventListener("click", function () {
+        if (typeof dateInput.showPicker === "function") {
+            try {
+                dateInput.showPicker();
+            } catch (e) {
+                // Some browsers only allow showPicker() from a direct user
+                // gesture on certain elements; fail silently and fall back
+                // to default browser behavior.
+            }
+        }
+    });
+});
+
+//================ MONTHLY ATTENDANCE BAR CHART - DATA + INIT ==================//
 const attendanceChart = document.getElementById(
     'attendanceChart'
 );
@@ -160,6 +210,7 @@ const attendanceChartInstance = new Chart(
     }
 );
 
+//================ BATCH-WISE DOUGHNUT CHART (FILTERED SELECTION) - DATA + INIT ==================//
 const batchChart = document.getElementById(
     'batchChart'
 );
@@ -279,7 +330,18 @@ if (batchChart) {
     );
 }
 
+//================ BATCH CHART - TOGGLE "NO DATA" OVERLAY ==================//
+// Toggle the "no data" overlay for the batch-wise chart.
+function toggleBatchChartEmpty(dataArr) {
+    const emptyEl = document.getElementById("batchChartEmpty");
+    if (!emptyEl) return;
+    const isEmpty = !dataArr || dataArr.reduce((a, b) => a + b, 0) === 0;
+    emptyEl.classList.toggle("show", isEmpty);
+}
 
+toggleBatchChartEmpty(batchCounts);
+
+//================ BATCH PERFORMANCE HORIZONTAL BAR CHART - DATA + INIT ==================//
 const batchPerformanceLabels = JSON.parse(
     document.getElementById(
         "batch-performance-labels"
@@ -349,6 +411,7 @@ new Chart(
 // ---------- Attendance Distribution (Present / Absent / Late / Incomplete) ----------
 // Only affected by the "Min % (Distribution)" filter.
 
+//================ ATTENDANCE DISTRIBUTION DOUGHNUT CHART - DATA + INIT ==================//
 const distributionData = JSON.parse(
     document.getElementById("distribution-data").textContent
 );
@@ -399,6 +462,7 @@ if (distributionChartCanvas) {
 
 // ---------- Batch-wise Attendance (independent dropdown selector) ----------
 
+//================ BATCH-WISE DROPDOWN SELECTOR - DATA + CHART SWAP LOGIC ==================//
 const allBatchLabels = JSON.parse(
     document.getElementById("all-batch-labels").textContent
 );
@@ -441,6 +505,7 @@ if (batchWiseSelector) {
                 batchChartInstance.data.datasets[0].backgroundColor = chartColors;
                 batchChartInstance.update();
             }
+            toggleBatchChartEmpty(batchCounts);
             return;
         }
 
@@ -462,11 +527,13 @@ if (batchWiseSelector) {
             ];
             batchChartInstance.update();
         }
+        toggleBatchChartEmpty([present, absent, late]);
     });
 }
 
 // filters
 
+//================ CLIENT-SIDE TABLE FILTER (LEGACY - UNUSED, SEE applyFiltersLive) ==================//
 function applyFilters() {
 
     let visibleCount = 0;
@@ -607,6 +674,69 @@ function applyFilters() {
 
 // ---------- Live filtering via AJAX (no full page reload) ----------
 
+// ---------- Client-side filter validation ----------
+// Catches obviously invalid input immediately, with a message the user
+// can actually understand, instead of silently sending it to the server.
+
+//================ SHOW CLIENT-SIDE VALIDATION ERRORS ==================//
+function showClientValidationErrors(errors) {
+
+    const filterMessageEl = document.getElementById("filterMessage");
+    if (!filterMessageEl || !errors.length) return;
+
+    const banner = document.createElement("div");
+    banner.className = "alert alert-danger attendance-toast";
+    banner.textContent = errors.join(" ");
+
+    filterMessageEl.prepend(banner);
+    autoHideFilterMessage();
+}
+
+//================ VALIDATE FILTERS BEFORE SENDING TO SERVER ==================//
+function validateFiltersClientSide() {
+
+    const errors = [];
+
+    const studentName = document.getElementById("studentNameFilter").value.trim();
+    const course = document.getElementById("courseFilter").value;
+    const batch = document.getElementById("batchFilter").value;
+    const status = document.getElementById("statusFilter").value;
+    const dateFrom = document.getElementById("dateFromFilter").value;
+    const dateTo = document.getElementById("dateToFilter").value;
+    const attendance = document.getElementById("attendanceFilter").value;
+    const distribution = document.getElementById("distributionPercentageFilter").value;
+
+    const anyFieldFilled =
+        studentName !== "" ||
+        course !== "" ||
+        batch !== "" ||
+        status !== "" ||
+        dateFrom !== "" ||
+        dateTo !== "" ||
+        attendance !== "" ||
+        distribution !== "";
+
+    if (!anyFieldFilled) {
+        errors.push("Please enter or select at least one filter field before applying.");
+        return errors;
+    }
+
+    if (dateFrom && dateTo && dateFrom > dateTo) {
+        errors.push("From date cannot be after To date.");
+    }
+
+    if (attendance !== "" && (isNaN(attendance) || Number(attendance) < 0 || Number(attendance) > 100)) {
+        errors.push("Attendance % must be a number between 0 and 100.");
+    }
+
+    if (distribution !== "" && (isNaN(distribution) || Number(distribution) < 0 || Number(distribution) > 100)) {
+        errors.push("Distribution % must be a number between 0 and 100.");
+    }
+
+    return errors;
+}
+
+//================ BUILD QUERY PARAMS FROM FILTER FIELDS ==================//
 function buildFilterParams() {
 
     const params = {
@@ -632,6 +762,7 @@ function buildFilterParams() {
     return query;
 }
 
+//================ APPLY FILTER BUTTON LOADING STATE ==================//
 function setLoadingState(isLoading) {
 
     const applyBtn = document.getElementById("showAllBtn");
@@ -642,6 +773,7 @@ function setLoadingState(isLoading) {
     }
 }
 
+//================ APPLY FILTERS - AJAX FETCH + UPDATE CHARTS/TABLE ==================//
 function applyFiltersLive(query) {
 
     setLoadingState(true);
@@ -651,18 +783,35 @@ function applyFiltersLive(query) {
     fetch(url, {
         headers: { "X-Requested-With": "XMLHttpRequest" }
     })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Server returned status " + response.status);
+            }
+            return response.json();
+        })
         .then(data => {
 
             // Update URL bar without reloading the page.
             window.history.pushState({}, "", url);
 
             // Monthly Attendance Chart
+            const sumArr = (arr) => (arr || []).reduce((a, b) => a + b, 0);
+
+            const monthlyIsEmpty =
+                sumArr(data.monthly_present) +
+                sumArr(data.monthly_absent) +
+                sumArr(data.monthly_late) === 0;
+
             if (attendanceChartInstance) {
                 attendanceChartInstance.data.datasets[0].data = data.monthly_present;
                 attendanceChartInstance.data.datasets[1].data = data.monthly_absent;
                 attendanceChartInstance.data.datasets[2].data = data.monthly_late;
                 attendanceChartInstance.update();
+            }
+
+            const attendanceChartEmptyEl = document.getElementById("attendanceChartEmpty");
+            if (attendanceChartEmptyEl) {
+                attendanceChartEmptyEl.classList.toggle("show", monthlyIsEmpty);
             }
 
             const monthlyTitleEl = document.getElementById("monthlyChartTitle");
@@ -671,8 +820,11 @@ function applyFiltersLive(query) {
             }
 
             // Attendance Distribution chart
+            const d = data.distribution_data || {};
+            const distributionIsEmpty =
+                ((d.present || 0) + (d.absent || 0) + (d.late || 0) + (d.incomplete || 0)) === 0;
+
             if (distributionChartInstance) {
-                const d = data.distribution_data;
                 distributionChartInstance.data.datasets[0].data = [
                     d.present, d.absent, d.late, d.incomplete
                 ];
@@ -684,6 +836,11 @@ function applyFiltersLive(query) {
                         return `${context.label}: ${context.raw} (${d[pctKey]}%)`;
                     };
                 distributionChartInstance.update();
+            }
+
+            const distributionChartEmptyEl = document.getElementById("distributionChartEmpty");
+            if (distributionChartEmptyEl) {
+                distributionChartEmptyEl.classList.toggle("show", distributionIsEmpty);
             }
 
             // Student Performance Report table
@@ -707,16 +864,21 @@ function applyFiltersLive(query) {
             const filterMessage = document.getElementById("filterMessage");
             if (filterMessage) {
                 filterMessage.innerHTML = data.filter_message_html;
+                autoHideFilterMessage();
             }
 
             setLoadingState(false);
         })
         .catch(err => {
             console.error("Live filter update failed:", err);
+            showClientValidationErrors([
+                "Could not apply the filter right now. Please check your connection and try again."
+            ]);
             setLoadingState(false);
         });
 }
 
+//================ CLEAR FILTERS BUTTON ==================//
 document.getElementById(
     "clearFilters"
 ).addEventListener(
@@ -738,11 +900,19 @@ document.getElementById(
 );
 
 /* Select all btn */
+//================ APPLY FILTER BUTTON ==================//
 document.getElementById(
     "showAllBtn"
 ).addEventListener(
     "click",
     function () {
+
+        const clientErrors = validateFiltersClientSide();
+
+        if (clientErrors.length) {
+            showClientValidationErrors(clientErrors);
+            return;
+        }
 
         applyFiltersLive(buildFilterParams());
 

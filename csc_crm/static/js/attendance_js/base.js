@@ -1,3 +1,4 @@
+//================ MOBILE SIDEBAR TOGGLE ==================//
 document.addEventListener("DOMContentLoaded", () => {
 
     const toggle =
@@ -16,6 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
+//================ AUTO-HIDE ALERT MESSAGES AFTER 3 SECONDS ==================//
 setTimeout(() => {
 
     const alerts = document.querySelectorAll(".alert");

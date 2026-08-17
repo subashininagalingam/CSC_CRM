@@ -1,3 +1,17 @@
+//================ TOAST NOTIFICATION HELPER ==================//
+const TOAST_ICONS = {
+    success: "fa-check",
+    error: "fa-times",
+    warning: "fa-exclamation"
+};
+
+const TOAST_TITLES = {
+    success: "Success",
+    error: "Error",
+    warning: "Attention"
+};
+
+//================ CSRF TOKEN HELPER (READ FROM COOKIE) ==================//
 function getCookie(name) {
     let cookieValue = null;
 
@@ -19,6 +33,7 @@ function getCookie(name) {
     return cookieValue;
 }
 
+//================ NOTIFY / RE-NOTIFY BUTTON HANDLER ==================//
 document.addEventListener(
 
     "DOMContentLoaded",
@@ -89,9 +104,7 @@ document.addEventListener(
                                 Re-notify
 
                             `;
-                            showToast(
-                                " Student Re-notification Sent Successfully"
-                            );
+                            showToast("Student Re-notification Sent Successfully", 'success');
 
                             // ENABLE AGAIN
 
@@ -126,11 +139,9 @@ document.addEventListener(
 
                             // SUCCESS MESSAGE
 
-                            showToast(
-                                " Student SMS Alert Queued Successfully"
-                            );
+                            showToast("Student SMS Alert Queued Successfully", 'success');
 
-                        }, 1500);
+                        }, 3200);
 
                     }
 
@@ -143,8 +154,8 @@ document.addEventListener(
     }
 
 );
-//filter
 
+//================ TABLE FILTERS (NAME, BATCH, COURSE, PHONE, EMAIL, STATUS) ==================//
 function applyFilters() {
 
     const name =
@@ -248,7 +259,7 @@ function applyFilters() {
 
 }
 
-
+//================ FILTER INPUT LISTENERS (KEYUP/CHANGE) ==================//
 document.querySelectorAll(
     ".filter-input, .filter-select"
 ).forEach(input => {
@@ -264,6 +275,8 @@ document.querySelectorAll(
     );
 
 });
+
+//================ CLEAR FILTERS BUTTON ==================//
 document.getElementById(
     "clearFilters"
 ).addEventListener(
@@ -296,6 +309,7 @@ document.getElementById(
     }
 );
 
+//================ SHOW ALL / RESET FILTERS BUTTON ==================//
 document.getElementById(
     "showAllBtn"
 ).addEventListener(
@@ -327,28 +341,47 @@ document.getElementById(
     }
 );
 
-function showToast(message) {
+function showToast(message, type = 'success', duration = 3200) {
 
-    const toast =
-        document.getElementById(
-            "smsToast"
-        );
+    let container = document.getElementById('toastContainer');
 
-    toast.innerHTML = message;
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.className = 'toast-container';
+        document.body.appendChild(container);   
+    }
 
-    toast.style.display = "block";
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
 
-    setTimeout(() => {
+    toast.innerHTML = `
+        <div class="toast-icon"><i class="fas ${TOAST_ICONS[type] || TOAST_ICONS.success}"></i></div>
+        <div class="toast-body">
+            <p class="toast-message">${message}</p>
+        </div>
+        <button type="button" class="toast-close" aria-label="Close">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
 
-        toast.style.display = "none";
+    container.appendChild(toast);
 
-    }, 3000);
+    const removeToast = () => {
+        toast.classList.add('toast-hide');
+        setTimeout(() => toast.remove(), 300);
+    };
 
+    toast.querySelector('.toast-close').addEventListener('click', removeToast);
+
+    const timer = setTimeout(removeToast, duration);
+
+    toast.addEventListener('mouseenter', () => clearTimeout(timer));
 }
+
 applyFilters();
 
-// Admin Notes Modal
-
+//================ ADMIN NOTES MODAL - EDIT MODE ==================//
 function openEditModal(id, note) {
 
     document.getElementById(
@@ -373,6 +406,7 @@ function openEditModal(id, note) {
 
 }
 
+//================ ADMIN NOTES MODAL - VIEW MODE (READ-ONLY) ==================//
 function openViewModal(id, note) {
 
     document.getElementById(
@@ -399,6 +433,8 @@ function openViewModal(id, note) {
         "adminNoteModal"
     ).style.display = "block";
 }
+
+//================ ADMIN NOTES MODAL - CLOSE ==================//
 function closeAdminModal() {
 
     document.getElementById(
@@ -419,6 +455,7 @@ function closeAdminModal() {
 
 }
 
+//================ ADMIN NOTES - SAVE (AJAX POST) ==================//
 function saveAdminNotes() {
 
     const trackerId =
@@ -436,32 +473,18 @@ function saveAdminNotes() {
     fetch(
         "/api/save-admin-notes/",
         {
-
             method: "POST",
-
             headers: {
-
-                "Content-Type":
-                    "application/json",
-
+                "Content-Type": "application/json",
                 "X-CSRFToken": csrftoken,
-
             },
-
             body: JSON.stringify({
-
                 tracker_id: trackerId,
-
                 notes: note
-
             })
-
         }
-
     )
-
         .then(response => response.json())
-
         .then(data => {
 
             console.log("SERVER RESPONSE:", data);
@@ -470,38 +493,50 @@ function saveAdminNotes() {
 
                 closeAdminModal();
 
-                alert(
-                    "Notes Saved Successfully!"
-                );
+                updateAdminNoteInRow(trackerId, note);
 
-                setTimeout(() => {
-
-                    location.reload();
-
-                }, 300);
+                showToast(" Notes Saved Successfully!", 'success');
 
             } else {
-
-                alert(
-                    "Failed to save notes."
-                );
-
+                showToast(" Failed to save notes.", 'error');
             }
-
         })
-
         .catch(error => {
-
             console.error(error);
-
-            alert(
-                "Error saving notes."
-            );
-
+            showToast(" Error saving notes.", 'error');
         });
 
 }
 
+//================ UPDATE ADMIN NOTE ON BUTTON WITHOUT PAGE RELOAD ==================//
+function updateAdminNoteInRow(trackerId, note) {
+
+    const safeNote = note && note.trim() !== "" ? note : "No notes available";
+
+    const viewBtn = document.querySelector(
+        `.action-dropdown button[onclick*="openViewModal('${trackerId}'"]`
+    );
+
+    const editBtn = document.querySelector(
+        `.action-dropdown button[onclick*="openEditModal('${trackerId}'"]`
+    );
+
+    if (viewBtn) {
+        viewBtn.setAttribute(
+            "onclick",
+            `openViewModal('${trackerId}', \`${safeNote.replace(/`/g, "\\`")}\`)`
+        );
+    }
+
+    if (editBtn) {
+        editBtn.setAttribute(
+            "onclick",
+            `openEditModal('${trackerId}', '${note.replace(/'/g, "\\'")}')`
+        );
+    }
+}
+
+//================ ADMIN NOTES MODAL - SWITCH VIEW MODE TO EDIT MODE ==================//
 function enableEditMode() {
 
     document.getElementById(
@@ -517,24 +552,33 @@ function enableEditMode() {
     ).style.display = "none";
 }
 
+//================ ACTION MENU (THREE-DOT DROPDOWN) - TOGGLE ==================//
 function toggleActionMenu(button) {
 
     const dropdown = button
         .closest('.action-menu')
         .querySelector('.action-dropdown');
 
+    const wasOpen = dropdown.classList.contains('show');
+
     // Close all other menus
     document.querySelectorAll('.action-dropdown.show').forEach(menu => {
-        if (menu !== dropdown) {
-            menu.classList.remove('show');
-        }
+        menu.classList.remove('show');
     });
 
-    // Toggle current menu
-    dropdown.classList.toggle('show');
+    if (!wasOpen) {
+
+        const rect = button.getBoundingClientRect();
+
+        dropdown.style.top = (rect.bottom + 4) + "px";
+        dropdown.style.left = "auto";
+        dropdown.style.right = (window.innerWidth - rect.right) + "px";
+
+        dropdown.classList.add('show');
+    }
 }
 
-
+//================ ACTION MENU - CLOSE ON OUTSIDE CLICK ==================//
 // Close menu when clicking outside
 document.addEventListener('click', function (event) {
 
@@ -549,3 +593,11 @@ document.addEventListener('click', function (event) {
     }
 
 });
+
+//================ ACTION MENU - CLOSE ON SCROLL ==================//
+// Close open dropdown on scroll (table scroll / page scroll)
+document.addEventListener('scroll', function () {
+    document.querySelectorAll('.action-dropdown.show').forEach(menu => {
+        menu.classList.remove('show');
+    });
+}, true);

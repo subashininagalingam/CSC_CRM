@@ -86,7 +86,7 @@
                 name="action"
                 value="checkin"
                 class="checkin-btn"
-                {% if is_checkin_done or is_leave_or_absent %}disabled{% endif %}>
+                {% if is_checkin_done %}disabled{% endif %}>
 
                 <i class="fa-solid fa-right-to-bracket"></i>
                 <span>Check-In</span>
@@ -98,7 +98,7 @@
                 name="action"
                 value="checkout"
                 class="checkout-btn"
-                {% if not is_checkin_done or is_checkout_done or is_leave_or_absent or is_checkout_closed %}disabled{% endif %} >
+                {% if not is_checkin_done or is_checkout_done %}disabled{% endif %} >
                 
                 <i class="fa-solid fa-right-from-bracket"></i>
                 <span>Check-Out</span>
@@ -111,8 +111,7 @@
                 value="leave"
                 class="leave-btn"
                 
-                onclick="return confirmLeave();"
-                {% if is_checkin_done or is_leave_or_absent %}disabled{% endif %} >
+                onclick="return confirmLeave();">
 
                 <i class="fa-regular fa-calendar-minus"></i>
                 <span>Leave</span>
@@ -125,8 +124,7 @@
                 value="absent"
                 class="absent-btn"
                 
-                onclick="return confirmLeave();"
-                {% if is_checkin_done or is_leave_or_absent %}disabled{% endif %}>
+                onclick="return confirmAbsent();">
 
                 <i class="fa-solid fa-user-xmark"></i>
                 <span>Absent</span>
@@ -142,12 +140,15 @@
 <!--================================ Script ============================-->
 
 <script>
+
+
 document.addEventListener("DOMContentLoaded", function () {
 
-    // Current Date & Time
+    // CURRENT DATE & TIME
     function updateDateTime() {
-        let now = new Date();
+        const now = new Date();
         const dateTime = document.getElementById("currentDateTimeText");
+
         if (dateTime) {
             dateTime.textContent = now.toLocaleString();
         }
@@ -156,45 +157,80 @@ document.addEventListener("DOMContentLoaded", function () {
     updateDateTime();
     setInterval(updateDateTime, 1000);
 
-    // Live Timer
+
+    // LIVE WORKING TIMER
     {% if active_attendance %}
-    const loginTime = new Date("{{ active_attendance.log_in|date:'Y-m-d H:i:s' }}");
+
+    const loginTime = new Date(
+        "{{ active_attendance.log_in|date:'Y-m-d H:i:s' }}"
+    );
+
+    const timer = document.getElementById("liveTimerText");
 
     function updateTimer() {
-        let now = new Date();
-        let diff = Math.floor((now - loginTime) / 1000);
 
-        let hrs = Math.floor(diff / 3600);
-        let mins = Math.floor((diff % 3600) / 60);
-        let secs = diff % 60;
+        const now = new Date();
 
-        const timer = document.getElementById("liveTimerText");
+        const sevenPM = new Date();
+        sevenPM.setHours(19, 0, 0, 0);
+
+        const endTime = now >= sevenPM ? sevenPM : now;
+
+        let diff = Math.floor(
+            (endTime - loginTime) / 1000
+        );
+
+        if (diff < 0) {
+            diff = 0;
+        }
+
+        const hrs = Math.floor(diff / 3600);
+        const mins = Math.floor((diff % 3600) / 60);
+        const secs = diff % 60;
+
         if (timer) {
             timer.textContent =
                 String(hrs).padStart(2, "0") + ":" +
                 String(mins).padStart(2, "0") + ":" +
                 String(secs).padStart(2, "0");
         }
+
+        // STOP TIMER AT 7 PM
+        if (now >= sevenPM) {
+            clearInterval(timerInterval);
+        }
     }
 
     updateTimer();
-    setInterval(updateTimer, 1000);
+
+    const timerInterval = setInterval(
+        updateTimer,
+        1000
+    );
+
     {% endif %}
 
-    // Auto Hide Alert Messages
-    setTimeout(function () {
-        document.querySelectorAll(".alert-message").forEach(function (alertBox) {
-            alertBox.style.opacity = "0";
 
-            setTimeout(function () {
-                alertBox.style.display = "none";
-            }, 500);
-        });
+    // AUTO HIDE ALERT MESSAGES
+    setTimeout(function () {
+
+        document.querySelectorAll(".alert-message")
+            .forEach(function (alertBox) {
+
+                alertBox.style.opacity = "0";
+
+                setTimeout(function () {
+                    alertBox.style.display = "none";
+                }, 500);
+
+            });
+
     }, 3000);
 
 });
 
-// Confirm Dialogs
+
+// CONFIRM DIALOGS
 function confirmLeave() {
     return confirm("Do you want to take Leave?");
 }
@@ -202,4 +238,5 @@ function confirmLeave() {
 function confirmAbsent() {
     return confirm("Do you want to mark Absent?");
 }
+
 </script>

@@ -103,26 +103,3 @@ document.getElementById('attendance-filter-form').addEventListener('submit', fun
 });
 
 
-function openAttendancePopup(){
-
-    document
-    .getElementById("attendancePopup")
-    .classList.add("show");
-
-}
-
-function closeAttendancePopup(){
-
-    document.getElementById("attendancePopup").classList.remove("show");
-
-}
-
-window.onclick=function(e){let popup=document.getElementById("attendancePopup");
-
-if(e.target==popup){
-
-popup.classList.remove("show");
-
-}
-
-}

@@ -1,6 +1,7 @@
 // JS for the Attendance Dashboard page: live search refresh, batch grid
 // filter/view toggle, attendance donut chart, custom date calendar and sparklines.
 
+//================ LIVE SEARCH - DEBOUNCED INPUT LISTENER ==================//
 let timeout = null;
 
 const searchInput = document.getElementById("searchInput");
@@ -18,6 +19,7 @@ if (searchInput) {
     });
 }
 
+//================ LIVE SEARCH - FETCH & REFRESH SUMMARY + BATCH DETAILS ==================//
 // Refreshes the summary counters (and batch detail panel) from the
 // dashboard-api endpoint, debounced by the input listener above
 async function liveSearch(query) {
@@ -95,6 +97,7 @@ async function liveSearch(query) {
 
 /* ---- Batch overview local filter ---- */
 
+//================ BATCH OVERVIEW - CLIENT-SIDE TEXT FILTER ==================//
 const batchSearchInput = document.getElementById("batchSearchInput");
 const batchesGrid = document.getElementById("batchesGrid");
 
@@ -114,6 +117,7 @@ if (batchSearchInput && batchesGrid) {
 
 /* ---- Grid / List view toggle ---- */
 
+//================ BATCH OVERVIEW - GRID/LIST VIEW TOGGLE ==================//
 const viewButtons = document.querySelectorAll(".view-toggle button");
 
 viewButtons.forEach((btn, index) => {
@@ -131,6 +135,7 @@ viewButtons.forEach((btn, index) => {
     });
 });
 
+//================ ATTENDANCE DONUT CHART (PRESENT/ABSENT/LATE) ==================//
 function updateDonut(present, absent, late) {
 
     const donut = document.getElementById("attendanceDonut");
@@ -162,7 +167,7 @@ function updateDonut(present, absent, late) {
         pct.style.display = "block";
     }
 
-    const presentPct = (present / attendanceTotal) * 100;
+    const presentPct = ((present + late) / attendanceTotal) * 100;
     const absentPct = (absent / attendanceTotal) * 100;
 
     donut.style.background = `
@@ -182,6 +187,7 @@ function updateDonut(present, absent, late) {
     }
 }
 
+//================ INITIALIZE DONUT CHART ON PAGE LOAD ==================//
 document.addEventListener("DOMContentLoaded", function () {
 
     const present = parseInt(document.getElementById("presentCount").innerText) || 0;
@@ -200,6 +206,7 @@ document.addEventListener("DOMContentLoaded", function () {
 // day, including anything in the future, is greyed out.
 // ------------------------------------------------------------
 
+//================ CALENDAR STATE - AVAILABLE ATTENDANCE DATES (FROM JSON) ==================//
 var availableAttendanceDates = [];
 
 try {
@@ -216,6 +223,7 @@ availableAttendanceDates.forEach(function (d) {
     availableDatesSet[d] = true;
 });
 
+//================ CALENDAR STATE - CURRENT MONTH/YEAR + HELPERS ==================//
 var todayIso = new Date().toISOString().slice(0, 10);
 
 var selectedDateInput = document.getElementById("attendanceDatePicker");
@@ -239,6 +247,7 @@ function toIsoDate(year, month, day) {
     return year + "-" + pad(month + 1) + "-" + pad(day);
 }
 
+//================ CALENDAR - OPEN/CLOSE TOGGLE ==================//
 function toggleAttendanceCalendar(event) {
     event.stopPropagation();
     var panel = document.getElementById("customCalendarPanel");
@@ -252,6 +261,7 @@ function toggleAttendanceCalendar(event) {
     }
 }
 
+//================ CALENDAR - CHANGE MONTH (PREV/NEXT) ==================//
 function changeCalendarMonth(delta) {
     calendarMonth += delta;
 
@@ -266,6 +276,7 @@ function changeCalendarMonth(delta) {
     renderAttendanceCalendar();
 }
 
+//================ CALENDAR - RENDER MONTH GRID (DISABLE FUTURE/NO-DATA DAYS) ==================//
 function renderAttendanceCalendar() {
     document.getElementById("calendarMonthLabel").textContent =
         monthNames[calendarMonth] + " " + calendarYear;
@@ -313,12 +324,14 @@ function renderAttendanceCalendar() {
     }
 }
 
+//================ CALENDAR - PICK DATE & SUBMIT FILTER FORM ==================//
 function pickAttendanceDate(isoDate) {
     document.getElementById("attendanceDatePicker").value = isoDate;
     document.getElementById("customCalendarPanel").classList.remove("open");
     document.getElementById("dateFilterForm").submit();
 }
 
+//================ CALENDAR - CLOSE ON OUTSIDE CLICK ==================//
 // Close the calendar when clicking anywhere outside of it.
 document.addEventListener("click", function (event) {
     var panel = document.getElementById("customCalendarPanel");
@@ -331,6 +344,7 @@ document.addEventListener("click", function (event) {
     }
 });
 
+//================ CALENDAR - PREVENT INSIDE CLICKS FROM BUBBLING/CLOSING ==================//
 // Prevent clicks inside the calendar panel from bubbling up to
 // the document listener above and immediately closing it.
 document.addEventListener("DOMContentLoaded", function () {
@@ -341,6 +355,8 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 });
+
+//================ SPARKLINE CHART DRAWING (CANVAS) ==================//
 // Draws a small wavy trend line with a soft fill underneath.
 // points are just relative y-values between 0 (top) and 1 (bottom).
 function drawSparkline(canvasId, points, color) {
@@ -403,6 +419,7 @@ function drawSparkline(canvasId, points, color) {
     ctx.stroke();
 }
 
+//================ INITIALIZE SPARKLINES ON PAGE LOAD ==================//
 document.addEventListener("DOMContentLoaded", function () {
     drawSparkline("sparkTotal", [0.7, 0.9, 0.3, 0.6, 0.8, 0.5], "#a78bfa");
     drawSparkline("sparkPresent", [0.3, 0.5, 0.8, 0.6, 0.9, 0.55], "#4ade80");

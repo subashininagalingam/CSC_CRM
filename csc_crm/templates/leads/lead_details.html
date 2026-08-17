@@ -19,13 +19,22 @@
                 <i class="fa-solid fa-download"></i> <span class="btn-text">Download</span>
                 </a>
 
-                {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Sales Exec" %}
+                {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "Sales Exec Lead" %}
                 <a href="{% url 'leads:lead_capture_update' lead.id %}" class="btn-primary">Edit Lead</a>
                 {% endif %}
 
+                {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "Sales Exec Lead" %}
                 <a href="{% url 'leads:lead_capture_list' %}" class="btn-outline">
                     <i class="fa-solid fa-arrow-left"></i> Back to Lead List
                 </a>
+                {% endif %}
+
+                {% if request.user.staff_profile.role.role_name == "HR" or request.user.staff_profile.role.role_name == "Sales Exec" %}
+                <a href="{% url 'leads:lead_pipeline_view' %}" class="btn-outline">
+                    <i class="fa-solid fa-arrow-left"></i> Back to Lead List
+                </a>
+                {% endif %}
+
             </div>
         </div>
     </div>

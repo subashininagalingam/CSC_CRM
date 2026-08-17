@@ -761,32 +761,104 @@
 }
 
 
-.sms-toast {
+/* ============ TOAST NOTIFICATIONS ============ */
+.toast-container {
     position: fixed;
-
-    right: 20px;
-
     bottom: 20px;
-
+    right: 20px;
     z-index: 9999;
-
-    display: none;
-
-    padding: 13px 18px;
-
-    background: var(--success);
-
-    color: var(--white);
-
-    border-radius: 10px;
-
-    font-size: 12px;
-
-    font-weight: 600;
-
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 340px;
 }
 
+.toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: var(--white);
+    border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: 0 8px 24px rgba(38, 33, 112, 0.18);
+    opacity: 1;
+    /* Bootstrap's own .toast class defaults to opacity:0 (only its JS
+       component sets .show to opacity:1). Since our custom toast never
+       gets that .show class, we override opacity here explicitly and
+       add "forwards" so the slide-in animation holds its end state
+       instead of snapping back to Bootstrap's default opacity:0. */
+    animation: toastSlideIn 0.3s ease forwards;
+}
+
+.toast.toast-hide {
+    animation: toastSlideOut 0.3s ease forwards;
+}
+
+@keyframes toastSlideIn {
+    from { transform: translateX(120%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes toastSlideOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(120%); opacity: 0; }
+}
+
+.toast-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 13px;
+    color: var(--white);
+    margin-top: 15px;
+}
+
+.toast-success .toast-icon { background: var(--success); }
+
+.toast-error .toast-icon { background: var(--danger); }
+
+.toast-warning .toast-icon { background: var(--warning); }
+
+.toast-body { flex: 1; min-width: 0; }
+
+.toast-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 2px;
+}
+
+.toast-message {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 0;
+    line-height: 1.4;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 12px;
+    padding: 2px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.toast-close:hover { color: var(--text); }
+
+@media (max-width: 480px) {
+    .toast-container {
+        right: 10px;
+        left: 10px;
+        bottom: 10px;
+        max-width: none;
+    }
+}
 
 /* ------- MOBILE---*/
 
@@ -1147,10 +1219,7 @@
 .action-dropdown {
     display: none;
 
-    position: absolute;
-
-    top: -70px;
-    right: 0;
+    position: fixed;
 
     min-width: 130px;
 
@@ -1164,7 +1233,7 @@
 
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
 
-    z-index: 1000;
+    z-index: 9999;
 }
 
 .action-dropdown.show {

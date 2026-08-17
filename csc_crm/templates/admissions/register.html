@@ -13,219 +13,252 @@ Student Registration
 {% endblock %}
 
 {% block content %}
-<div class="edit-container">
-    <h4> <strong>Student Registration</strong></h4>
-    <p>Fill the student details to register a new admission</p>
+<div class="student-mgmt-form-container">
 
-    {% if student_form.errors or admission_form.errors or enrollment_form.errors %}
-    <div class="server-error-banner">
-        {% for field in student_form %}
-            {% for error in field.errors %}
-                <p>{{ field.label }}: {{ error }}</p>
-            {% endfor %}
-        {% endfor %}
-        {% for error in student_form.non_field_errors %}
-            <p>{{ error }}</p>
-        {% endfor %}
-        {% for field in admission_form %}
-            {% for error in field.errors %}
-                <p>{{ field.label }}: {{ error }}</p>
-            {% endfor %}
-        {% endfor %}
-        {% for field in enrollment_form %}
-            {% for error in field.errors %}
-                <p>{{ field.label }}: {{ error }}</p>
-            {% endfor %}
-        {% endfor %}
-    </div>
-{% endif %}
+    <div class="student-mgmt-form-card">
 
-    <form id="studentForm" method="POST" action="{% url 'student' %}" enctype="multipart/form-data" novalidate>
-        {% csrf_token %}
-
-        <!-- ================= PERSONAL INFO ================= -->
-        <div class="personal-info">
-
-            <h3 class="section-title">
-                <i class="fas fa-user"></i> Personal Information
-            </h3>
-
-            <div class="personal-grid">
-
-                <div>
-                    <label>First Name *</label>
-                    <div class="input-icon-wrapper">
-                        {{ student_form.first_name }}
-                        <i class="fas fa-user"></i>
-                    </div>
-                </div>
-
-                <div>
-                    <label>Last Name *</label>
-                    <div class="input-icon-wrapper">
-                        {{ student_form.last_name }}
-                        <i class="fas fa-user"></i>
-                    </div>
-                </div>
-
-                <div>
-                    <label>Email *</label>
-                    <div class="input-icon-wrapper">
-                        {{ student_form.email }}
-                        <i class="fas fa-envelope"></i>
-                    </div>
-                    <span id="email-error" class="error"></span>
-                </div>
-
-                <div>
-                    <label>Phone *</label>
-                    <div class="phone-wrapper">
-                        <span class="country-code">+91</span>
-                        <div class="input-icon-wrapper">
-                            {{ student_form.phone_no }}
-                            <i class="fas fa-phone"></i>
-                        </div>
-                    </div>
-                    <span id="phone-error" class="error"></span>
-                </div>
-
-                <div>
-                    <label>Date of Birth *</label>
-                    <div class="input-icon-wrapper">
-                        {{ student_form.dob }}
-                        <i class="fas fa-calendar-alt"></i>
-                    </div>
-                </div>
-
-                <div>
-                    <label>Gender *</label>
-                    <div class="input-icon-wrapper">
-                        {{ student_form.gender }}
-                        <i class="fas fa-venus-mars"></i>
-                    </div>
-                </div>
-
-                <div>
-                    <label>Guardian Name *</label>
-                    <div class="input-icon-wrapper">
-                        {{ student_form.guardian_name }}
-                        <i class="fas fa-user"></i>
-                    </div>
-                </div>
-
-                <div>
-                    <label>Guardian Phone *</label>
-                    <div class="phone-wrapper">
-                        <span class="country-code">+91</span>
-                        <div class="input-icon-wrapper">
-                            {{ student_form.guardian_phone_no }}
-                            <i class="fas fa-phone"></i>
-                        </div>
-                    </div>
-                    <span id="guardian-phone-error" class="error"></span>
-                </div>
+        <!-- ============================= FORM HEADER ============================= -->
+        <div class="student-mgmt-form-header">
+            <div class="form-header-icon">
+                <i class="fas fa-user-graduate"></i>
             </div>
-
-            <div class="address-grid">
-                <label>Address *</label>
-                {{ student_form.address }}
+            <div class="form-header-text">
+                <h1 class="student-mgmt-form-title">Student Registration</h1>
+                <p class="student-mgmt-form-subtitle">Fill the student details to register a new admission</p>
             </div>
-
         </div>
 
-        <!-- ================= COURSE ================= -->
-        <div class="personal-info">
-
-            <h3 class="section-title">
-                <i class="fas fa-book icon-blue"></i> Course Enrollment
-            </h3>
-
-            <div class="course-grid">
-
-                <div>
-                    <label>Course *</label><br>
-                    <div class="input-icon-wrapper">
-                        <select name="course_name" id="id_course">
-                            <option value="">Select Course</option>
-                            {% for c in courses %}
-                            <option value="{{ c.id }}" data-duration="{{ c.duration }}" data-fee="{{ c.course_fee }}" >
-                                {{ c.course_name }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                        <i class="fas fa-book"></i>
-                    </div>
-                </div>
-
-                <div>
-                    <label>Batch *</label><br>
-                    <div class="input-icon-wrapper">
-                        {{ enrollment_form.batch }}
-                        <i class="fas fa-layer-group"></i>
-                    </div>
-                </div>
-
-                <div>
-                    <label>Duration (Month)</label><br>
-                    <div class="input-icon-wrapper">
-                        <input type="text" id="duration" placeholder="Duration" readonly required>
-                        <i class="fas fa-clock"></i>
-                    </div>
-                </div>
-
-                <div>
-                    <label>Admission Date*</label><br>
-                    <div class="input-icon-wrapper">
-                        {{ enrollment_form.start_date }}
-                        <i class="fas fa-calendar-alt"></i>
-                    </div>
-                </div>
-
-                <div>
-                    <label>Course Fee</label><br>
-                    <div class="input-icon-wrapper">
-                        <input type="text" id="fee" placeholder="Course Fee" readonly required>
-                        <i class="fas fa-indian-rupee-sign"></i>
-                    </div>
-                </div>
-
-            </div>
-
-            <label>Admission Status</label><br>
-            <div class="admission-status">
-                {% for value, label in admission_form.fields.status.choices %}
-                <label class="status-option">
-                    <input type="radio" name="status" value="{{ value }}" {% if admission_form.status.value == value %}checked{% endif %}>
-                    <span class="status {{ value }}">{{ label }}</span>
-                </label>
+        {% if student_form.errors or admission_form.errors or enrollment_form.errors %}
+        <div class="server-error-banner">
+            {% for field in student_form %}
+                {% for error in field.errors %}
+                    <p>{{ field.label }}: {{ error }}</p>
                 {% endfor %}
-            </div>
-
+            {% endfor %}
+            {% for error in student_form.non_field_errors %}
+                <p>{{ error }}</p>
+            {% endfor %}
+            {% for field in admission_form %}
+                {% for error in field.errors %}
+                    <p>{{ field.label }}: {{ error }}</p>
+                {% endfor %}
+            {% endfor %}
+            {% for field in enrollment_form %}
+                {% for error in field.errors %}
+                    <p>{{ field.label }}: {{ error }}</p>
+                {% endfor %}
+            {% endfor %}
         </div>
+        {% endif %}
 
-        <!-- ================= DOCUMENT ================= -->
-        <div class="personal-info">
-            <h3 class="section-title-details">
-                <i class="fas fa-file-alt icon-blue"></i> Document Upload
-            </h3>
+        <form id="studentForm" method="POST" action="{% url 'student' %}" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
 
-            <div class="document-grid">
-                <div>
-                    <label>📷 Student Photo</label>
-                    <div class="file-upload-wrapper">
-                    {{ student_form.photo }}
-                    <button type="button" id="removePhotoBtn" class="remove-file-btn" style="display: none;">X</button>
-                            </div>
-                            <div class="upload-progress">
-                                <div class="progress-bar" id="photoProgressBar"></div>
-                            </div>
-                            <span id="PhotoProgressText">No file selected</span>
-                    <span id="photo-error" class="error"></span>
+            <!-- ========================== PERSONAL INFORMATION SECTION ========================== -->
+            <fieldset class="student-mgmt-form-section">
+                <legend class="section-title">
+                    <span class="section-bar"></span>
+                    <i class="fas fa-user"></i>
+                    Personal Information
+                </legend>
+
+                <div class="form-row three-columns">
+                    <div class="form-group">
+                        <label class="form-label">First Name <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            {{ student_form.first_name }}
+                            <i class="fas fa-user"></i>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Last Name <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            {{ student_form.last_name }}
+                            <i class="fas fa-user"></i>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Email <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            {{ student_form.email }}
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <span id="email-error" class="form-error"></span>
+                    </div>
                 </div>
 
-                <div>
-                    <label>📄 ID Proof</label>
-                    <div class="file-upload-wrapper">
+                <div class="form-row three-columns">
+                    <div class="form-group">
+                        <label class="form-label">Phone <span class="required">*</span></label>
+                        <div class="phone-wrapper">
+                            <span class="country-code">+91</span>
+                            <div class="input-wrapper">
+                                {{ student_form.phone_no }}
+                                <i class="fas fa-phone"></i>
+                            </div>
+                        </div>
+                        <span id="phone-error" class="form-error"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Date of Birth <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            {{ student_form.dob }}
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Gender <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            {{ student_form.gender }}
+                            <i class="fas fa-venus-mars"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row three-columns">
+                    <div class="form-group">
+                        <label class="form-label">Guardian Name <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            {{ student_form.guardian_name }}
+                            <i class="fas fa-user"></i>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Guardian Phone <span class="required">*</span></label>
+                        <div class="phone-wrapper">
+                            <span class="country-code">+91</span>
+                            <div class="input-wrapper">
+                                {{ student_form.guardian_phone_no }}
+                                <i class="fas fa-phone"></i>
+                            </div>
+                        </div>
+                        <span id="guardian-phone-error" class="form-error"></span>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label class="form-label">Address <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            {{ student_form.address }}
+                        </div>
+                    </div>
+                </div>
+            </fieldset>
+
+            <!-- ======================== COURSE ENROLLMENT SECTION ======================== -->
+            <fieldset class="student-mgmt-form-section">
+                <legend class="section-title">
+                    <span class="section-bar"></span>
+                    <i class="fas fa-book"></i>
+                    Course Enrollment
+                </legend>
+
+                <div class="form-row three-columns">
+                    <div class="form-group">
+                        <label class="form-label">Course <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <select name="course_name" id="id_course">
+                                <option value="">Select Course</option>
+                                {% for c in courses %}
+                                <option value="{{ c.id }}" data-duration="{{ c.duration }}" data-fee="{{ c.course_fee }}" >
+                                    {{ c.course_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <i class="fas fa-book"></i>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Batch <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            {{ enrollment_form.batch }}
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Duration (Month)</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="duration" placeholder="Duration" readonly required>
+                            <i class="fas fa-clock"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row three-columns">
+                    <div class="form-group">
+                        <label class="form-label">Admission Date <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            {{ enrollment_form.start_date }}
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Course Fee</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="fee" placeholder="Course Fee" readonly required>
+                            <i class="fas fa-indian-rupee-sign"></i>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label class="form-label">Admission Status</label>
+                        <div class="admission-status">
+                            {% for value, label in admission_form.fields.status.choices %}
+                            <label class="status-option">
+                                <input type="radio" name="status" value="{{ value }}" {% if admission_form.status.value == value %}checked{% endif %}>
+                                <span class="status {{ value }}">{{ label }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </fieldset>
+
+            <!-- ================= DOCUMENT UPLOAD SECTION ================= -->
+            <fieldset class="student-mgmt-form-section">
+                <legend class="section-title">
+                    <span class="section-bar"></span>
+                    <i class="fas fa-file-alt"></i>
+                    Document Upload
+                </legend>
+
+                <div class="form-row three-columns">
+                    <div class="form-group">
+                        <label class="form-label">Student Photo</label>
+                        <div class="file-upload-wrapper">
+                            <div class="upload-dropzone">
+                                <div class="upload-icon">
+                                    <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                                </div>
+                                <p class="upload-text"><span class="upload-link">Click to upload</span> or drag &amp; drop</p>
+                                <p class="upload-hint">JPG, JPEG, PNG up to 2MB</p>
+                                {{ student_form.photo }}
+                            </div>
+                            <button type="button" id="removePhotoBtn" class="remove-file-btn" style="display: none;">&times;</button>
+                        </div>
+                        <div class="upload-progress">
+                            <div class="progress-bar" id="photoProgressBar"></div>
+                        </div>
+                        <span id="PhotoProgressText" class="upload-status">No file selected</span>
+                        <span id="photo-error" class="form-error"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">ID Proof</label>
+                        <div class="file-upload-wrapper">
+                            <div class="upload-dropzone">
+                                <div class="upload-icon">
+                                    <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                                </div>
+                                <p class="upload-text"><span class="upload-link">Click to upload</span> or drag &amp; drop</p>
+                                <p class="upload-hint">PDF, DOC, DOCX (multiple allowed)</p>
                                 <input
                                     type="file"
                                     name="id_proof"
@@ -233,18 +266,25 @@ Student Registration
                                     accept=".pdf,.doc,.docx"
                                     multiple
                                 >
-                                <button type="button" id="removeIdProofBtn" class="remove-file-btn">X</button>
                             </div>
-                            <div class="upload-progress">
-                                <div class="progress-bar" id="idProofProgressBar"></div>
-                            </div>
-                            <span id="idProofProgressText">No file selected</span>
-                            <span id="idproof-error" class="error"></span>
-                </div>
+                            <button type="button" id="removeIdProofBtn" class="remove-file-btn">&times;</button>
+                        </div>
+                        <div class="upload-progress">
+                            <div class="progress-bar" id="idProofProgressBar"></div>
+                        </div>
+                        <span id="idProofProgressText" class="upload-status">No file selected</span>
+                        <span id="idproof-error" class="form-error"></span>
+                    </div>
 
-                <div>
-                    <label>📜 Certificate</label>
-                    <div class="file-upload-wrapper">
+                    <div class="form-group">
+                        <label class="form-label">Certificate</label>
+                        <div class="file-upload-wrapper">
+                            <div class="upload-dropzone">
+                                <div class="upload-icon">
+                                    <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                                </div>
+                                <p class="upload-text"><span class="upload-link">Click to upload</span> or drag &amp; drop</p>
+                                <p class="upload-hint">PDF, DOC, DOCX (multiple allowed)</p>
                                 <input
                                     type="file"
                                     name="certificate"
@@ -252,27 +292,32 @@ Student Registration
                                     accept=".pdf,.doc,.docx"
                                     multiple
                                 >
-                                <button type="button" id="removeCertificateBtn" class="remove-file-btn">X</button>
                             </div>
-                            <div class="upload-progress">
-                                <div class="progress-bar" id="certificateProgressBar"></div>
-                            </div>
-                            <span id="certificateProgressText">No file selected</span>
-                            
-                            <span id="certificate-error" class="error"></span>
+                            <button type="button" id="removeCertificateBtn" class="remove-file-btn">&times;</button>
+                        </div>
+                        <div class="upload-progress">
+                            <div class="progress-bar" id="certificateProgressBar"></div>
+                        </div>
+                        <span id="certificateProgressText" class="upload-status">No file selected</span>
+                        <span id="certificate-error" class="form-error"></span>
+                    </div>
                 </div>
+            </fieldset>
+
+            <!-- ================= FORM ACTIONS ================= -->
+            <div class="form-actions">
+                <button type="reset" class="btn btn-cancel">
+                    <i class="fa-solid fa-rotate"></i>
+                    Clear Form
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-check"></i>
+                    Save &amp; Generate ID
+                </button>
             </div>
-        </div>
 
-        <!-- ================= BUTTON ================= -->
-        <div class="form-btn">
-            <button type="reset" class="clear-btn"><i class="fa-solid fa-rotate"></i> Clear Form</button>
-            <button type="submit">
-                <i class="fas fa-check"></i> Save & Generate ID
-            </button>
-        </div>
-
-    </form>
+        </form>
+    </div>
 </div>
 
 {% endblock %}

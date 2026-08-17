@@ -14,10 +14,13 @@ Student Attendance - Mark Attendance
 {% endblock extra_css %}
 
 {% block content %}
+
+<!-- ============ TOAST CONTAINER (SUCCESS/ERROR MESSAGES) ============ -->
 <div id="toastContainer" class="toast-wrapper"></div>
 
 <div class="main-content">
 
+    <!-- ============ PAGE HEADER (BREADCRUMB, TITLE, DATE, BACK/SUBMIT BUTTONS) ============ -->
     <div class="page-header">
 
         <div class="page-heading">
@@ -45,6 +48,7 @@ Student Attendance - Mark Attendance
         </div>
     </div>
 
+    <!-- ============ TOP STAT CARDS (TOTAL, PRESENT, ABSENT, LATE) ============ -->
     <div class="row mb-4">
 
         <div class="col-md-3">
@@ -93,8 +97,10 @@ Student Attendance - Mark Attendance
 
     </div>
 
+    <!-- ============ STUDENT ATTENDANCE PANEL (SEARCH + TABLE) ============ -->
     <div class="attendance-panel">
 
+         <!-- ============ PANEL HEADER (TITLE + SEARCH BOX) ============ -->
         <div class="panel-header">
             <div>
                 <h3>Student Attendance</h3>
@@ -108,6 +114,7 @@ Student Attendance - Mark Attendance
             </div>
         </div>
 
+        <!-- ============ STUDENT ATTENDANCE TABLE (POPULATED VIA JS) ============ -->
         <div class="attendance-table">
 
             <table class="table">
@@ -128,6 +135,7 @@ Student Attendance - Mark Attendance
 
         </div>
 
+        <!-- ============ INSTRUCTIONS BOX ============ -->
         <div class="instructions-box">
             <div class="instructions-icon"><i class="fas fa-info"></i></div>
             <div class="instructions-text">
@@ -144,7 +152,7 @@ Student Attendance - Mark Attendance
 
 </div>
 
-<!-- MODAL -->
+<!-- ============ CONFIRM ATTENDANCE SUBMISSION MODAL ============ -->
 <div class="modal fade" id="attendanceModal" tabindex="-1">
 
     <div class="modal-dialog modal-dialog-centered">
@@ -158,6 +166,7 @@ Student Attendance - Mark Attendance
 
             <div class="modal-body text-center">
 
+                <!-- ============ PRESENT/ABSENT/LATE SUMMARY CARDS ============ -->
                 <div class="summary-box">
 
                     <div class="summary-card present-card">
@@ -177,12 +186,15 @@ Student Attendance - Mark Attendance
 
                 </div><br>
 
+                <!-- ============ OVERALL ATTENDANCE PERCENTAGE DISPLAY ============ -->
                 <div class="attendance-overview">
                     <h5>
                         Attendance Status :
                         <span id="attendancePercentage"></span>
                     </h5>
                 </div>
+
+                <!-- ============ SYLLABUS LOG FIELDS (TOPIC, DURATION, NEXT TOPIC, NOTES) ============ -->
                 <div class="mt-4">
 
                     <div class="mb-3">
@@ -244,6 +256,7 @@ Student Attendance - Mark Attendance
 
             </div>
 
+            <!-- ============ MODAL FOOTER (GO BACK / SUBMIT NOW BUTTONS) ============ -->
             <div class="modal-footer border-0">
 
                 <button class="btn btn-back" data-bs-dismiss="modal">
@@ -266,10 +279,15 @@ Student Attendance - Mark Attendance
 
 {% block extra_js %}
 <script>
+
+// ============ CSRF TOKEN FOR AJAX REQUESTS ============
 const csrfToken = "{{ csrf_token }}";
+
 </script>
 
 <script>
+
+// ============ BATCH ID + STUDENT LIST DATA (FOR mark_attendance.js) ============
 const batchId = {{ batch.id }};
 const attendanceHistoryUrl = "{% url 'attendance_history' %}";
 

@@ -45,9 +45,11 @@
 
 .dash-page-header {
     display: flex;
-    align-items: flex-end;
+    align-items: flex-start;
     justify-content: space-between;
+    gap: 12px;
     margin-bottom: 14px;
+    flex-wrap: wrap;
 }
 
 .dash-page-header h1 {
@@ -63,14 +65,60 @@
     color: var(--dash-text-secondary);
 }
 
+.dash-header-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+}
+
 .dash-breadcrumb {
     font-size: 13px;
     color: var(--dash-text-muted);
+    white-space: nowrap;
 }
 
 .dash-breadcrumb span {
     color: var(--dash-text-secondary);
 }
+
+.dash-header-right .staff-checkin-btn,
+.dash-header-right .staff-checkout-btn,
+.dash-header-right .staff-disabled-btn {
+    padding: 6px 18px;
+    border-radius: 8px;
+    font-size: 12   px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.dash-header-right .staff-checkin-btn {
+    background: #16a34a;
+    color: #fff;
+}
+
+.dash-header-right .staff-checkin-btn:hover {
+    background: #15803d;
+}
+
+.dash-header-right .staff-checkout-btn {
+    background: #dc2626;
+    color: #fff;
+}
+
+.dash-header-right .staff-checkout-btn:hover {
+    background: #b91c1c;
+}
+
+.dash-header-right .staff-disabled-btn {
+    background: #6b7280;
+    color: #fff;
+    cursor: not-allowed;
+    opacity: 0.85;
+}
+
 
 /* ------------------------------ Stat Cards Row ---------------------------- */
 
@@ -79,6 +127,7 @@
     grid-template-columns: repeat(6, 1fr);
     gap: var(--dash-gap);
     margin-bottom: var(--dash-gap);
+
 }
 
 .dash-stat-card {
@@ -177,10 +226,26 @@
 
 .dash-overview-grid {
     display: grid;
-    grid-template-columns: 1.2fr 1.2fr 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: var(--dash-gap);
     margin-bottom: var(--dash-gap);
-    align-items: stretch;
+    width: 100%;
+}
+
+.dash-overview-grid > .dash-panel {
+    width: 100%;
+    min-width: 0;
+}
+
+.dash-overview-grid > .dash-panel:nth-child(1):nth-last-child(2),
+.dash-overview-grid > .dash-panel:nth-child(2):nth-last-child(1) {
+    grid-column: span 2;
+}
+
+.dash-overview-grid > .dash-panel:nth-child(1):nth-last-child(3),
+.dash-overview-grid > .dash-panel:nth-child(2):nth-last-child(2),
+.dash-overview-grid > .dash-panel:nth-child(3):nth-last-child(1) {
+    grid-column: span 1;
 }
 
 /* Donut charts (Leads / Student overview) */
@@ -389,11 +454,21 @@
 
 .dash-lists-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: var(--dash-gap);
     margin-bottom: var(--dash-gap);
-    align-items: stretch;
+    width: 100%;
 }
+
+.dash-lists-grid > .dash-panel:nth-child(1):nth-last-child(2),
+.dash-lists-grid > .dash-panel:nth-child(2):nth-last-child(1) {
+    grid-column: span 1;
+}
+
+/* .dash-lists-grid > .dash-panel {
+    width: 100%;
+    min-width: 0;
+} */
 
 /* Person list (staff / students) */
 
@@ -581,6 +656,8 @@
     opacity: 0.92;
 }
 
+
+
 /* -------------------------------- Responsive ------------------------------- */
 
 @media (max-width: 1280px) {
@@ -606,5 +683,17 @@
     .dash-lists-grid,
     .dash-quick-actions-row {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .dash-page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .dash-header-right {
+        align-items: flex-start;
+        width: 100%;
     }
 }

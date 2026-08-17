@@ -53,6 +53,7 @@ body{
 .attendance-submit{
     padding: 8px 14px;
     border-radius: 8px;
+    
 }
 
 /* TOP CARDS */
@@ -259,12 +260,6 @@ body{
 }
 
 
-
-
-
-
-
-/* TODAY ATTENDANCE */
 /* ===========================
    TODAY ATTENDANCE
 =========================== */

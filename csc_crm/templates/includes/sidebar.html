@@ -13,7 +13,7 @@
             </a>
         </li>
         
-        {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Sales Exec" %}
+        {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "Sales Exec Lead" %}
         <li>
             <a href="{% url 'leads:lead_capture_list' %}"
                class="{% if request.resolver_match.namespace == 'leads' %}active{% endif %}">
@@ -23,7 +23,7 @@
         </li>
         {% endif %}
 
-        {% if request.user.staff_profile.role.role_name == "HR" %}
+        {% if request.user.staff_profile.role.role_name == "HR" or request.user.staff_profile.role.role_name == "Sales Exec" %}
         <li>
             <a href="{% url 'leads:lead_pipeline_view' %}"
                class="{% if request.resolver_match.namespace == 'leads' %}active{% endif %}">

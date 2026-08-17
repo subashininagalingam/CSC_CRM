@@ -210,19 +210,19 @@ def lead_capture_update(request, id):
     }
 
     return render(request, 'leads/lead_list.html', context)
-# Deleting Lead
-# @require_http_methods(['POST'])
-# def lead_capture_delete(request, id):
-#     lead = get_object_or_404(LeadCapture, id=id)
-#     lead_name = lead.lead_name
-#     lead.delete()
-#     messages.success(request, f'Lead {lead.lead_name} Deleted Successfully!')
-#     return redirect('lead_capture_list')
+
+
 
 # PIPELINE VIEW
 def lead_pipeline_view(request):
 
     leads = LeadCapture.objects.all().order_by('created_at')
+
+    my_staff = getattr(request.user, 'staff_profile', None)
+    my_role = my_staff.role.role_name if my_staff and my_staff.role else None
+
+    if my_role == 'Sales Exec':
+        leads = leads.filter(assigned_to=my_staff)
 
     search_query = request.GET.get('search', '').strip()
     assigned_to = request.GET.get('assigned_to', '').strip()
@@ -237,7 +237,7 @@ def lead_pipeline_view(request):
           Q(course_interested__icontains=search_query)
     )
 
-    if assigned_to:
+    if assigned_to and my_role != 'Sales Exec':
         leads = leads.filter(assigned_to__id=assigned_to)
 
     staffs = Staff.objects.filter(role__role_name__in=['BDE', 'Telecall', 'Sales Exec'], status='active')
@@ -291,11 +291,16 @@ def lead_pipeline_view(request):
 
     return render(request, 'leads/pipeline_view.html', context)
 
-
 # csv download
 def export_leads_csv(request):
 
     leads = LeadCapture.objects.all().order_by('created_at')
+
+    my_staff = getattr(request.user, 'staff_profile', None)
+    my_role = my_staff.role.role_name if my_staff and my_staff.role else None
+
+    if my_role == 'Sales Exec':
+        leads = leads.filter(assigned_to=my_staff)
 
     # Clean inputs
     search_query = request.GET.get('search', '').strip()
@@ -310,7 +315,7 @@ def export_leads_csv(request):
             Q(course_interested__icontains=search_query)
         )
 
-    if assigned_to:  
+    if assigned_to and my_role != 'Sales Exec':
         leads = leads.filter(assigned_to__id=assigned_to)
 
     if status:
@@ -345,51 +350,69 @@ def export_leads_csv(request):
 
 # Lead Conversion 
 def lead_conversion_report(request):
-    total_leads = LeadCapture.objects.count()
-    enrolled_leads = LeadCapture.objects.filter(initial_status='enrolled').count()
-    lost_leads = LeadCapture.objects.filter(initial_status='lost').count()
-    new_leads=LeadCapture.objects.filter(initial_status='new').count()
-    demo_leads=LeadCapture.objects.filter(initial_status='demo_scheduled').count()
-    contacted_leads=LeadCapture.objects.filter(initial_status='contacted').count()
 
-    conversion_rate = (enrolled_leads / total_leads *100) if total_leads > 0 else 0
+    my_staff = getattr(request.user, 'staff_profile', None)
+    my_role = my_staff.role.role_name if my_staff and my_staff.role else None
+
+    leads_qs = LeadCapture.objects.all()
+
+    # Sales Exec -> own assigned leads only
+    if my_role == 'Sales Exec':
+        leads_qs = leads_qs.filter(assigned_to=my_staff)
+
+    total_leads = leads_qs.count()
+    enrolled_leads = leads_qs.filter(initial_status='enrolled').count()
+    lost_leads = leads_qs.filter(initial_status='lost').count()
+    new_leads = leads_qs.filter(initial_status='new').count()
+    demo_leads = leads_qs.filter(initial_status='demo_scheduled').count()
+    contacted_leads = leads_qs.filter(initial_status='contacted').count()
+
+    conversion_rate = (enrolled_leads / total_leads * 100) if total_leads > 0 else 0
 
     # Source performance
     source_performance = []
     for source_value, source_label in LeadCapture.SOURCE_CHOICES:
-        total = LeadCapture.objects.filter(lead_source=source_value).count()
-        enrolled = LeadCapture.objects.filter(
-            lead_source = source_value,
-            initial_status = 'enrolled',
+        total = leads_qs.filter(lead_source=source_value).count()
+        enrolled = leads_qs.filter(
+            lead_source=source_value,
+            initial_status='enrolled',
         ).count()
-        
+
         rate = round(enrolled / total * 100) if total > 0 else 0
-    
+
         source_performance.append({
-        'source' : source_label,
-        'total': total,
-        'enrolled':enrolled,
-        'rate':round(rate,1), 
+            'source': source_label,
+            'total': total,
+            'enrolled': enrolled,
+            'rate': round(rate, 1),
         })
 
     context = {
-        'total_leads':total_leads,
-        'enrolled_leads':enrolled_leads,
-        'lost_leads':lost_leads,
-        'conversion_rate':conversion_rate,
-        'new_leads':new_leads,
-        'contacted_leads':contacted_leads,
-        'demo_leads':demo_leads,
-        'source_performance':source_performance,
+        'total_leads': total_leads,
+        'enrolled_leads': enrolled_leads,
+        'lost_leads': lost_leads,
+        'conversion_rate': conversion_rate,
+        'new_leads': new_leads,
+        'contacted_leads': contacted_leads,
+        'demo_leads': demo_leads,
+        'source_performance': source_performance,
     }
 
-    return render(request, 'leads/conversion_report.html',context)
-
+    return render(request, 'leads/conversion_report.html', context)
 
 # ============================= FOLLOW UP =============================
 def followup_shedule(request):
     today = timezone.localdate()
+
+    my_staff = getattr(request.user, 'staff_profile', None)
+    my_role = my_staff.role.role_name if my_staff and my_staff.role else None
+
     followups = LeadCapture.objects.all()
+
+    # Sales Exec -> own assigned leads only
+    if my_role == 'Sales Exec':
+        followups = followups.filter(assigned_to=my_staff)
+
     search_query = request.GET.get('search', '').strip()
 
     if search_query:
@@ -402,25 +425,25 @@ def followup_shedule(request):
             Q(assigned_to__employee_id__icontains=search_query)
         )
 
-    pending_followups = followups.filter( followup_completed=False ).exclude( initial_status__in=['enrolled', 'lost'])
+    pending_followups = followups.filter(followup_completed=False).exclude(initial_status__in=['enrolled', 'lost'])
 
-    overdue = pending_followups.filter( next_followup_date__lt=today )
+    overdue = pending_followups.filter(next_followup_date__lt=today)
 
-    today_followups = pending_followups.filter(next_followup_date=today )
+    today_followups = pending_followups.filter(next_followup_date=today)
 
-   # Current week end (Sunday)
+    # Current week end (Sunday)
     days_left = 6 - today.weekday()
     week_end = today + timedelta(days=days_left)
 
-# This Week
+    # This Week
     week_followups = pending_followups.filter(
-    next_followup_date__gt=today,
-    next_followup_date__lte=week_end
+        next_followup_date__gt=today,
+        next_followup_date__lte=week_end
     )
 
-# Upcoming
+    # Upcoming
     upcoming_followups = pending_followups.filter(
-    next_followup_date__gt=today
+        next_followup_date__gt=today
     )
 
     completed_followups = followups.filter(
@@ -435,7 +458,7 @@ def followup_shedule(request):
 
     this_week = week_followups.count()
 
-    completed_today = completed_followups.filter( followup_completed_at__date=today ).count()
+    completed_today = completed_followups.filter(followup_completed_at__date=today).count()
 
     current_filter = request.GET.get('filter', 'all')
 
@@ -457,20 +480,16 @@ def followup_shedule(request):
     else:
         displayed_followups = followups
 
-    
-     # Pagination
+    # Pagination
 
-   
     paginator = Paginator(displayed_followups.order_by('-created_at'), 15)
 
     page_number = request.GET.get('page', 1)
 
     page_obj = paginator.get_page(page_number)
 
-
     context = {
-        
-        
+
         'followups': page_obj,
         'page_obj': page_obj,
         'paginator': paginator,

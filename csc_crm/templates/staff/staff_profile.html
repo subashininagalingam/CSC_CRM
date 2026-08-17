@@ -19,7 +19,15 @@
 <div class="sp-header">
   <div>
     <div class="sp-back-row">
+
+      {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" or request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Marketing Lead" %}
       <a href="{% url 'staff_management' %}" class="sp-back-btn"><i class="fa fa-arrow-left"></i> Back to Staff Management</a>
+      {% endif %}
+
+      {% if request.user.staff_profile.role.role_name == "Sales Exec" or request.user.staff_profile.role.role_name == "Developer" or request.user.staff_profile.role.role_name == "Trainer" or request.user.staff_profile.role.role_name == "Digital Marketing" or request.user.staff_profile.role.role_name == "Content Creator" %}
+      <a href="{% url 'staff_dashboard' %}" class="sp-back-btn"><i class="fa fa-arrow-left"></i> Back to Staff Management</a>
+      {% endif %}
+
     </div>
     <h1 class="sp-title">Staff Profile</h1>
     <p class="sp-subtitle">Complete employee information</p>

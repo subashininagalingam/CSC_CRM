@@ -5,25 +5,27 @@ from django.contrib.auth import authenticate, login as auth_login, logout as aut
 from django.contrib import messages
 from django.utils import timezone
 from django.db.models.functions import TruncMonth
-from django.db.models import Q, Sum, Avg, Count, F, FloatField, ExpressionWrapper
+from django.db.models import Q, Avg, Count, F, FloatField, ExpressionWrapper
 from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
-from datetime import datetime, time, timedelta
+
+from datetime import datetime, time
+
 from openpyxl import Workbook
 from functools import wraps
+
 import csv
 import re
 import calendar
+import os
+
 from csc_crm.apps.leads.models import *
 from csc_crm.apps.admissions.models import *
 from csc_crm.apps.student_attendance.models import *
+
 from .models import *
 from .forms import *
 
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
-from functools import wraps
 # ============================ ROLE-BASED ACCESS DECORATOR ============================
 
 def role_required(allowed_roles):
@@ -851,7 +853,49 @@ def staff_export(request, id):
 def auto_checkout_pending_attendance():
 
     today = timezone.localdate()
+    current_time = timezone.localtime(timezone.now())
 
+    # ==========================================================
+    # TODAY - AUTO CHECKOUT AT 7:00 PM
+    # ==========================================================
+    if current_time.time() >= time(19, 0):
+
+        today_pending_attendance = Attendance.objects.filter(
+            log_in__isnull=False,
+            log_out__isnull=True,
+            date=today
+        )
+
+        for attendance in today_pending_attendance:
+
+            auto_logout_time = timezone.make_aware(
+                datetime.combine(
+                    attendance.date,
+                    time(19, 0)
+                )
+            )
+
+            attendance.log_out = auto_logout_time
+
+            worked_time = (
+                attendance.log_out -
+                attendance.log_in
+            )
+
+            attendance.total_hours = worked_time
+
+            worked_hours = (
+                worked_time.total_seconds() / 3600
+            )
+
+            if worked_hours < 4:
+                attendance.status = "Absent"
+
+            attendance.save()
+
+    # ==========================================================
+    # PREVIOUS DAYS - AUTO CHECKOUT AT 6:30 PM
+    # ==========================================================
     pending_attendance = Attendance.objects.filter(
         log_in__isnull=False,
         log_out__isnull=True,
@@ -869,16 +913,22 @@ def auto_checkout_pending_attendance():
 
         attendance.log_out = auto_logout_time
 
-        worked_time = attendance.log_out - attendance.log_in
+        worked_time = (
+            attendance.log_out -
+            attendance.log_in
+        )
 
         attendance.total_hours = worked_time
 
-        worked_hours = worked_time.total_seconds() / 3600
+        worked_hours = (
+            worked_time.total_seconds() / 3600
+        )
 
         if worked_hours < 4:
             attendance.status = "Absent"
 
         attendance.save()
+
 #======attendance=========
 @login_required(login_url='staff_login')
 def attendance_page(request, id):
@@ -991,7 +1041,7 @@ def attendance_page(request, id):
     return render(request, 'staff/attendance.html', context)
 
 
-#================export atttendance btn===============
+#======================================== export atttendance btn ======================
 
 @login_required(login_url='staff_login')
 def export_attendance(request, id):
@@ -1039,113 +1089,88 @@ def export_attendance(request, id):
     wb.save(response)
 
     return response
-#==================================================================staff-checkin page===============================================
+#==========================================staff-checkin page===============================================
 @login_required(login_url='staff_login')
 def staff_checkin(request, id):
 
     auto_checkout_pending_attendance()
 
-    staff = Staff.objects.get(id=id)
+    staff = get_object_or_404(Staff, id=id)
     today = timezone.localdate()
-    
     current_time = timezone.localtime(timezone.now())
+    is_checkout_closed = current_time.time() >= time(19, 0)
 
-    is_checkout_closed = current_time.time() >= time(19, 00)
-
-    # ================= TODAY ATTENDANCE =================
     today_attendance = Attendance.objects.filter(staff=staff, date=today).first()
 
-    # ===== SMART FLAGS =====
     is_checkin_done = False
     is_checkout_done = False
     is_leave_or_absent = False
 
     if today_attendance:
-
         if today_attendance.log_in:
             is_checkin_done = True
-
         if today_attendance.log_out:
             is_checkout_done = True
-
         if today_attendance.status in ['Leave', 'Absent']:
             is_leave_or_absent = True
 
-    # ================= POST =================
     if request.method == 'POST':
-        
-        # Future Joining Date Validation
-        if staff.date_of_joining > today:
-            messages.error(
-            request,
-            "Attendance cannot be marked before joining date.")
-            return redirect('attendance', id=staff.id)
 
-        # Admin Validation
+        if staff.date_of_joining > today:
+            messages.error(request, "Attendance cannot be marked before joining date.")
+            return redirect('staff_dashboard')
+
         if staff.role.role_name == "Admin":
-            messages.error(
-            request,
-            "Attendance is not applicable for Admin." )
-            return redirect('attendance', id=staff.id)
-    
+            messages.error(request, "Attendance is not applicable for Admin.")
+            return redirect('staff_dashboard')
+
         action = request.POST.get('action')
         current_time = timezone.localtime(timezone.now())
 
-        attendance = Attendance.objects.filter(
+        attendance, created = Attendance.objects.get_or_create(
             staff=staff,
             date=today
-        ).first()
+        )
 
-        if not attendance:
-            attendance = Attendance(staff=staff, date=today)
-
-        # -------- CHECKIN --------
         if action == 'checkin':
-            if current_time.time() >= time(19, 00):
-                messages.error(
-                request,"Check-In is not allowed after 7:00 PM.")
-                return redirect("attendance", id=staff.id)
-            
-            if not attendance.log_in:
-                attendance.log_in = current_time
+            if current_time.time() >= time(19, 0):
+                messages.error(request, "Check-In is not allowed after 7:00 PM.")
+                return redirect('staff_dashboard')
 
-                office_time = datetime.strptime("09:15", "%H:%M").time()
+            if attendance.log_in:
+                messages.error(request, "You have already checked in today.")
+                return redirect('staff_dashboard')
 
-                if current_time.time() > office_time:
-                    attendance.status = 'Late'
-                else:
-                    attendance.status = 'Present'
+            attendance.log_in = current_time
+            attendance.log_out = None
+            attendance.total_hours = None
+            office_time = datetime.strptime("09:15", "%H:%M").time()
+            attendance.status = 'Late' if current_time.time() > office_time else 'Present'
+            attendance.save()
+            messages.success(request, "Check-In completed successfully.")
 
-                attendance.save()
-                messages.success(request, "Check-In completed successfully.")
-
-        # -------- CHECKOUT --------
         elif action == 'checkout':
+            if not attendance.log_in:
+                messages.error(request, "Please check in first before checking out.")
+                return redirect('staff_dashboard')
 
-            if current_time.time() >= time(19, 00):
+            if attendance.log_out:
+                messages.error(request, "You have already checked out today.")
+                return redirect('staff_dashboard')
 
-                messages.error(
-                request,
-                "Checkout is allowed only until 7:00 PM." )
+            if current_time.time() >= time(19, 0):
+                messages.error(request, "Checkout is allowed only until 7:00 PM.")
+                return redirect('staff_dashboard')
 
-            elif attendance.log_in:
+            attendance.log_out = current_time
+            worked_time = attendance.log_out - attendance.log_in
+            attendance.total_hours = worked_time
+            worked_hours = worked_time.total_seconds() / 3600
+            if worked_hours < 4:
+                attendance.status = 'Absent'
+            attendance.save()
+            messages.success(request, "Check-Out completed successfully.")
 
-                attendance.log_out = current_time
-
-                worked_time = attendance.log_out - attendance.log_in
-                
-                attendance.total_hours = worked_time
-
-                worked_hours = worked_time.total_seconds() / 3600
-
-                if worked_hours < 4:
-
-                    attendance.status = 'Absent'
-
-                attendance.save()
-
-                messages.success(request,"Check-Out completed successfully.")
-        # -------- LEAVE --------
         elif action == 'leave':
             attendance.status = 'Leave'
             attendance.log_in = None
@@ -1154,7 +1179,6 @@ def staff_checkin(request, id):
             attendance.save()
             messages.success(request, "Leave marked successfully.")
 
-        # -------- ABSENT --------
         elif action == 'absent':
             attendance.status = 'Absent'
             attendance.log_in = None
@@ -1163,25 +1187,21 @@ def staff_checkin(request, id):
             attendance.save()
             messages.success(request, "Absent marked successfully.")
 
-        return redirect('attendance', id=staff.id)
+        return redirect('staff_dashboard')
+
+    active_attendance = Attendance.objects.filter(
+        staff=staff, log_in__isnull=False, log_out__isnull=True
+    ).order_by('-id').first()
 
     return render(request, 'staff/staff_checkin.html', {
-        'active_attendance': Attendance.objects.filter(
-            staff=staff,
-            log_in__isnull=False,
-            log_out__isnull=True
-        ).order_by('-id').first(),
+        'active_attendance': active_attendance,
         'staff': staff,
-
-        #  IMPORTANT FLAGS
         'is_checkin_done': is_checkin_done,
         'is_checkout_done': is_checkout_done,
         'is_leave_or_absent': is_leave_or_absent,
-
         'is_checkout_closed': is_checkout_closed,
     })
 
-#======================================== DOCUMENT =========================================
 # ================================ DOCUMENT VIEWS ================================
 
 def _detect_document_type(filename):
@@ -1290,8 +1310,11 @@ def update_document_status(request, doc_id):
     
 # ================================ Dashboard View ===================================
 
+
 @login_required(login_url='staff_login')
 def staff_dashboard(request):
+
+    auto_checkout_pending_attendance()
     
     total_staff = Staff.objects.count()
 
@@ -1321,10 +1344,118 @@ def staff_dashboard(request):
 
     total_attendance = present + late + absent + leave
 
+    my_staff = getattr(request.user, 'staff_profile', None)
+
+    
+    # ================================
+    # TRAINER - MY STUDENTS & BATCHES
+    # ================================
+
+    trainer_total_students = 0
+    trainer_active_students = 0
+    trainer_completed_students = 0
+    trainer_dropped_students = 0
+    trainer_recent_students = []
+
+    trainer_active_students_pct = 0
+    trainer_completed_students_pct = 0
+    trainer_dropped_students_pct = 0
+
+    trainer_active_students_deg = 0
+    trainer_completed_students_deg = 0
+    trainer_dropped_students_deg = 0
+
+    trainer_total_batches = 0
+    trainer_ongoing_batches = 0
+    trainer_upcoming_batches = 0
+    trainer_completed_batches = 0
+    trainer_batch_summary = Batch.objects.none()
+
+    if my_staff and my_staff.role and my_staff.role.role_name == 'Trainer':
+
+        trainer_enrollments = Enrollment.objects.filter(batch__trainer=my_staff)
+
+        trainer_total_students = trainer_enrollments.values('admission__student').distinct().count()
+
+        trainer_active_students = trainer_enrollments.filter(batch__status='Ongoing').count()
+
+        trainer_completed_students = trainer_enrollments.filter(batch__status='Completed').count()
+
+        trainer_dropped_students = Admission.objects.filter(
+            status='dropped',
+            enrollment__batch__trainer=my_staff
+        ).count()
+
+        trainer_recent_students = Student.objects.filter(
+            admissions__enrollment__batch__trainer=my_staff
+        ).distinct().order_by('-id')[:5]
+
+        if trainer_total_students > 0:
+            trainer_active_students_pct = round((trainer_active_students / trainer_total_students) * 100, 1)
+            trainer_completed_students_pct = round((trainer_completed_students / trainer_total_students) * 100, 1)
+            trainer_dropped_students_pct = round((trainer_dropped_students / trainer_total_students) * 100, 1)
+
+        trainer_active_students_deg = trainer_active_students_pct * 3.6
+        trainer_completed_students_deg = trainer_active_students_deg + (trainer_completed_students_pct * 3.6)
+        trainer_dropped_students_deg = trainer_completed_students_deg + (trainer_dropped_students_pct * 3.6)
+
+        trainer_batches_qs = Batch.objects.filter(trainer=my_staff)
+
+        trainer_total_batches = trainer_batches_qs.count()
+        trainer_ongoing_batches = trainer_batches_qs.filter(status='Ongoing').count()
+        trainer_upcoming_batches = trainer_batches_qs.filter(status='Upcoming').count()
+        trainer_completed_batches = trainer_batches_qs.filter(status='Completed').count()
+
+        trainer_batch_summary = trainer_batches_qs.select_related('course', 'trainer').annotate(
+            enrolled_students=Count('enrollments'),
+            occupancy_percentage=ExpressionWrapper(
+                Count('enrollments') * 100.0 / F('max_students'),
+                output_field=FloatField()
+            )
+        ).order_by('-enrolled_students', 'batch_name')
+
+    # ============================================
+    # MY DEPARTMENT ATTENDANCE (generic - any role, any department)
+    # ============================================
+
+    my_dept_present = my_dept_late = my_dept_absent = my_dept_leave = 0
+    my_dept_attendance_percentage = 0
+    my_department_name = None
+
+    if my_staff and my_staff.department:
+
+        my_department_name = my_staff.department.get_dept_name_display()
+
+        my_dept_staff_ids = Staff.objects.filter(
+            department=my_staff.department,
+            status='active'
+        ).values_list('id', flat=True)
+
+        my_dept_present = Attendance.objects.filter(
+            staff_id__in=my_dept_staff_ids, date=today, status='Present'
+        ).count()
+
+        my_dept_late = Attendance.objects.filter(
+            staff_id__in=my_dept_staff_ids, date=today, status='Late'
+        ).count()
+
+        my_dept_absent = Attendance.objects.filter(
+            staff_id__in=my_dept_staff_ids, date=today, status='Absent'
+        ).count()
+
+        my_dept_leave = Attendance.objects.filter(
+            staff_id__in=my_dept_staff_ids, date=today, status='Leave'
+        ).count()
+
+        my_dept_total_staff = my_dept_staff_ids.count()
+
+        my_dept_attendance_percentage = (
+            round(((my_dept_present + my_dept_late) / my_dept_total_staff) * 100, 1)
+            if my_dept_total_staff > 0 else 0
+        )
+
     # My Attendance
 
-    my_staff = getattr(request.user, 'staff_profile', None)
-    
     if my_staff:
         my_attendance_qs = Attendance.objects.filter(staff=my_staff)
         my_total_days = my_attendance_qs.count()
@@ -1339,7 +1470,28 @@ def staff_dashboard(request):
         my_present_days = my_late_days = my_absent_days = my_leave_days = 0
         my_attendance_percentage = 0
 
+    # checkin
 
+    today_attendance_for_me = None
+    today_status_for_me = 'Absent'
+    show_checkout_for_me = False
+    is_checkout_closed_for_me = True
+    
+    if my_staff:
+        today_attendance_for_me = Attendance.objects.filter(staff=my_staff, date=today).first()
+        today_status_for_me = today_attendance_for_me.status if today_attendance_for_me else 'Absent'
+
+        current_time = timezone.localtime(timezone.now())
+        is_checkout_closed_for_me = current_time.time() >= time(19, 0)
+    
+        if today_attendance_for_me and today_attendance_for_me.log_in and not today_attendance_for_me.log_out:
+            show_checkout_for_me = True
+
+    is_checkin_done_for_me = bool(today_attendance_for_me and today_attendance_for_me.log_in)
+    is_checkout_done_for_me = bool(today_attendance_for_me and today_attendance_for_me.log_out)
+    is_leave_or_absent_for_me = bool(today_attendance_for_me and today_attendance_for_me.status in ['Leave', 'Absent'])
+    active_attendance_for_me = today_attendance_for_me if (today_attendance_for_me and today_attendance_for_me.log_in and not today_attendance_for_me.log_out) else None
+    
     if total_attendance > 0:
         attendance_percentage = round(((present + late) / active_staff) * 100, 1)
     else:
@@ -1371,6 +1523,48 @@ def staff_dashboard(request):
     enrolled_leads = LeadCapture.objects.filter(initial_status = 'enrolled').count()
 
     lost_leads = LeadCapture.objects.filter(initial_status = 'lost').count()
+    
+    # =====================================================
+    # MY LEADS (Sales Exec - own assigned leads only)
+    # =====================================================
+
+    my_leads_qs = LeadCapture.objects.filter(assigned_to=my_staff) if my_staff else LeadCapture.objects.none()
+
+    my_total_leads = my_leads_qs.count()
+    my_new_leads = my_leads_qs.filter(initial_status='new').count()
+    my_contacted_leads = my_leads_qs.filter(initial_status='contacted').count()
+    my_interested_leads = my_leads_qs.filter(initial_status='interested').count()
+    my_demo_leads = my_leads_qs.filter(initial_status='demo_scheduled').count()
+    my_enrolled_leads = my_leads_qs.filter(initial_status='enrolled').count()
+    my_lost_leads = my_leads_qs.filter(initial_status='lost').count()
+
+    my_due_today = my_leads_qs.filter(next_followup_date=today).exclude(
+        initial_status__in=['enrolled', 'lost']
+    ).count()
+
+    my_overdue_count = my_leads_qs.filter(next_followup_date__lt=today).exclude(
+        initial_status__in=['enrolled', 'lost']
+    ).count()
+
+    if my_total_leads > 0:
+        my_conversion_rate = round((my_enrolled_leads / my_total_leads) * 100, 1)
+
+        my_new_leads_pct = round((my_new_leads / my_total_leads) * 100, 1)
+        my_contacted_leads_pct = round((my_contacted_leads / my_total_leads) * 100, 1)
+        my_interested_leads_pct = round((my_interested_leads / my_total_leads) * 100, 1)
+        my_demo_leads_pct = round((my_demo_leads / my_total_leads) * 100, 1)
+        my_enrolled_leads_pct = round((my_enrolled_leads / my_total_leads) * 100, 1)
+        my_lost_leads_pct = round((my_lost_leads / my_total_leads) * 100, 1)
+    else:
+        my_conversion_rate = 0
+        my_new_leads_pct = my_contacted_leads_pct = my_interested_leads_pct = 0
+        my_demo_leads_pct = my_enrolled_leads_pct = my_lost_leads_pct = 0
+
+    my_new_leads_deg = my_new_leads_pct * 3.6
+    my_contacted_leads_deg = my_new_leads_deg + (my_contacted_leads_pct * 3.6)
+    my_interested_leads_deg = my_contacted_leads_deg + (my_interested_leads_pct * 3.6)
+    my_demo_leads_deg = my_interested_leads_deg + (my_demo_leads_pct * 3.6)
+    my_enrolled_leads_deg = my_demo_leads_deg + (my_enrolled_leads_pct * 3.6)
 
     # ==========================================
     # Lead Percentage Calculation
@@ -1430,7 +1624,12 @@ def staff_dashboard(request):
     # Recent Leads
     # =====================================================
 
-    recent_leads = LeadCapture.objects.select_related('assigned_to').order_by('created_at')[:5]
+    if my_staff and my_staff.role and my_staff.role.role_name == 'Sales Exec':
+        recent_leads = LeadCapture.objects.filter(
+            assigned_to=my_staff
+        ).select_related('assigned_to').order_by('-created_at')[:5]
+    else:
+        recent_leads = LeadCapture.objects.select_related('assigned_to').order_by('created_at')[:5]
 
     # =====================================================
     # Today's Follow-ups
@@ -1644,9 +1843,71 @@ def staff_dashboard(request):
         'my_absent_days': my_absent_days,
         'my_leave_days': my_leave_days,
         'my_attendance_percentage': my_attendance_percentage,
+
+        # Checkin
+        'today_attendance': today_attendance_for_me,
+        'today_status_for_me': today_status_for_me,
+        'show_checkout_for_me': show_checkout_for_me,
+        'is_checkin_done_for_me': is_checkin_done_for_me,
+        'is_checkout_done_for_me': is_checkout_done_for_me,
+        'is_leave_or_absent_for_me': is_leave_or_absent_for_me,
+        'active_attendance_for_me': active_attendance_for_me,
+        'is_checkout_closed_for_me': is_checkout_closed_for_me,
+
+        # My department Attendance 
+        'my_dept_present': my_dept_present,
+        'my_dept_late': my_dept_late,
+        'my_dept_absent': my_dept_absent,
+        'my_dept_leave': my_dept_leave,
+        'my_dept_attendance_percentage': my_dept_attendance_percentage,
+        'my_department_name': my_department_name,
+
+        # Sales exec own Leads
+        'my_total_leads': my_total_leads,
+        'my_new_leads': my_new_leads,
+        'my_contacted_leads': my_contacted_leads,
+        'my_interested_leads': my_interested_leads,
+        'my_demo_leads': my_demo_leads,
+        'my_enrolled_leads': my_enrolled_leads,
+        'my_lost_leads': my_lost_leads,
+        'my_due_today': my_due_today,
+        'my_overdue_count': my_overdue_count,
+        'my_conversion_rate': my_conversion_rate,
+        'my_new_leads_pct': my_new_leads_pct,
+        'my_contacted_leads_pct': my_contacted_leads_pct,
+        'my_interested_leads_pct': my_interested_leads_pct,
+        'my_demo_leads_pct': my_demo_leads_pct,
+        'my_enrolled_leads_pct': my_enrolled_leads_pct,
+        'my_lost_leads_pct': my_lost_leads_pct,
+        'my_new_leads_deg': my_new_leads_deg,
+        'my_contacted_leads_deg': my_contacted_leads_deg,
+        'my_interested_leads_deg': my_interested_leads_deg,
+        'my_demo_leads_deg': my_demo_leads_deg,
+        'my_enrolled_leads_deg': my_enrolled_leads_deg,
+
+        # Student Module
+        'trainer_total_students': trainer_total_students,
+        'trainer_active_students': trainer_active_students,
+        'trainer_completed_students': trainer_completed_students,
+        'trainer_dropped_students': trainer_dropped_students,
+        'trainer_recent_students': trainer_recent_students,
+
+        'trainer_active_students_pct': trainer_active_students_pct,
+        'trainer_completed_students_pct': trainer_completed_students_pct,
+        'trainer_dropped_students_pct': trainer_dropped_students_pct,
+
+        'trainer_active_students_deg': trainer_active_students_deg,
+        'trainer_completed_students_deg': trainer_completed_students_deg,
+        'trainer_dropped_students_deg': trainer_dropped_students_deg,
+
+        'trainer_total_batches': trainer_total_batches,
+        'trainer_ongoing_batches': trainer_ongoing_batches,
+        'trainer_upcoming_batches': trainer_upcoming_batches,
+        'trainer_completed_batches': trainer_completed_batches,
+        'trainer_batch_summary': trainer_batch_summary,
     }
     return render( request, 'staff/dashboard.html', context)
-
+    
 # ================================ MY PROFILE ================================
 
 @login_required(login_url='staff_login')

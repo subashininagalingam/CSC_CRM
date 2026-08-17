@@ -2,14 +2,17 @@
 
 {% load static %}
 
-{% block content %}
-
+{% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/attendance_css/low_attendance.css' %}">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+{% endblock extra_css %}
+
+{% block content %}
+<!-- ================ TOAST CONTAINER ================ -->
+<div id="toastContainer" class="toast-container"></div>
 
 <div class="low-attendance-page">
 
-    <!-- TOP HEADER -->
+     <!-- ================ PAGE HEADER (TITLE + LAST UPDATED + REFRESH) ================ -->
     <div class="topbar-section">
         <div>
             <h2 class="page-title">Low Attendance Alerts</h2>
@@ -26,7 +29,7 @@
         </div>
     </div>
 
-    <!-- FILTERS -->
+     <!-- ================ FILTER FORM (NAME, COURSE, BATCH, ATTENDANCE %) ================ -->
     <form class="filter-card" method="get" id="filterForm">
 
         <div class="filter-grid">
@@ -34,7 +37,7 @@
             <div class="field">
                 <label><i class="bi bi-person"></i> Student Name</label>
                 <input type="text" name="name" id="studentNameFilter" placeholder="Search by name or ID.."
-                       class="filter-input" value="{{ filters.name }}">
+                    class="filter-input" value="{{ filters.name }}">
             </div>
 
             {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" %}
@@ -66,10 +69,12 @@
             <div class="field">
                 <label><i class="bi bi-percent"></i> Attendance %</label>
                 <input type="text" name="attendance" id="percentageFilter" placeholder="All Attendance"
-                       class="filter-input" value="{{ filters.attendance }}">
+                    class="filter-input" value="{{ filters.attendance }}">
             </div>
 
         </div>
+
+        <small id="filterGeneralError" class="field-error" style="color:red; display:none; margin-top:6px;"></small>
 
         <div class="filter-actions">
 
@@ -80,14 +85,14 @@
 
             <button type="submit" class="search-all-btn">
                 <i class="bi bi-search"></i>
-                Search 
+                Search
             </button>
 
         </div>
 
     </form>
 
-    <!-- STATS -->
+    <!-- ================ STAT CARDS (CRITICAL, WARNING, TOTAL) ================ -->
     <div class="stats-row">
 
         <div class="stat-card">
@@ -117,29 +122,31 @@
             </div>
         </div>
 
-        
+
 
     </div>
 
-    <!-- CRITICAL ALERTS -->
+    <!-- ================ CRITICAL ALERTS SECTION (BELOW 60%) ================ -->
     <div class="alert-section critical-section" id="criticalSection">
 
+        <!-- ================ CRITICAL SECTION HEADER (SMS/EMAIL/EXPORT ACTIONS) ================ -->
         <div class="alert-section-header">
 
             <div class="alert-title-group critical-text">
-                <h3><i class="bi bi-exclamation-triangle-fill"></i> Critical Alerts ({{ critical_students|length }})</h3>
+                <h3><i class="bi bi-exclamation-triangle-fill"></i> Critical Alerts ({{ critical_students|length }})
+                </h3>
                 <span class="range-pill critical">Below 60%</span>
             </div>
 
             <div class="alert-section-actions">
 
                 <button type="button" class="action-pill-btn btn-critical"
-                        onclick="sendSectionNotification('criticalSection', 'sms')">
+                    onclick="sendSectionNotification('criticalSection', 'sms')">
                     <i class="bi bi-chat-left-text-fill"></i> Send SMS
                 </button>
 
                 <button type="button" class="action-pill-btn btn-critical"
-                        onclick="sendSectionNotification('criticalSection', 'email')">
+                    onclick="sendSectionNotification('criticalSection', 'email')">
                     <i class="bi bi-envelope-fill"></i> Send Email
                 </button>
 
@@ -148,10 +155,9 @@
                 </button>
 
                 <div class="export-menu">
-                    <a href="{% url 'low_attendance_export' %}?type=critical"
-                    class="dropdown-item">
-                    <i class="bi bi-file-earmark-excel"></i>
-                    Export Excel
+                    <a href="{% url 'low_attendance_export' %}?type=critical" class="dropdown-item">
+                        <i class="bi bi-file-earmark-excel"></i>
+                        Export Excel
                     </a>
                 </div>
 
@@ -159,11 +165,13 @@
 
         </div>
 
+        <!-- ================ CRITICAL - SELECT ALL ROW ================ -->
         <div class="select-all-row critical">
             <input type="checkbox" class="select-all-checkbox" data-target="criticalSection">
             <span>Select All ({{ critical_students|length }} students)</span>
         </div>
 
+        <!-- ================ CRITICAL STUDENTS TABLE ================ -->
         <div class="table-scroll">
             <table class="alert-table">
                 <thead>
@@ -179,6 +187,8 @@
                     </tr>
                 </thead>
                 <tbody>
+
+                    <!-- ================ CRITICAL - TABLE ROW PER STUDENT ================ -->
                     {% for student in critical_students %}
                     <tr class="data-row">
                         <td><input type="checkbox" class="row-checkbox" data-id="{{ student.id }}"></td>
@@ -203,22 +213,27 @@
                         <td><span class="days-value">{{ student.total_absences }}</span></td>
                         <td>
                             <div class="row-actions">
-                                <a href="{% url 'send_sms_notification' student.id %}" class="icon-btn critical ajax-action-btn" data-type="sms">
+                                <a href="{% url 'send_sms_notification' student.id %}"
+                                    class="icon-btn critical ajax-action-btn" data-type="sms">
                                     <i class="bi bi-chat-left-text-fill"></i>
                                 </a>
-                                <a href="{% url 'send_low_attendance_email' student.id %}" class="icon-btn critical ajax-action-btn" data-type="email">
+                                <a href="{% url 'send_low_attendance_email' student.id %}"
+                                    class="icon-btn critical ajax-action-btn" data-type="email">
                                     <i class="bi bi-envelope-fill"></i>
                                 </a>
                             </div>
                         </td>
                     </tr>
                     {% empty %}
-                    <tr class="empty-row"><td colspan="8">No Critical Alerts Found</td></tr>
+                    <tr class="empty-row">
+                        <td colspan="8">No Critical Alerts Found</td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
 
+        <!-- ================ CRITICAL - TABLE FOOTER (COUNT + PAGER) ================ -->
         <div class="table-footer">
             <span class="footer-count"></span>
             <div class="pager"></div>
@@ -226,9 +241,10 @@
 
     </div>
 
-    <!-- WARNING ALERTS -->
+    <!-- ================ WARNING ALERTS SECTION (60% - 75%) ================ -->
     <div class="alert-section warning-section" id="warningSection">
 
+         <!-- ================ WARNING SECTION HEADER (SMS/EMAIL/EXPORT ACTIONS) ================ -->
         <div class="alert-section-header">
 
             <div class="alert-title-group warning-text">
@@ -239,12 +255,12 @@
             <div class="alert-section-actions">
 
                 <button type="button" class="action-pill-btn btn-warning"
-                        onclick="sendSectionNotification('warningSection', 'sms')">
+                    onclick="sendSectionNotification('warningSection', 'sms')">
                     <i class="bi bi-chat-left-text-fill"></i> Send SMS
                 </button>
 
                 <button type="button" class="action-pill-btn btn-warning"
-                        onclick="sendSectionNotification('warningSection', 'email')">
+                    onclick="sendSectionNotification('warningSection', 'email')">
                     <i class="bi bi-envelope-fill"></i> Send Email
                 </button>
 
@@ -253,22 +269,23 @@
                 </button>
 
                 <div class="export-menu">
-    <a href="{% url 'low_attendance_export' %}?type=warning"
-       class="dropdown-item">
-        <i class="bi bi-file-earmark-excel"></i>
-        Export Excel
-    </a>
-</div>
+                    <a href="{% url 'low_attendance_export' %}?type=warning" class="dropdown-item">
+                        <i class="bi bi-file-earmark-excel"></i>
+                        Export Excel
+                    </a>
+                </div>
 
             </div>
 
         </div>
 
+        <!-- ================ WARNING - SELECT ALL ROW ================ -->
         <div class="select-all-row warning">
             <input type="checkbox" class="select-all-checkbox" data-target="warningSection">
             <span>Select All ({{ warning_students|length }} students)</span>
         </div>
 
+        <!-- ================ WARNING STUDENTS TABLE ================ -->
         <div class="table-scroll">
             <table class="alert-table">
                 <thead>
@@ -284,6 +301,8 @@
                     </tr>
                 </thead>
                 <tbody>
+
+                    <!-- ================ WARNING - TABLE ROW PER STUDENT ================ -->
                     {% for student in warning_students %}
                     <tr class="data-row">
                         <td><input type="checkbox" class="row-checkbox" data-id="{{ student.id }}"></td>
@@ -308,22 +327,27 @@
                         <td><span class="days-value">{{ student.total_absences }}</span></td>
                         <td>
                             <div class="row-actions">
-                                <a href="{% url 'send_sms_notification' student.id %}" class="icon-btn warning ajax-action-btn" data-type="sms">
+                                <a href="{% url 'send_sms_notification' student.id %}"
+                                    class="icon-btn warning ajax-action-btn" data-type="sms">
                                     <i class="bi bi-chat-left-text-fill"></i>
                                 </a>
-                                <a href="{% url 'send_low_attendance_email' student.id %}" class="icon-btn warning ajax-action-btn" data-type="email">
+                                <a href="{% url 'send_low_attendance_email' student.id %}"
+                                    class="icon-btn warning ajax-action-btn" data-type="email">
                                     <i class="bi bi-envelope-fill"></i>
                                 </a>
                             </div>
                         </td>
                     </tr>
                     {% empty %}
-                    <tr class="empty-row"><td colspan="8">No Warning Alerts Found</td></tr>
+                    <tr class="empty-row">
+                        <td colspan="8">No Warning Alerts Found</td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
 
+        <!-- ================ WARNING - TABLE FOOTER (COUNT + PAGER) ================ -->
         <div class="table-footer">
             <span class="footer-count"></span>
             <div class="pager"></div>
@@ -331,64 +355,43 @@
 
     </div>
 
-    <!-- BULK NOTIFICATION -->
+    <!-- ================ BULK NOTIFICATION CARD (SMS/EMAIL/MONTHLY REPORT TO ALL) ================ -->
 
-<div class="bulk-notification-card">
+    <div class="bulk-notification-card">
 
-    <div class="bulk-top">
-
-        <div>
-
-            <h4>
-
-                Bulk Notifications
-
-            </h4>
+        <div class="bulk-top">
+            <div>
+                <h4>
+                    Bulk Notifications
+                </h4>
+            </div>
+            <p>
+                Send SMS / Email to all alert students
+            </p>
 
         </div>
 
-        <p>
 
-            Send SMS / Email to all alert students
+        <div class="bulk-buttons">
+            <button class="btn bulk-sms-btn" onclick="sendSMSAll()">
+                <i class="bi bi-chat-left-text-fill"></i>
+                Send SMS To All
+            </button>
+            <button class="btn bulk-email-btn" onclick="sendEmailAll()">
+                <i class="bi bi-envelope-fill"></i>
+                Send Email To All
+            </button>
 
-        </p>
+            <button class="btn bulk-report-btn" onclick="sendMonthlyReport()">
+                <i class="bi bi-file-earmark-text-fill"></i>
+                Send Monthly Report
+            </button>
 
-    </div>
-
-
-    <div class="bulk-buttons">
-
-        <button class="btn bulk-sms-btn" onclick="sendSMSAll()">
-
-            <i class="bi bi-chat-left-text-fill"></i>
-
-            Send SMS To All
-
-        </button>
-
-        <button class="btn bulk-email-btn" onclick="sendEmailAll()">
-
-            <i class="bi bi-envelope-fill"></i>
-
-            Send Email To All
-
-        </button>
-
-        <button class="btn bulk-report-btn" onclick="sendMonthlyReport()">
-
-            <i class="bi bi-file-earmark-text-fill"></i>
-
-            Send Monthly Report
-
-        </button>
+        </div>
 
     </div>
 
-</div>
-
-
-
-    <!-- NOTE -->
+    <!-- ================ INFO NOTE (CRITICAL/WARNING EXPLANATION) ================ -->
     <div class="note-box">
         <i class="bi bi-info-circle-fill"></i>
         <div>
@@ -402,6 +405,6 @@
 {% endblock %}
 
 {% block extra_js %}
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="{% static 'js/attendance_js/low_attendance.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{% static 'js/attendance_js/low_attendance.js' %}"></script>
 {% endblock %}

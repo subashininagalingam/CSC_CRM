@@ -1,16 +1,7 @@
-// ===================== ROLE ACCESS =====================
-const userRole = "{{ request.user.staff_profile.role.role_name|escapejs }}";
-
-const canManageBatch = [
-    "Admin",
-    "Manager"
-].includes(userRole);
-
-
 // JS for the Batches page: create/edit batch modal, client-side
 // filtering + pagination of the batch cards, and toast notifications.
 
-// CSRF helper
+//================ CSRF TOKEN HELPER (READ FROM COOKIE) ==================//
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -26,15 +17,36 @@ function getCookie(name) {
     return cookieValue;
 }
 
-// ===================== EDIT MODE STATE =====================
+//================ EDIT MODE STATE + FIELD ERROR ID MAP ==================//
 let editingBatchId = null;
 
+// All batch-form field error span ids, keyed by the field name the
+// backend/DRF uses so server errors can be mapped straight to the
+// right span without touching markup elsewhere.
+const BATCH_FIELD_ERROR_IDS = {
+    batch_name: "batchNameError",
+    course: "courseError",
+    timing: "timingError",
+    start_time: "startTimeError",
+    end_time: "endTimeError",
+    start_date: "startDateError",
+    end_date: "endDateError",
+    trainer: "trainerError",
+};
+
+//================ CLEAR ALL BATCH FORM INLINE ERRORS ==================//
+function clearBatchFormErrors() {
+    Object.values(BATCH_FIELD_ERROR_IDS).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = "";
+    });
+}
+
+//================ RESET MODAL TO CREATE MODE ==================//
 function resetBatchModalToCreateMode() {
     editingBatchId = null;
     document.getElementById('batchForm').reset();
-    document.getElementById("startDateError").innerText = "";
-    document.getElementById("endDateError").innerText = "";
-    document.getElementById("trainerError").innerText = "";
+    clearBatchFormErrors();
 
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('id_start_date').setAttribute('min', today);
@@ -45,6 +57,7 @@ function resetBatchModalToCreateMode() {
     document.getElementById('batchSubmitBtn').innerHTML = '<i class="fa-solid fa-plus"></i> Create Batch';
 }
 
+//================ POPULATE FORM FOR EDIT MODE (FROM CACHED BATCH DATA) ==================//
 async function editBatch(batchId) {
 
     const batch = allBatches.find(b => b.id === batchId);
@@ -55,6 +68,8 @@ async function editBatch(batchId) {
     }
 
     editingBatchId = batchId;
+
+    clearBatchFormErrors();
 
     document.getElementById('id_start_date').removeAttribute('min');
     document.getElementById('id_end_date').removeAttribute('min');
@@ -75,54 +90,146 @@ async function editBatch(batchId) {
     new bootstrap.Modal(document.getElementById('batchModal')).show();
 }
 
+//================ VIEW BATCH DETAILS (PLACEHOLDER) ==================//
 function viewBatchDetails(batchId) {
     showToast(`Batch details page not built yet.`, 'error');
 }
 
-document.getElementById('batchForm')
-    .addEventListener('submit', async function (e) {
+//================ CLIENT-SIDE BATCH FORM VALIDATION (MIRRORS SERVER FIELDS) ==================//
+// Runs every client-side check for the batch form and paints inline
+// field errors (mirrors the same field names the DRF serializer uses,
+// so client + server errors land in the same spans).
+function validateBatchFormFields() {
 
-        e.preventDefault()
+    clearBatchFormErrors();
 
-        document.getElementById("startDateError").innerText = "";
-        document.getElementById("endDateError").innerText = "";
-        document.getElementById("trainerError").innerText = "";
+    const batchName = document.getElementById('id_batch_name').value.trim();
+    const course = document.getElementById('id_course').value;
+    const timing = document.getElementById('id_timing').value;
+    const startTime = document.getElementById('id_start_time').value;
+    const endTime = document.getElementById('id_end_time').value;
+    const startDate = document.getElementById('id_start_date').value;
+    const endDate = document.getElementById('id_end_date').value;
 
-        const startDate = document.getElementById('id_start_date').value;
-        const endDate = document.getElementById('id_end_date').value;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+    const start = new Date(startDate);
+    const end = new Date(endDate);
 
-        const start = new Date(startDate);
-        const end = new Date(endDate);
+    let hasError = false;
 
-        let hasError = false;
+    if (!batchName) {
+        document.getElementById("batchNameError").innerText =
+            "Batch name is required";
+        hasError = true;
+    } else if (batchName.length > 100) {
+        document.getElementById("batchNameError").innerText =
+            "Batch name cannot exceed 100 characters";
+        hasError = true;
+    }
 
-        if (!editingBatchId && start < today) {
-            document.getElementById("startDateError").innerText =
-                "Start cannot be a past date";
-            hasError = true;
-        }
+    if (!course) {
+        document.getElementById("courseError").innerText =
+            "Please select a course";
+        hasError = true;
+    }
 
+    if (!timing) {
+        document.getElementById("timingError").innerText =
+            "Please select a timing";
+        hasError = true;
+    }
+
+    if (!startTime) {
+        document.getElementById("startTimeError").innerText =
+            "Start time is required";
+        hasError = true;
+    }
+
+    if (!endTime) {
+        document.getElementById("endTimeError").innerText =
+            "End time is required";
+        hasError = true;
+    } else if (startTime && endTime <= startTime) {
+        document.getElementById("endTimeError").innerText =
+            "End time must be after start time";
+        hasError = true;
+    }
+
+    if (!startDate) {
+        document.getElementById("startDateError").innerText =
+            "Start date is required";
+        hasError = true;
+    } else if (!editingBatchId && start < today) {
+        document.getElementById("startDateError").innerText =
+            "Start cannot be a past date";
+        hasError = true;
+    }
+
+    if (!endDate) {
+        document.getElementById("endDateError").innerText =
+            "End date is required";
+        hasError = true;
+    } else {
         if (end <= today) {
             document.getElementById("endDateError").innerText =
                 "End date must be a future date";
             hasError = true;
         }
 
-        if (end < start) {
+        if (startDate && end < start) {
             document.getElementById("endDateError").innerText =
                 "End date must be greater than start date";
             hasError = true;
         }
+    }
 
-        if (hasError) {
+    return !hasError;
+}
+
+//================ MAP DRF SERVER ERRORS ONTO INLINE FIELD SPANS ==================//
+// Maps a DRF error payload (field -> [messages]) onto the matching
+// inline error span. Anything that isn't a recognised field (e.g.
+// non_field_errors, detail) falls back to a toast so it's never lost.
+function applyBatchServerErrors(error) {
+
+    let mapped = false;
+
+    Object.keys(error || {}).forEach(key => {
+
+        const spanId = BATCH_FIELD_ERROR_IDS[key];
+        const messages = error[key];
+        const message = Array.isArray(messages) ? messages[0] : messages;
+
+        if (spanId && message) {
+            const el = document.getElementById(spanId);
+            if (el) {
+                el.innerText = message;
+                mapped = true;
+            }
+        }
+    });
+
+    if (!mapped) {
+        const fallback =
+            error && (error.detail || error.non_field_errors?.[0]);
+        showToast(fallback || 'Please check the form for errors', 'error');
+    }
+}
+
+//================ BATCH FORM SUBMIT (CREATE/UPDATE VIA API) ==================//
+document.getElementById('batchForm')
+    .addEventListener('submit', async function (e) {
+
+        e.preventDefault()
+
+        if (!validateBatchFormFields()) {
             return;
         }
 
         const payload = JSON.stringify({
-            batch_name: document.getElementById('id_batch_name').value,
+            batch_name: document.getElementById('id_batch_name').value.trim(),
             course: document.getElementById('id_course').value,
             timing: document.getElementById('id_timing').value,
             start_time: document.getElementById('id_start_time').value,
@@ -138,49 +245,64 @@ document.getElementById('batchForm')
 
         const method = editingBatchId ? 'PATCH' : 'POST';
 
-        const res = await fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: payload
-        })
+        const submitBtn = document.getElementById('batchSubmitBtn');
+        const originalBtnHtml = submitBtn ? submitBtn.innerHTML : null;
 
-        if (res.ok) {
-
-            bootstrap.Modal
-                .getInstance(document.getElementById('batchModal'))
-                .hide()
-
-            const wasEditing = !!editingBatchId;
-
-            resetBatchModalToCreateMode()
-
-            fetchAllBatches()
-
-            showToast(wasEditing ? 'Batch Updated Successfully' : 'Batch Created Successfully', 'success')
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = editingBatchId
+                ? '<i class="fa-solid fa-spinner fa-spin"></i> Updating...'
+                : '<i class="fa-solid fa-spinner fa-spin"></i> Creating...';
         }
-        else {
-            try {
-                const error = await res.json();
-                console.log("SERVER ERROR:", error);
 
-                if (error.trainer) {
-                    document.getElementById("trainerError").innerText =
-                        error.trainer[0];
-                } else {
-                    showToast('Please check the form for errors', 'error');
+        try {
+
+            const res = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: payload
+            })
+
+            if (res.ok) {
+
+                bootstrap.Modal
+                    .getInstance(document.getElementById('batchModal'))
+                    .hide()
+
+                const wasEditing = !!editingBatchId;
+
+                resetBatchModalToCreateMode()
+
+                fetchAllBatches()
+
+                showToast(wasEditing ? 'Batch Updated Successfully' : 'Batch Created Successfully', 'success')
+            }
+            else {
+                try {
+                    const error = await res.json();
+                    console.log("SERVER ERROR:", error);
+                    applyBatchServerErrors(error);
+                } catch {
+                    const error = await res.text();
+                    console.log("SERVER ERROR:", error);
+                    showToast('Something went wrong. Please try again.', 'error');
                 }
-            } catch {
-                const error = await res.text();
-                console.log("SERVER ERROR:", error);
-                showToast('Something went wrong. Please try again.', 'error');
+            }
+        } catch (err) {
+            console.log("NETWORK ERROR:", err);
+            showToast('Unable to reach the server. Please try again.', 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHtml;
             }
         }
     })
 
-
+//================ TIME FORMAT HELPER (24H -> 12H DISPLAY) ==================//
 function formatTime(timeStr) {
     const date = new Date(`1970-01-01T${timeStr}`);
     return date.toLocaleTimeString('en-US', {
@@ -191,6 +313,8 @@ function formatTime(timeStr) {
 }
 
 // ===================== STATE (client-side filter + pagination) =====================
+
+//================ CLIENT-SIDE STATE (ALL BATCHES, PAGE, PAGE SIZE) ==================//
 let allBatches = [];
 let currentPage = 1;
 let pageSize = 10;
@@ -203,6 +327,7 @@ const STATUS_CLASS_MAP = {
     'Cancelled': 'cancelled'
 };
 
+//================ FETCH ALL BATCHES FROM API ==================//
 // Fetches ALL batches once from the same existing endpoint (no backend change)
 // Handles both plain-array responses AND DRF paginated responses ({results: [...]})
 async function fetchAllBatches() {
@@ -219,6 +344,7 @@ async function fetchAllBatches() {
     applyFiltersAndRender()
 }
 
+//================ POPULATE COURSE/TRAINER/TIMING FILTER DROPDOWNS ==================//
 function populateFilterOptions() {
 
     const courseSelect = document.getElementById('filterCourse');
@@ -239,6 +365,7 @@ function populateFilterOptions() {
         timings.map(t => `<option value="${t}">${t}</option>`).join('');
 }
 
+//================ APPLY FILTERS + PAGINATION + RENDER ==================//
 function applyFiltersAndRender() {
 
     const search = document.getElementById('searchInput').value.trim().toLowerCase();
@@ -277,6 +404,8 @@ function applyFiltersAndRender() {
 }
 
 // ===================== RESET BUTTON ===================
+
+//================ RESET ALL FILTERS ==================//
 document.getElementById("btnReset").addEventListener("click", () => {
 
     document.getElementById("filterCourse").value = "";
@@ -288,6 +417,8 @@ document.getElementById("btnReset").addEventListener("click", () => {
     currentPage = 1;
     applyFiltersAndRender();
 });
+
+//================ RENDER TOP STAT CARDS (STUDENTS, MARKED, ABSENT, NEW THIS MONTH) ==================//
 function renderStats(filtered) {
 
     let totalStudents = 0;
@@ -333,6 +464,7 @@ function renderStats(filtered) {
         batchesThisMonth > 0 ? `+${batchesThisMonth} this month` : 'No new batches this month';
 }
 
+//================ RENDER BATCH CARDS (CURRENT PAGE) ==================//
 function renderBatches(filtered) {
 
     const container = document.getElementById('batchContainer');
@@ -399,27 +531,18 @@ function renderBatches(filtered) {
                     <button class="btn-view" onclick="window.location.href='/api/batch-preview/${batch.id}/'">
                         <i class="fa-regular fa-eye"></i> View
                     </button>
-
-                   ${isUpcoming
-    ? `<button class="btn-attendance" disabled>Upcoming</button>`
-
-    : (isCompleted || isCancelled)
-        ? `<button class="btn-attendance" disabled>${statusLabel}</button>`
-
-        : canManageBatch
-            ? `<button class="btn-attendance"
-                onclick="window.location.href='/api/mark-attendance/${batch.id}/'">
-                ${batch.is_marked ? 'Update' : 'Mark'}
-              </button>`
-            : ''
-}
-
-${canManageBatch
-    ? `<button class="btn-edit" onclick="editBatch(${batch.id})">
-           <i class="fa-solid fa-pen"></i> Edit
+                    ${isUpcoming
+                ? `<button class="btn-attendance" disabled>Upcoming</button>`
+                : (isCompleted || isCancelled)
+                    ? `<button class="btn-attendance" disabled>${statusLabel}</button>`
+                    : `<button class="btn-attendance"
+        onclick="window.location.href='/api/mark-attendance/${batch.id}/'">
+        ${batch.is_marked ? 'Update' : 'Mark'}
        </button>`
-    : ''
-}
+            }
+                    <button class="btn-edit" onclick="editBatch(${batch.id})">
+                        <i class="fa-solid fa-pen"></i> Edit
+                    </button>
                 </div>
 
             </div>
@@ -428,6 +551,7 @@ ${canManageBatch
     })
 }
 
+//================ RENDER PAGINATION CONTROLS ==================//
 function renderPagination(totalItems) {
 
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -452,11 +576,13 @@ function renderPagination(totalItems) {
     document.getElementById('nextPage').disabled = currentPage === totalPages;
 }
 
+//================ PAGE NAVIGATION HELPER ==================//
 function goToPage(page) {
     currentPage = page;
     applyFiltersAndRender();
 }
 
+//================ PAGINATION BUTTON LISTENERS (PREV/NEXT/PAGE SIZE) ==================//
 document.getElementById('prevPage').addEventListener('click', () => {
     if (currentPage > 1) {
         currentPage--;
@@ -475,11 +601,13 @@ document.getElementById('pageSizeSelect').addEventListener('change', function ()
     applyFiltersAndRender();
 });
 
+//================ SEARCH INPUT LISTENER ==================//
 document.getElementById('searchInput').addEventListener('input', () => {
     currentPage = 1;
     applyFiltersAndRender();
 });
 
+//================ FILTER DROPDOWN LISTENERS ==================//
 ['filterCourse', 'filterTrainer', 'filterTiming', 'filterStatus'].forEach(id => {
     document.getElementById(id).addEventListener('change', () => {
         currentPage = 1;
@@ -487,6 +615,7 @@ document.getElementById('searchInput').addEventListener('input', () => {
     });
 });
 
+//================ MARK ATTENDANCE (NOTE: attendanceData/res NOT DEFINED IN SCOPE - PRE-EXISTING BUG) ==================//
 async function markAttendance(enrollment, batchId, status, remarks) {
 
     for (let data of attendanceData) {
@@ -521,8 +650,10 @@ async function markAttendance(enrollment, batchId, status, remarks) {
     }
 }
 
+//================ INITIAL LOAD ==================//
 fetchAllBatches()
 
+//================ DATE PICKER + BATCH FORM LIVE FIELD VALIDATION ==================//
 document.addEventListener("DOMContentLoaded", function () {
 
     const today = new Date().toISOString().split('T')[0];
@@ -573,11 +704,77 @@ document.addEventListener("DOMContentLoaded", function () {
     startDate.addEventListener("change", validateDates);
     endDate.addEventListener("change", validateDates);
 
+    // Live per-field feedback for the remaining required batch fields,
+    // clearing each field's own error as soon as it becomes valid.
+    const batchNameInput = document.getElementById("id_batch_name");
+    const courseInput = document.getElementById("id_course");
+    const timingInput = document.getElementById("id_timing");
+    const startTimeInput = document.getElementById("id_start_time");
+    const endTimeInput = document.getElementById("id_end_time");
+
+    if (batchNameInput) {
+        batchNameInput.addEventListener("input", () => {
+            const el = document.getElementById("batchNameError");
+            if (!el) return;
+            const value = batchNameInput.value.trim();
+            if (!value) {
+                el.innerText = "Batch name is required";
+            } else if (value.length > 100) {
+                el.innerText = "Batch name cannot exceed 100 characters";
+            } else {
+                el.innerText = "";
+            }
+        });
+    }
+
+    if (courseInput) {
+        courseInput.addEventListener("change", () => {
+            const el = document.getElementById("courseError");
+            if (el) el.innerText = courseInput.value ? "" : "Please select a course";
+        });
+    }
+
+    if (timingInput) {
+        timingInput.addEventListener("change", () => {
+            const el = document.getElementById("timingError");
+            if (el) el.innerText = timingInput.value ? "" : "Please select a timing";
+        });
+    }
+
+    function validateTimes() {
+        const startEl = document.getElementById("startTimeError");
+        const endEl = document.getElementById("endTimeError");
+
+        if (startEl) {
+            startEl.innerText = startTimeInput.value ? "" : "Start time is required";
+        }
+
+        if (endEl) {
+            if (!endTimeInput.value) {
+                endEl.innerText = "End time is required";
+            } else if (startTimeInput.value && endTimeInput.value <= startTimeInput.value) {
+                endEl.innerText = "End time must be after start time";
+            } else {
+                endEl.innerText = "";
+            }
+        }
+    }
+
+    if (startTimeInput) {
+        startTimeInput.addEventListener("change", validateTimes);
+        startTimeInput.addEventListener("input", validateTimes);
+    }
+
+    if (endTimeInput) {
+        endTimeInput.addEventListener("change", validateTimes);
+        endTimeInput.addEventListener("input", validateTimes);
+    }
+
     document.querySelector('.btn-new-batch').addEventListener('click', resetBatchModalToCreateMode);
     document.getElementById('batchModal').addEventListener('hidden.bs.modal', resetBatchModalToCreateMode);
 });
 
-
+//================ AUTO-CALCULATE END DATE FROM COURSE DURATION ==================//
 async function autoCalculateEndDate() {
 
     const courseId = document.getElementById("id_course").value;
@@ -609,6 +806,8 @@ document.getElementById("id_start_date")
 
 
 // ===================== TOAST HELPER =====================
+
+//================ TOAST NOTIFICATION HELPER ==================//
 const TOAST_ICONS = {
     success: "fa-check",
     error: "fa-times",

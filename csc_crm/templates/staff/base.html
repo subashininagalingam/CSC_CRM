@@ -85,12 +85,15 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 </a>
 
 
+{% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" or request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Marketing Lead" %}
 <a href="{% url 'staff_management' %}"
    class="{% if request.resolver_match.url_name == 'staff_management' %}active{% endif %}">
    Staff Management
 </a>
+{% endif %}
 
-<a href="#"
+
+<a href="{% url 'staff_profile' staff_id=request.user.staff_profile.id %}"
    class="{% if request.resolver_match.url_name == 'staff_profile' %}active{% endif %}">
    Staff Profile
 </a>
