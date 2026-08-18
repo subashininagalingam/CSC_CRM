@@ -262,6 +262,55 @@ function openEditModal()  { document.getElementById('editModal').classList.add('
 function closeEditModal() { document.getElementById('editModal').classList.remove('open'); }
 document.getElementById('editModal').addEventListener('click', function(e){ if(e.target===this) closeEditModal(); });
 {% if form.errors %}openEditModal();{% endif %}
+
+// Real-time validation
+document.addEventListener('DOMContentLoaded', function() {
+    const phoneInput = document.querySelector('input[name="phone"]');
+    const emailInput = document.querySelector('input[name="email"]');
+
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function() {
+            const value = phoneInput.value;
+            const phoneRegex = /^\+91\d{10}$/;
+            let errorDiv = document.getElementById('phone-error');
+
+            if (!errorDiv) {
+                errorDiv = document.createElement('div');
+                errorDiv.id = 'phone-error';
+                errorDiv.style.color = 'red';
+                errorDiv.style.fontSize = '12px';
+                phoneInput.parentNode.appendChild(errorDiv);
+            }
+
+            if (value && !phoneRegex.test(value)) {
+                errorDiv.textContent = 'Phone number should start with +91 and contain a valid 10-digit Indian mobile number.';
+            } else {
+                errorDiv.textContent = '';
+            }
+        });
+    }
+
+    if (emailInput) {
+        emailInput.addEventListener('input', function() { const value = emailInput.value;
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            let errorDiv = document.getElementById('email-error');
+
+            if (!errorDiv) {
+                errorDiv = document.createElement('div');
+                errorDiv.id = 'email-error';
+                errorDiv.style.color = 'red';
+                errorDiv.style.fontSize = '12px';
+                emailInput.parentNode.appendChild(errorDiv);
+            }
+
+            if (value && !emailRegex.test(value)) {
+                errorDiv.textContent = 'Enter a valid email address.';
+            } else {
+                errorDiv.textContent = '';
+            }
+        });
+    }
+});
 </script>
 {% endblock %}
 {% endblock %}

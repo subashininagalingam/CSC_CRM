@@ -39,6 +39,14 @@ class LeadCaptureForm(forms.ModelForm):
             status='active'
         )
 
+def clean_phone_no(self):
+        phone = self.cleaned_data.get('phone_no')
+        if phone:
+            if not phone.startswith('+91') or not phone[3:].isdigit() or len(phone[3:]) != 10:
+                raise forms.ValidationError('Phone number should start with +91 and contain a valid 10-digit Indian mobile number.')
+        return phone
+
+
 # Call-log form
 class CallLogForm(forms.ModelForm):
     class Meta:

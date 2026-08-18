@@ -1,178 +1,237 @@
- // Error Message for Phone no //
+document.addEventListener('DOMContentLoaded', function () {
+    // DOM Elements
+    const form = document.getElementById('leadForm') || document.querySelector('form');
     const phoneInput = document.getElementById('phone_no');
     const phoneError = document.getElementById('phoneError');
-    const form = document.getElementById('leadForm');
-    const duplicateEmailError = document.getElementById('emailError');
-    const duplicatePhoneError = document.getElementById('phoneError');
+    const emailInput = document.getElementById('email');
+    const emailError = document.getElementById('emailError');
     const submitBtn = document.getElementById('submit-btn');
+    
     const leadId = document.getElementById('leadId')?.value || '';
     const leadNameInput = document.getElementById('id_lead_name');
-    const initialFormData = new FormData(form);
-    
+    const initialFormData = form ? new FormData(form) : null;
 
-    // Lead name validation
-    leadNameInput.addEventListener('input', function(){
-        this.value = this.value.replace(/[^a-zA-Z\s]/g, '');
-    })
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    const strictPhoneRegex = /^\+91\d{10}$/;
 
-    phoneInput.addEventListener('input', function() {
-        let value = this.value.replace(/\D/g, '');
+    // Lead name validation (Only letters and spaces)
+    if (leadNameInput) {
+        leadNameInput.addEventListener('input', function () {
+            this.value = this.value.replace(/[^a-zA-Z\s]/g, '');
+        });
+    }
 
-        if (value.length > 12){
-            phoneError.innerText = "Maximum 12 digits only!";
+    // Email validation function
+    function validateEmail() {
+        if (!emailInput) return true;
+
+        const val = emailInput.value.trim().toLowerCase();
+
+        if (!val) {
+            emailError.innerText = "Email is required.";
+            return false;
         }
-        else if (value.length < 10){
-            phoneError.innerText = "Minimum 10 digits required"
-        }
-        else{
-            phoneError.innerText = "";
-        }
-        this.value = value.slice(0, 12)
-    });
 
-    form.addEventListener('submit', function(e){
-        let value = phoneInput.value
-
-        if (value.length < 10 || value.length > 12){
-            e.preventDefault()
-            phoneError.innerText = "Enter valid phone number"
+        if (!emailPattern.test(val)) {
+            emailError.innerText = "Please enter a valid email address.";
+            return false;
         }
-    });
-
-    form.addEventListener('submit', (event)=>{
-        let email = document.getElementById('email').value;
-        let emailError = document.getElementById('emailError');
 
         emailError.innerText = "";
-        let pattern = /^[^ ]+@[^ ]+\.[a-z]{2,3}$/;
+        return true;
+    }
 
-        if(email === ""){
-            emailError.innerText = "Email is required";
-            event.preventDefault();
+    // Check duplicate email via API
+    async function duplicateEmail() {
+        if (!emailInput || !validateEmail()) {
+            return false;
         }
-        else if(!pattern.test(email)) {
-            emailError.innerText = "Enter a valid email";
-            event.preventDefault();
+
+        const current = emailInput.value.trim();
+
+        try {
+            const response = await fetch(`/staff/check-email/?email=${encodeURIComponent(current)}`);
+            const data = await response.json();
+
+            if (data.exists) {
+                emailError.innerText = "This email already exists!";
+                return false;
+            }
+
+            emailError.innerText = "";
+            return true;
+
+        } catch (e) {
+            console.error(e);
+            return true;
         }
-    })
+    }
 
-    // Clear button to clear the input fields
+    // Phone input live validation
+    if (phoneInput && phoneError) {
+        phoneInput.addEventListener('input', function () {
+            let value = this.value;
 
-    function clearForm(){
+            if (value.length > 0 && !value.startsWith('+91')) {
+                phoneError.innerText = "Phone number must start with +91";
+            } else if (value.length > 13) {
+                phoneError.innerText = "Maximum 13 characters allowed!";
+            } else {
+                phoneError.innerText = "";
+            }
+        });
+    }
 
-    document.getElementById('leadForm').reset();
+    // Email live input listener
+    if (emailInput) {
+        emailInput.addEventListener("input", async function () {
+            if (validateEmail()) {
+                await duplicateEmail();
+            }
+            toggleSubmitButton();
+        });
+    }
 
-    // Clear error messages
-    phoneError.innerText = "";
-    duplicatePhoneError.innerText = "";
-    duplicateEmailError.innerText = "";
+    // Form submission validation
+    if (form) {
+        form.addEventListener('submit', async function (e) {
+            let phoneVal = phoneInput ? phoneInput.value.trim() : "";
 
-    // Remove borders
-    document.getElementById('phone_no').style.border = "";
-    document.getElementById('email').style.border = "";
+            if (phoneVal.length > 0 && !strictPhoneRegex.test(phoneVal)) {
+                e.preventDefault();
+                if (phoneError) {
+                    phoneError.innerText = "Phone number should start with +91 and contain a valid 10-digit number.";
+                }
+            }
 
+            let isEmailValid = await duplicateEmail();
+            if (!isEmailValid) {
+                e.preventDefault();
+            }
+        });
+    }
 
+    // Check form changes for edit page state
+    function hasFormChanged() {
+        if (!initialFormData || !form) return true;
+        const currentFormData = new FormData(form);
 
-    // Re-check button state
-    toggleSubmitButton();
-}
-    // Shows Calender when click the enquiry field //
+        for (let [key, value] of initialFormData.entries()) {
+            if (currentFormData.get(key) !== value) {
+                return true;
+            }
+        }
+        return false;
+    }
 
-    document.getElementById("enquiryDate").addEventListener("click", function() {
-    this.showPicker();
-    });
+    // Enable/Disable Submit Button
+    window.toggleSubmitButton = function () {
+        if (!submitBtn) return;
 
-    // Shows Calender when click the Next_followup field //
-
-    document.getElementById('nextFollowUpDate').addEventListener("click", function(){
-        this.showPicker();
-    })
-
-    // Disable and enable Save lead Button
-
-    function toggleSubmitButton(){
         const hasDuplicate = 
-        duplicateEmailError.innerText !== "" ||
-        duplicatePhoneError.innerText !== "";
+            (emailError && emailError.innerText !== "") ||
+            (phoneError && phoneError.innerText !== "");
 
         const changed = hasFormChanged();
 
-        if(hasDuplicate || !changed){
+        if (hasDuplicate || !changed) {
             submitBtn.disabled = true;
             submitBtn.style.opacity = "0.6";
             submitBtn.style.cursor = "not-allowed";
-        }
-        else {
+        } else {
             submitBtn.disabled = false;
             submitBtn.style.opacity = "1";
             submitBtn.style.cursor = "pointer";
         }
-    }
+    };
 
-    // For Submit btn disable when the field has existing value in edit page
-    function hasFormChanged(){
-        const currentFormData = new FormData(form);
+    // Check lead exists (email / phone backend validation)
+    window.checkLeadExists = async function (field, value) {
+        if (!value.trim()) return;
 
-        for(let [key, value] of initialFormData.entries()){
-            if(currentFormData.get(key) !== value){
-                return true;
-            }
-        }
-        return false
-    }
-
-    async function checkLeadExists(field, value){
-
-        if(!value.trim()) return;
-
-        try{
+        try {
             const response = await fetch(`/leads/check-lead/?${field}=${encodeURIComponent(value)}&lead_id=${leadId}`);
+            const data = await response.json();
 
-            const data = await response.json()
-
-            // Email Duplicate Check
-            if(field === 'email'){
-
-                if(data.email_exists){
-                    duplicateEmailError.innerText = "This email already exists";
-                    document.getElementById('email').style.border = "1px solid red"
-                }
-                else{
-                    duplicateEmailError.innerText = ""
-                    document.getElementById('email').style.border = "";
+            if (field === 'email' && emailError) {
+                if (data.email_exists) {
+                    emailError.innerText = "This email already exists";
+                    emailInput.style.border = "1px solid red";
+                } else {
+                    emailError.innerText = "";
+                    emailInput.style.border = "";
                 }
             }
 
-            if(field === 'phone'){
-
-                if(data.phone_exists){
-                    duplicatePhoneError.innerText = "This number already exists";
-                    document.getElementById('phone_no').style.border = "1px solid red"
-                }
-                else{
-                    duplicatePhoneError.innerText = "";
-                    document.getElementById('phone_no').style.border = ""
+            if (field === 'phone' && phoneError) {
+                if (data.phone_exists) {
+                    phoneError.innerText = "This number already exists";
+                    phoneInput.style.border = "1px solid red";
+                } else {
+                    phoneError.innerText = "";
+                    phoneInput.style.border = "";
                 }
             }
 
-            // Enable/Disable Submit Button
             toggleSubmitButton();
+        } catch (error) {
+            console.log(error);
         }
-        catch(error){
-        console.log(error);
-        }
+    };
+
+    // Blur events for server-side duplicate checks
+    if (emailInput) {
+        emailInput.addEventListener('blur', function () {
+            checkLeadExists('email', this.value);
+        });
     }
 
-    // Trigger duplicate check
-    document.getElementById('email').addEventListener('blur', function(){
-    checkLeadExists('email', this.value);
-    });
+    if (phoneInput) {
+        phoneInput.addEventListener('blur', function () {
+            checkLeadExists('phone', this.value);
+        });
+    }
 
-    document.getElementById('phone_no').addEventListener('blur', function(){
-        checkLeadExists('phone', this.value);
-    });
+    if (form) {
+        form.addEventListener('input', toggleSubmitButton);
+    }
 
-    // This checks instantly when user edits.
-    form.addEventListener('input', toggleSubmitButton);
-    // This disables Save Lead initially on edit page
+    // Initial button state check
     toggleSubmitButton();
+});
+
+// Clear button function
+function clearForm() {
+    const form = document.getElementById('leadForm');
+    if (form) form.reset();
+
+    const phoneError = document.getElementById('phoneError');
+    const emailError = document.getElementById('emailError');
+    const phoneInput = document.getElementById('phone_no');
+    const emailInput = document.getElementById('email');
+
+    if (phoneError) phoneError.innerText = "";
+    if (emailError) emailError.innerText = "";
+
+    if (phoneInput) phoneInput.style.border = "";
+    if (emailInput) emailInput.style.border = "";
+
+    if (typeof toggleSubmitButton === 'function') {
+        toggleSubmitButton();
+    }
+}
+
+// Calendar pickers
+const enquiryDate = document.getElementById("enquiryDate");
+if (enquiryDate) {
+    enquiryDate.addEventListener("click", function () {
+        this.showPicker();
+    });
+}
+
+const nextFollowUpDate = document.getElementById('nextFollowUpDate');
+if (nextFollowUpDate) {
+    nextFollowUpDate.addEventListener("click", function () {
+        this.showPicker();
+    });
+}

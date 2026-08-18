@@ -658,4 +658,18 @@ class staffProfileForm(forms.ModelForm):
                 raise forms.ValidationError('This email is already in use.')
         return email
 
+        
+def clean_phone(self):
+        phone = self.cleaned_data.get('phone')
+        if phone:
+            if not phone.startswith('+91') or not phone[3:].isdigit() or len(phone[3:]) != 10:
+                raise forms.ValidationError('Phone number should start with +91 and contain a valid 10-digit Indian mobile number.')
+        return phone
+
+def clean_email(self):
+    email = self.cleaned_data.get('email')
+    if self.instance.pk:
+        if Staff.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError('This email is already in use.')
+    return email
 
