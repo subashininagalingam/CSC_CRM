@@ -29,7 +29,6 @@
         <a href="#" class="nav-tab-link {% if request.resolver_match.url_name == 'overview' %}active-nav-tab{% endif %}">Overview</a>
         <a href="{% url 'attendance' staff.id %}" class="nav-tab-link">Attendance</a>
         <a href="{% url 'staff_documents' staff.id %}" class="nav-tab-link">Documents</a>
-        <a href="#" class="nav-tab-link">Activity Logs</a>
         <a href="{% url 'staff_export' staff.id %}" class="nav-tab-link">Export</a>
     </nav>
 </div>

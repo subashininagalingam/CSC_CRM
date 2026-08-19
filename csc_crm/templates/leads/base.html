@@ -44,15 +44,21 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
     </div>
 
-    <!-- ==================== USER INFO ==================== -->
+       <!-- ==================== USER INFO ==================== -->
 
-{% if request.user.is_authenticated and request.user.staff_profile %}
+            {% if request.user.is_authenticated and request.user.staff_profile %}
 <div class="sidebar-user-main">
     <div class="sidebar-user">
 
+        {% if request.user.staff_profile.profile_photo %}
+        <div class="sidebar-user-avatar">
+            <img src="{{ request.user.staff_profile.profile_photo.url }}" alt="Profile" class="sidebar-user-avatar-img">
+        </div>
+        {% else %}
         <div class="sidebar-user-avatar">
             {{ request.user.staff_profile.get_initials }}
         </div>
+        {% endif %}
 
         <div class="sidebar-user-info">
             <p class="sidebar-user-name">
@@ -69,6 +75,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     </div>
 </div>
 {% endif %}
+
 
 </nav>
 

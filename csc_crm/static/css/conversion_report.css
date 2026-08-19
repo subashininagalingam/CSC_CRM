@@ -8,10 +8,10 @@
     margin-bottom: 20px;
   }
   .cr-header-left h2 {
-    font-size: 20px;
-    font-weight: 700;
-    color: #111827;
     margin: 0 0 2px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: rgb(2, 2, 122);
   }
   .cr-header-left p {
     font-size: 13px;

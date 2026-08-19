@@ -518,6 +518,7 @@
     font-weight: 600;
     text-decoration: none;
     transition: background 0.15s ease;
+    margin-right: 5px;
 }
 
 .pagination-link:hover {

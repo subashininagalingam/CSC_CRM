@@ -26,9 +26,9 @@
 }
 
 .dashboard-title {
-    margin: 0 0 6px 0;
-    font-size: 20px;
-    font-weight: 800;
+   font-size: 1.2rem;
+    font-weight: 700;
+    margin: 0;
     color: rgb(30, 42, 120);
 }
 
@@ -656,6 +656,74 @@
 
 .view-details-link:hover {
     text-decoration: underline;
+}
+
+.batch-card-footer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+}
+
+.batch-card-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.dash-batch-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    border: 1px solid transparent;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+}
+
+.dash-batch-btn i {
+    font-size: 13px;
+}
+
+/* View button - s*/
+.dash-batch-btn-view {
+    background: #f8f9fc;
+    color: #4b4c8f;
+    border: 1px solid #e2e3f5;
+}
+
+.dash-batch-btn-view:hover {
+    background: #eef0ff;
+    border-color: #c7c9f5;
+    color: #3730a3;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.15);
+}
+
+/* Mark button */
+.dash-batch-btn-mark {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    color: #ffffff;
+    
+}
+
+.dash-batch-btn-mark:hover {
+    background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(79, 70, 229, 0.45);
+    color: #ffffff;
+}
+
+.dash-batch-btn:active {
+    transform: translateY(0);
 }
 
 .no-batches {

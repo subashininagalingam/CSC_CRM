@@ -18,12 +18,24 @@
      --purple-bg:#ece9fb;
      --shadow:0 6px 18px rgba(38,33,112,0.06);
      --radius:14px;
+
      --status-new:#262170;
-     --status-contacted:#16a34a;
-     --status-interested:#f59e0b;
-     --status-demo:#2563eb;
-     --status-enrolled:#e11d48;
-     --status-lost:#4b5563;
+    --status-new-bg:#e9e8f7;
+
+    --status-contacted:#f59e0b;
+    --status-contacted-bg:#fef3c7;
+
+    --status-interested:#8b5cf6;
+    --status-interested-bg:#ede9fe;
+
+    --status-demo:#06b6d4;
+    --status-demo-bg:#cffafe;
+
+    --status-enrolled:#16a34a;
+    --status-enrolled-bg:#dcfce7;
+
+    --status-lost:#ef4444;
+    --status-lost-bg:#fee2e2;
 }
 
 /* PAGE WRAPPER */
@@ -57,18 +69,9 @@
     margin: 0 0 4px 0;
     position: relative;
     display: inline-block;
-    padding-bottom: 6px;
+    padding-bottom: 2px;
 }
-.page-title::after{
-    content:"";
-    position: absolute;
-    left:0;
-    bottom:0;
-    width: 34px;
-    height: 3px;
-    background: var(--secondary);
-    border-radius: 2px;
-}
+
 .page-subtitle{
     font-size: 12.5px;
     color: var(--muted);

@@ -266,6 +266,22 @@ footer{
     color: #94a3b8;
 }
 
+.sidebar-user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgb(63, 212, 85);
+}
+
+.sidebar-user-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
 
 .logo-box{
     width:38px;

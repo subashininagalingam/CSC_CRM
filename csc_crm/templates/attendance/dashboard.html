@@ -250,9 +250,25 @@ Student Attendance - Dashboard
                     <div class="batch-rate-bar-fill" style="width: {{ b.attendance_rate }}%;"></div>
                 </div>
 
-                <a href="{% url 'batch_preview' b.id %}" class="view-details-link">
-                    View Details <i class="fa-solid fa-arrow-right"></i>
-                </a>
+                <div class="batch-card-footer-row">
+                    <a href="{% url 'batch_preview' b.id %}" class="view-details-link">
+                        View Details <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                
+                    {% if request.user.staff_profile.role.role_name == "Trainer" %}
+                    <div class="batch-card-buttons">
+                        <a href="/api/batch-preview/{{ b.id }}/" class="dash-batch-btn dash-batch-btn-view">
+                            <i class="fa-regular fa-eye"></i> View
+                        </a>
+                        
+                        <a href="/api/mark-attendance/{{ b.id }}/" class="dash-batch-btn dash-batch-btn-mark">
+                            <i class="fa-solid fa-clipboard-check"></i> Mark
+                        </a>
+                        {% endif %}
+
+                    </div>
+                </div>
+            
             </div>
             {% empty %}
             <p class="no-batches">No batches with enrolled students yet.</p>

@@ -939,6 +939,7 @@
         {% endif %}
 
     </div>
+    
 
     <!-- ================== QUICK ACTIONS ===================== -->
 
@@ -970,6 +971,12 @@
                 <span><i class="fa-solid fa-user-group"></i>Search & Filter</span>
                 <i class="fa-solid fa-arrow-right"></i>
             </a>
+
+            <a href="{% url 'batches_page' %}" class="dash-action-btn action-indigo">
+    <span><i class="fa-solid fa-clipboard-check"></i> Mark Attendance</span>
+    <i class="fa-solid fa-arrow-right"></i>
+    
+</a>
             
             <a href="{% url 'attendance_history' %}" class="dash-action-btn action-indigo">
                 <span><i class="fa-solid fa-user-plus"></i> Attendance History</span>
@@ -1031,6 +1038,7 @@ window.onclick = function(e){
         window.location.href = "{% url 'staff_dashboard' %}";
     }
 }
+
 </script>
 {% endblock %}
 

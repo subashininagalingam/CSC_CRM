@@ -24,7 +24,14 @@ Student Attendance - Mark Attendance
     <div class="page-header">
 
         <div class="page-heading">
-            <div class="breadcrumb"><a href="{% url 'batches_page' %}">Batches</a> <span>›</span> Mark Attendance</div>
+            <div class="breadcrumb">
+
+                {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" %}<a href="{% url 'batches_page' %}">Batches</a> <span>›</span>
+                {% endif %}
+                 Mark Attendance
+                 
+            </div>
+                 
             <h2 class="page-title">Mark Attendance</h2>
             <p class="page-subtitle">{{ batch.course.course_name }} — {{ batch.batch_name }}</p>
         </div>
@@ -36,10 +43,18 @@ Student Attendance - Mark Attendance
                 <span>{% now "d M Y, l" %}</span>
                 <i class="fas fa-chevron-down chip-caret"></i>
             </div>
-
+           
+            {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" %}
             <a href="{% url 'batches_page' %}" class="btn btn-back">
                 Back
             </a>
+            {% endif %}
+
+            {% if request.user.staff_profile.role.role_name == "Trainer" %}
+            <a href="{% url 'dashboard' %}" class="btn btn-back">
+                Back
+            </a>
+            {% endif %}
 
             <button class="btn btn-submit" onclick="openAttendanceModal()">
                 <i class="fas fa-check"></i> Submit Attendance

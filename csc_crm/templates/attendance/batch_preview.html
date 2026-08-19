@@ -16,8 +16,12 @@
     <div class="bp-breadcrumb">
         <a href="{% url 'dashboard' %}">Attendance Module</a>
         <span>&gt;</span>
+
+        {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" %}
         <a href="{% url 'batches_page' %}">Batches</a>
         <span>&gt;</span>
+        {% endif %}
+        
         <span class="bp-breadcrumb-current">Batch Preview</span>
     </div>
 
@@ -26,9 +30,18 @@
         <h1 class="bp-title">Batch Preview</h1>
 
         <div class="bp-header-actions">
+
+            {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" %}
             <a href="{% url 'batches_page' %}" class="bp-btn bp-btn-outline">
                 <i class="fa-solid fa-arrow-left"></i> Back to Batches
             </a>
+            {% endif %}
+
+            {% if request.user.staff_profile.role.role_name == "Trainer" %}
+            <a href="{% url 'dashboard' %}" class="bp-btn bp-btn-outline">
+                <i class="fa-solid fa-arrow-left"></i> Back to Batches
+            </a>
+            {% endif%}
         </div>
     </div>
 

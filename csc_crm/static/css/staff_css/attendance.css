@@ -53,7 +53,7 @@ body{
 .attendance-submit{
     padding: 8px 14px;
     border-radius: 8px;
-    
+    text-decoration: none;
 }
 
 /* TOP CARDS */

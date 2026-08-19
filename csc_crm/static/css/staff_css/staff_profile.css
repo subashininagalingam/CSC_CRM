@@ -25,7 +25,9 @@
   text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
 }
 .sp-back-btn:hover { text-decoration: underline; }
-.sp-title    { font-size: 22px; font-weight: 800; color: #111827; margin: 0 0 2px; }
+.sp-title    {  margin: 0 0 2px;  font-size: 1.2rem;
+    font-weight: 700;
+    color:#012b85; }
 .sp-subtitle { font-size: 13px; color: #9ca3af; margin: 0; }
 .sp-edit-btn {
   display: flex; align-items: center; gap: 7px;

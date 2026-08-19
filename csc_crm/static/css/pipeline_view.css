@@ -13,11 +13,22 @@
     --shadow:0 6px 16px rgba(0,0,0,.07);
 
     --new-color:#262170;
-    --contacted-color:#16a34a;
-    --interested-color:#f59e0b;
-    --demo-color:#2563eb;
-    --enrolled-color:#e11d48;
-    --lost-color:#4b5563;
+    --new-bg:#e9e8f7;
+    
+    --contacted-color:#f59e0b;
+    --contacted-bg:#fef3c7;
+    
+    --interested-color:#8b5cf6;
+    --interested-bg:#ede9fe;
+    
+    --demo-color:#06b6d4;
+    --demo-bg:#cffafe;
+    
+    --enrolled-color:#16a34a;
+    --enrolled-bg:#dcfce7;
+    
+    --lost-color:#ef4444;
+    --lost-bg:#fee2e2;
 }
 
 
@@ -28,8 +39,9 @@
     margin: 0px 0px 10px 0px;
 }
 .page-title{ 
-    font-size:20px; 
-    font-weight:800; 
+   font-size: 1.2rem;
+    font-weight: 700;
+    margin: 0;
     color:#012b85; 
 }
 
@@ -160,7 +172,7 @@
     font-size: 14px;
     font-weight: 700;
     margin-bottom: 14px;
-    color: var(--new-color);
+    color: var(--primary);
 }
 
 .funnel-container {
@@ -198,32 +210,32 @@
 }
 
 .funnel-icon.new {
-    background: #e9e8f7;
+    background: var(--new-bg);
     color: var(--new-color);
 }
 
 .funnel-icon.contacted {
-    background: #dcfce7;
+     background: var(--contacted-bg);
     color: var(--contacted-color);
 }
 
 .funnel-icon.interested {
-    background: #fef3c7;
+    background: var(--interested-bg);
     color: var(--interested-color);
 }
 
 .funnel-icon.demo_scheduled {
-    background: #dbeafe;
+    background: var(--demo-bg);
     color: var(--demo-color);
 }
 
 .funnel-icon.enrolled {
-    background: #fee2e2;
+    background: var(--enrolled-bg);
     color: var(--enrolled-color);
 }
 
 .funnel-icon.lost {
-    background: #e5e7eb;
+    background: var(--lost-bg);
     color: var(--lost-color);
 }
 
@@ -652,32 +664,32 @@
 }
 
 .status-badge.new {
-    background: #e9e8f7;
+    background: var(--new-bg);
     color: var(--new-color);
 }
 
 .status-badge.contacted {
-    background: #dcfce7;
+     background: var(--contacted-bg);
     color: var(--contacted-color);
 }
 
 .status-badge.interested {
-    background: #fef3c7;
-    color: #b45309;
+    background: var(--interested-bg);
+    color: var(--interested-color);
 }
 
 .status-badge.demo_scheduled {
-    background: #dbeafe;
+    background: var(--demo-bg);
     color: var(--demo-color);
 }
 
 .status-badge.enrolled {
-    background: #fee2e2;
+     background: var(--enrolled-bg);
     color: var(--enrolled-color);
 }
 
 .status-badge.lost {
-    background: #e5e7eb;
+   background: var(--lost-bg);
     color: var(--lost-color);
 }
 

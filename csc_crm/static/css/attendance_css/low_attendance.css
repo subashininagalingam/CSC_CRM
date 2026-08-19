@@ -43,13 +43,14 @@ body {
     flex-wrap: wrap;
     gap: 12px;
     margin-bottom: 18px;
+    padding: 0px 10px;
 }
 
 .low-attendance-page .page-title {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     font-weight: 700;
     margin: 0;
-    color: var(--text-main);
+    color: var(--navy);
 }
 
 .low-attendance-page .page-subtitle {
