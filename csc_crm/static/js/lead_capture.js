@@ -1,237 +1,1512 @@
-document.addEventListener('DOMContentLoaded', function () {
-    // DOM Elements
-    const form = document.getElementById('leadForm') || document.querySelector('form');
-    const phoneInput = document.getElementById('phone_no');
-    const phoneError = document.getElementById('phoneError');
-    const emailInput = document.getElementById('email');
-    const emailError = document.getElementById('emailError');
-    const submitBtn = document.getElementById('submit-btn');
-    
-    const leadId = document.getElementById('leadId')?.value || '';
-    const leadNameInput = document.getElementById('id_lead_name');
-    const initialFormData = form ? new FormData(form) : null;
+// ============================================================
+// LEAD MANAGEMENT - COMPLETE JAVASCRIPT
+// ============================================================
 
-    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    const strictPhoneRegex = /^\+91\d{10}$/;
 
-    // Lead name validation (Only letters and spaces)
-    if (leadNameInput) {
-        leadNameInput.addEventListener('input', function () {
-            this.value = this.value.replace(/[^a-zA-Z\s]/g, '');
-        });
+function openPopup(name, date, time, duration, outcome, notes, follow) {
+
+    const elements = {
+        p_name: name,
+        p_date: date,
+        p_outcome: outcome,
+        p_notes: notes,
+        p_follow: follow
+    };
+
+    Object.entries(elements).forEach(([id, value]) => {
+
+        const element = document.getElementById(id);
+
+        if (element) {
+            element.innerText = value || "";
+        }
+
+    });
+
+    const popup = document.getElementById("popup");
+
+    if (popup) {
+        popup.style.display = "block";
     }
+}
 
-    // Email validation function
-    function validateEmail() {
-        if (!emailInput) return true;
 
-        const val = emailInput.value.trim().toLowerCase();
+function closePopup() {
 
-        if (!val) {
-            emailError.innerText = "Email is required.";
-            return false;
-        }
+    const popup = document.getElementById("popup");
 
-        if (!emailPattern.test(val)) {
-            emailError.innerText = "Please enter a valid email address.";
-            return false;
-        }
+    if (popup) {
+        popup.style.display = "none";
+    }
+}
 
-        emailError.innerText = "";
+
+// ============================================================
+// ONLY LETTERS
+// ============================================================
+
+function onlyLetters(input) {
+
+    if (!input) return;
+
+    input.value = input.value.replace(/[^A-Za-z\s]/g, "");
+}
+
+
+// ============================================================
+// LEAD NAME VALIDATION
+// ============================================================
+
+function validateForm() {
+
+    const nameInput =
+        document.getElementById("id_lead_name") ||
+        document.getElementById("lead_name");
+
+    if (!nameInput) {
         return true;
     }
 
-    // Check duplicate email via API
-    async function duplicateEmail() {
-        if (!emailInput || !validateEmail()) {
-            return false;
+    const nameError =
+        document.getElementById("name_error");
+
+    const name = nameInput.value.trim();
+
+    if (!name) {
+
+        if (nameError) {
+            nameError.innerText = "Please enter a name.";
         }
 
-        const current = emailInput.value.trim();
-
-        try {
-            const response = await fetch(`/staff/check-email/?email=${encodeURIComponent(current)}`);
-            const data = await response.json();
-
-            if (data.exists) {
-                emailError.innerText = "This email already exists!";
-                return false;
-            }
-
-            emailError.innerText = "";
-            return true;
-
-        } catch (e) {
-            console.error(e);
-            return true;
-        }
-    }
-
-    // Phone input live validation
-    if (phoneInput && phoneError) {
-        phoneInput.addEventListener('input', function () {
-            let value = this.value;
-
-            if (value.length > 0 && !value.startsWith('+91')) {
-                phoneError.innerText = "Phone number must start with +91";
-            } else if (value.length > 13) {
-                phoneError.innerText = "Maximum 13 characters allowed!";
-            } else {
-                phoneError.innerText = "";
-            }
-        });
-    }
-
-    // Email live input listener
-    if (emailInput) {
-        emailInput.addEventListener("input", async function () {
-            if (validateEmail()) {
-                await duplicateEmail();
-            }
-            toggleSubmitButton();
-        });
-    }
-
-    // Form submission validation
-    if (form) {
-        form.addEventListener('submit', async function (e) {
-            let phoneVal = phoneInput ? phoneInput.value.trim() : "";
-
-            if (phoneVal.length > 0 && !strictPhoneRegex.test(phoneVal)) {
-                e.preventDefault();
-                if (phoneError) {
-                    phoneError.innerText = "Phone number should start with +91 and contain a valid 10-digit number.";
-                }
-            }
-
-            let isEmailValid = await duplicateEmail();
-            if (!isEmailValid) {
-                e.preventDefault();
-            }
-        });
-    }
-
-    // Check form changes for edit page state
-    function hasFormChanged() {
-        if (!initialFormData || !form) return true;
-        const currentFormData = new FormData(form);
-
-        for (let [key, value] of initialFormData.entries()) {
-            if (currentFormData.get(key) !== value) {
-                return true;
-            }
-        }
         return false;
     }
 
-    // Enable/Disable Submit Button
-    window.toggleSubmitButton = function () {
-        if (!submitBtn) return;
+    if (!/^[A-Za-z\s]+$/.test(name)) {
 
-        const hasDuplicate = 
-            (emailError && emailError.innerText !== "") ||
-            (phoneError && phoneError.innerText !== "");
-
-        const changed = hasFormChanged();
-
-        if (hasDuplicate || !changed) {
-            submitBtn.disabled = true;
-            submitBtn.style.opacity = "0.6";
-            submitBtn.style.cursor = "not-allowed";
-        } else {
-            submitBtn.disabled = false;
-            submitBtn.style.opacity = "1";
-            submitBtn.style.cursor = "pointer";
+        if (nameError) {
+            nameError.innerText =
+                "Name should contain letters only.";
         }
-    };
 
-    // Check lead exists (email / phone backend validation)
-    window.checkLeadExists = async function (field, value) {
-        if (!value.trim()) return;
-
-        try {
-            const response = await fetch(`/leads/check-lead/?${field}=${encodeURIComponent(value)}&lead_id=${leadId}`);
-            const data = await response.json();
-
-            if (field === 'email' && emailError) {
-                if (data.email_exists) {
-                    emailError.innerText = "This email already exists";
-                    emailInput.style.border = "1px solid red";
-                } else {
-                    emailError.innerText = "";
-                    emailInput.style.border = "";
-                }
-            }
-
-            if (field === 'phone' && phoneError) {
-                if (data.phone_exists) {
-                    phoneError.innerText = "This number already exists";
-                    phoneInput.style.border = "1px solid red";
-                } else {
-                    phoneError.innerText = "";
-                    phoneInput.style.border = "";
-                }
-            }
-
-            toggleSubmitButton();
-        } catch (error) {
-            console.log(error);
-        }
-    };
-
-    // Blur events for server-side duplicate checks
-    if (emailInput) {
-        emailInput.addEventListener('blur', function () {
-            checkLeadExists('email', this.value);
-        });
+        return false;
     }
+
+    if (nameError) {
+        nameError.innerText = "";
+    }
+
+    return true;
+}
+
+
+// ============================================================
+// DOM READY
+// ============================================================
+
+document.addEventListener("DOMContentLoaded", function () {
+
+
+    // ========================================================
+    // FORM
+    // ========================================================
+
+    const form =
+        document.getElementById("leadForm") ||
+        document.querySelector("form");
+
+
+    // ========================================================
+    // INPUT ELEMENTS
+    // ========================================================
+
+    const phoneInput =
+        document.getElementById("id_phone_no") ||
+        document.getElementById("phone_no");
+
+    const emailInput =
+        document.getElementById("id_email") ||
+        document.getElementById("email");
+
+    const leadNameInput =
+        document.getElementById("id_lead_name") ||
+        document.getElementById("lead_name");
+
+    const enquiryDate =
+        document.getElementById("id_enquiry_date") ||
+        document.getElementById("enquiry_date") ||
+        document.getElementById("enquiryDate");
+
+    const nextFollowupDate =
+        document.getElementById("id_next_followup_date") ||
+        document.getElementById("next_followup_date") ||
+        document.getElementById("nextFollowUpDate");
+
+
+    // ========================================================
+    // ERROR ELEMENTS
+    // ========================================================
+
+    const phoneError =
+        document.getElementById("phoneError") ||
+        document.getElementById("phone-error");
+
+    const emailError =
+        document.getElementById("emailError") ||
+        document.getElementById("email-error");
+
+
+    // ========================================================
+    // SUBMIT BUTTON
+    // ========================================================
+
+    const submitBtn =
+        document.getElementById("submit-btn");
+
+
+    // ========================================================
+    // LEAD ID - EDIT PAGE
+    // ========================================================
+
+    const leadId =
+        document.getElementById("leadId")?.value || "";
+
+
+    // ========================================================
+    // STORE INITIAL FORM DATA
+    // ========================================================
+
+    const initialFormData =
+        form ? new FormData(form) : null;
+
+
+    // ========================================================
+    // TODAY'S DATE
+    // ========================================================
+
+    function getTodayDate() {
+
+        const today = new Date();
+
+        const year =
+            today.getFullYear();
+
+        const month =
+            String(today.getMonth() + 1).padStart(2, "0");
+
+        const day =
+            String(today.getDate()).padStart(2, "0");
+
+        return `${year}-${month}-${day}`;
+    }
+
+
+    const today = getTodayDate();
+
+
+    // ========================================================
+    // CALENDAR OPEN FUNCTION
+    // ========================================================
+
+    function openCalendar(input) {
+
+        if (!input) {
+            return;
+        }
+
+        // Browser native date picker
+        if (typeof input.showPicker === "function") {
+
+            try {
+                input.showPicker();
+            } catch (error) {
+                // Ignore browser restriction errors
+            }
+
+        } else {
+
+            // Fallback for browsers without showPicker()
+            input.focus();
+        }
+    }
+
+
+    // ========================================================
+    // ENQUIRY DATE
+    // FUTURE DATE NOT ALLOWED
+    // ========================================================
+
+    if (enquiryDate) {
+
+        enquiryDate.setAttribute("max", today);
+
+
+        // Calendar opens when input box is clicked
+        enquiryDate.addEventListener("click", function () {
+
+            openCalendar(this);
+
+        });
+
+
+        // Also open when focused
+        enquiryDate.addEventListener("focus", function () {
+
+            // Do not force-open repeatedly while typing
+            if (document.activeElement === this) {
+                openCalendar(this);
+            }
+
+        });
+
+
+        enquiryDate.addEventListener("change", function () {
+
+            if (
+                this.value &&
+                this.value > today
+            ) {
+
+                this.value = "";
+
+                alert(
+                    "Enquiry date cannot be a future date."
+                );
+            }
+
+        });
+
+    }
+
+
+    // ========================================================
+    // NEXT FOLLOW-UP DATE
+    // TODAY + FUTURE ALLOWED
+    // PAST DATE NOT ALLOWED
+    // ========================================================
+
+    if (nextFollowupDate) {
+
+        nextFollowupDate.setAttribute("min", today);
+
+
+        // Calendar opens when input box is clicked
+        nextFollowupDate.addEventListener("click", function () {
+
+            openCalendar(this);
+
+        });
+
+
+        // Also open when focused
+        nextFollowupDate.addEventListener("focus", function () {
+
+            if (document.activeElement === this) {
+                openCalendar(this);
+            }
+
+        });
+
+
+        nextFollowupDate.addEventListener("change", function () {
+
+            if (
+                this.value &&
+                this.value < today
+            ) {
+
+                this.value = "";
+
+                alert(
+                    "Next follow-up date cannot be a past date."
+                );
+            }
+
+        });
+
+    }
+
+
+    // ========================================================
+    // EMAIL CONFIGURATION
+    // ========================================================
+
+    const allowedEmailDomainEndings = [
+        ".com",
+        ".in",
+        ".co.in",
+        ".org",
+        ".org.in",
+        ".net",
+        ".edu",
+        ".edu.in",
+        ".ac.in"
+    ];
+
+
+    const emailPattern =
+        /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+
+    // ========================================================
+    // INDIAN MOBILE NUMBER
+    // ========================================================
+    //
+    // Required format:
+    //
+    // +91XXXXXXXXXX
+    //
+    // XXXXXXXXXX = exactly 10 digits
+    //
+    // First digit must be:
+    // 6 / 7 / 8 / 9
+    //
+    // Examples:
+    // +919876543210  VALID
+    // +916987654321  VALID
+    // +915987654321  INVALID
+    // 9876543210      INVALID
+    // +91987654321    INVALID
+    // +9198765432100  INVALID
+    //
+    // ========================================================
+
+    const indianMobileRegex =
+        /^\+91[6-9]\d{9}$/;
+
+
+    // ========================================================
+    // LEAD NAME - LETTERS ONLY
+    // ========================================================
+
+    if (leadNameInput) {
+
+        leadNameInput.addEventListener(
+            "input",
+            function () {
+
+                this.value =
+                    this.value.replace(
+                        /[^A-Za-z\s]/g,
+                        ""
+                    );
+
+            }
+        );
+
+    }
+
+
+    // ========================================================
+    // EMAIL VALIDATION
+    // ========================================================
+
+    function validateEmail() {
+
+        if (!emailInput) {
+            return true;
+        }
+
+
+        const email =
+            emailInput.value
+                .trim()
+                .toLowerCase();
+
+
+        // ----------------------------
+        // REQUIRED
+        // ----------------------------
+
+        if (!email) {
+
+            if (emailError) {
+                emailError.innerText =
+                    "Email is required.";
+            }
+
+            emailInput.classList.add(
+                "error-input"
+            );
+
+            return false;
+        }
+
+
+        // ----------------------------
+        // BASIC FORMAT
+        // ----------------------------
+
+        if (!emailPattern.test(email)) {
+
+            if (emailError) {
+                emailError.innerText =
+                    "Please enter a valid email address.";
+            }
+
+            emailInput.classList.add(
+                "error-input"
+            );
+
+            return false;
+        }
+
+
+        // ----------------------------
+        // DOMAIN
+        // ----------------------------
+
+        const domain =
+            email.substring(
+                email.lastIndexOf("@") + 1
+            );
+
+
+        const validDomain =
+            allowedEmailDomainEndings.some(
+                ending => domain.endsWith(ending)
+            );
+
+
+        if (!validDomain) {
+
+            if (emailError) {
+                emailError.innerText =
+                    "Please enter an email with a valid domain like .com, .in, .co.in, .org, .net, .edu, or .ac.in.";
+            }
+
+            emailInput.classList.add(
+                "error-input"
+            );
+
+            return false;
+        }
+
+
+        // ----------------------------
+        // VALID
+        // ----------------------------
+
+        if (emailError) {
+            emailError.innerText = "";
+        }
+
+        emailInput.classList.remove(
+            "error-input"
+        );
+
+        return true;
+    }
+
+
+    // ========================================================
+    // PHONE CLEANING
+    // ========================================================
+
+    function cleanPhoneValue(value) {
+
+        // Keep only digits and +
+        value =
+            value.replace(/[^\d+]/g, "");
+
+
+        // + is allowed only at beginning
+        if (value.includes("+")) {
+
+            value =
+                "+" +
+                value.replace(/\+/g, "");
+
+        }
+
+
+        // Maximum 13 characters
+        // +91 + 10 digits
+        if (value.length > 13) {
+
+            value =
+                value.substring(0, 13);
+
+        }
+
+
+        return value;
+    }
+
+
+    // ========================================================
+    // PHONE VALIDATION
+    // ========================================================
+
+    function validatePhone() {
+
+        if (!phoneInput) {
+            return true;
+        }
+
+
+        const value =
+            phoneInput.value.trim();
+
+
+        // Phone is required
+        if (!value) {
+
+            if (phoneError) {
+                phoneError.innerText =
+                    "Phone number is required.";
+            }
+
+            phoneInput.classList.add(
+                "error-input"
+            );
+
+            return false;
+        }
+
+
+        // Must start with +91
+        if (!value.startsWith("+91")) {
+
+            if (phoneError) {
+                phoneError.innerText =
+                    "Indian mobile number must start with +91.";
+            }
+
+            phoneInput.classList.add(
+                "error-input"
+            );
+
+            return false;
+        }
+
+
+        // Must be exactly +91 + 10 digits
+        if (value.length !== 13) {
+
+            if (phoneError) {
+                phoneError.innerText =
+                    "Enter a valid 10-digit Indian mobile number after +91.";
+            }
+
+            phoneInput.classList.add(
+                "error-input"
+            );
+
+            return false;
+        }
+
+
+        // First mobile digit must be 6-9
+        if (!indianMobileRegex.test(value)) {
+
+            if (phoneError) {
+                phoneError.innerText =
+                    "Enter a valid Indian mobile number starting with 6, 7, 8, or 9.";
+            }
+
+            phoneInput.classList.add(
+                "error-input"
+            );
+
+            return false;
+        }
+
+
+        // Valid
+        if (phoneError) {
+            phoneError.innerText = "";
+        }
+
+        phoneInput.classList.remove(
+            "error-input"
+        );
+
+        return true;
+    }
+
+
+    // ========================================================
+    // PHONE LIVE VALIDATION
+    // ========================================================
 
     if (phoneInput) {
-        phoneInput.addEventListener('blur', function () {
-            checkLeadExists('phone', this.value);
-        });
+
+        phoneInput.addEventListener(
+            "input",
+            function () {
+
+                this.value =
+                    cleanPhoneValue(
+                        this.value
+                    );
+
+
+                const value =
+                    this.value;
+
+
+                if (!value) {
+
+                    if (phoneError) {
+                        phoneError.innerText =
+                            "Phone number is required.";
+                    }
+
+                }
+
+                else if (!value.startsWith("+91")) {
+
+                    if (phoneError) {
+                        phoneError.innerText =
+                            "Indian mobile number must start with +91.";
+                    }
+
+                }
+
+                else if (value.length < 13) {
+
+                    if (phoneError) {
+                        phoneError.innerText =
+                            "Enter 10 digits after +91.";
+                    }
+
+                }
+
+                else if (!indianMobileRegex.test(value)) {
+
+                    if (phoneError) {
+                        phoneError.innerText =
+                            "Indian mobile number must start with 6, 7, 8, or 9.";
+                    }
+
+                }
+
+                else {
+
+                    if (phoneError) {
+                        phoneError.innerText = "";
+                    }
+
+                }
+
+
+                window.toggleSubmitButton();
+
+            }
+        );
+
+
+        // ====================================================
+        // PHONE KEYBOARD RESTRICTION
+        // ====================================================
+
+        phoneInput.addEventListener(
+            "keydown",
+            function (e) {
+
+                const allowedKeys = [
+                    "Backspace",
+                    "Delete",
+                    "ArrowLeft",
+                    "ArrowRight",
+                    "ArrowUp",
+                    "ArrowDown",
+                    "Tab",
+                    "Home",
+                    "End"
+                ];
+
+
+                if (allowedKeys.includes(e.key)) {
+                    return;
+                }
+
+
+                // Prevent Enter
+                if (e.key === "Enter") {
+
+                    e.preventDefault();
+
+                    return;
+                }
+
+
+                // Ctrl / Cmd shortcuts
+                if (
+                    e.ctrlKey ||
+                    e.metaKey
+                ) {
+
+                    if (
+                        ["a", "c", "v", "x"].includes(
+                            e.key.toLowerCase()
+                        )
+                    ) {
+                        return;
+                    }
+
+                }
+
+
+                // Digits
+                if (/^\d$/.test(e.key)) {
+
+                    if (this.value.length >= 13) {
+
+                        e.preventDefault();
+
+                    }
+
+                    return;
+                }
+
+
+                // + only at first character
+                if (
+                    e.key === "+" &&
+                    this.value.length === 0
+                ) {
+                    return;
+                }
+
+
+                // Block everything else
+                e.preventDefault();
+
+            }
+        );
+
+
+        // ====================================================
+        // PHONE PASTE
+        // ====================================================
+
+        phoneInput.addEventListener(
+            "paste",
+            function (e) {
+
+                e.preventDefault();
+
+
+                const pastedText =
+                    (
+                        e.clipboardData ||
+                        window.clipboardData
+                    ).getData("text");
+
+
+                const cleaned =
+                    cleanPhoneValue(
+                        pastedText
+                    );
+
+
+                this.value =
+                    cleaned.substring(
+                        0,
+                        13
+                    );
+
+
+                this.dispatchEvent(
+                    new Event(
+                        "input",
+                        {
+                            bubbles: true
+                        }
+                    )
+                );
+
+            }
+        );
+
     }
+
+
+    // ========================================================
+    // EMAIL LIVE VALIDATION
+    // ========================================================
+
+    if (emailInput) {
+
+        emailInput.addEventListener(
+            "input",
+            function () {
+
+                // Lowercase
+                this.value =
+                    this.value.toLowerCase();
+
+
+                // Remove spaces
+                this.value =
+                    this.value.replace(
+                        /\s/g,
+                        ""
+                    );
+
+
+                // Maximum length
+                if (this.value.length > 254) {
+
+                    this.value =
+                        this.value.substring(
+                            0,
+                            254
+                        );
+
+                }
+
+
+                validateEmail();
+
+                window.toggleSubmitButton();
+
+            }
+        );
+
+    }
+
+
+    // ========================================================
+    // DUPLICATE CHECK
+    // ========================================================
+
+    window.checkLeadExists =
+        async function (field, value) {
+
+            if (!value || !value.trim()) {
+                return true;
+            }
+
+
+            try {
+
+                const response =
+                    await fetch(
+                        `/leads/check-lead/?${field}=${encodeURIComponent(value)}&lead_id=${encodeURIComponent(leadId)}`
+                    );
+
+
+                if (!response.ok) {
+
+                    console.error(
+                        "Duplicate check failed:",
+                        response.status
+                    );
+
+                    return false;
+                }
+
+
+                const data =
+                    await response.json();
+
+
+                // --------------------------------------------
+                // EMAIL
+                // --------------------------------------------
+
+                if (
+                    field === "email" &&
+                    emailInput
+                ) {
+
+                    if (data.email_exists) {
+
+                        if (emailError) {
+                            emailError.innerText =
+                                "This email already exists!";
+                        }
+
+                        emailInput.classList.add(
+                            "error-input"
+                        );
+
+                        return false;
+
+                    }
+
+                    else {
+
+                        if (emailError) {
+                            emailError.innerText = "";
+                        }
+
+                        emailInput.classList.remove(
+                            "error-input"
+                        );
+
+                    }
+
+                }
+
+
+                // --------------------------------------------
+                // PHONE
+                // --------------------------------------------
+
+                if (
+                    field === "phone" &&
+                    phoneInput
+                ) {
+
+                    if (data.phone_exists) {
+
+                        if (phoneError) {
+                            phoneError.innerText =
+                                "This phone number already exists!";
+                        }
+
+                        phoneInput.classList.add(
+                            "error-input"
+                        );
+
+                        return false;
+
+                    }
+
+                    else {
+
+                        if (phoneError) {
+                            phoneError.innerText = "";
+                        }
+
+                        phoneInput.classList.remove(
+                            "error-input"
+                        );
+
+                    }
+
+                }
+
+
+                window.toggleSubmitButton();
+
+                return true;
+
+
+            } catch (error) {
+
+                console.error(
+                    "Duplicate check error:",
+                    error
+                );
+
+                return false;
+            }
+
+        };
+
+
+    // ========================================================
+    // EMAIL BLUR
+    // ========================================================
+
+    if (emailInput) {
+
+        emailInput.addEventListener(
+            "blur",
+            async function () {
+
+                if (!validateEmail()) {
+
+                    window.toggleSubmitButton();
+
+                    return;
+                }
+
+
+                await window.checkLeadExists(
+                    "email",
+                    this.value.trim().toLowerCase()
+                );
+
+
+                window.toggleSubmitButton();
+
+            }
+        );
+
+    }
+
+
+    // ========================================================
+    // PHONE BLUR
+    // ========================================================
+
+    if (phoneInput) {
+
+        phoneInput.addEventListener(
+            "blur",
+            async function () {
+
+                if (!validatePhone()) {
+
+                    window.toggleSubmitButton();
+
+                    return;
+                }
+
+
+                await window.checkLeadExists(
+                    "phone",
+                    this.value.trim()
+                );
+
+
+                window.toggleSubmitButton();
+
+            }
+        );
+
+    }
+
+
+    // ========================================================
+    // PREVENT ENTER SUBMISSION
+    // ========================================================
 
     if (form) {
-        form.addEventListener('input', toggleSubmitButton);
+
+        form.addEventListener(
+            "keydown",
+            function (e) {
+
+                if (e.key === "Enter") {
+
+                    e.preventDefault();
+
+                }
+
+            }
+        );
+
     }
 
-    // Initial button state check
-    toggleSubmitButton();
+
+    // ========================================================
+    // CHECK FORM CHANGED
+    // ========================================================
+
+    function hasFormChanged() {
+
+        // Create page
+        if (!leadId) {
+            return true;
+        }
+
+
+        // Edit page
+        if (!initialFormData || !form) {
+            return true;
+        }
+
+
+        const currentFormData =
+            new FormData(form);
+
+
+        const initialEntries =
+            Array.from(
+                initialFormData.entries()
+            );
+
+
+        for (const [key, value] of initialEntries) {
+
+            if (
+                currentFormData.get(key) !== value
+            ) {
+
+                return true;
+            }
+
+        }
+
+
+        return false;
+    }
+
+
+    // ========================================================
+    // SUBMIT BUTTON
+    // ========================================================
+
+    window.toggleSubmitButton =
+        function () {
+
+            if (!submitBtn) {
+                return;
+            }
+
+
+            const hasErrors =
+                (
+                    phoneError &&
+                    phoneError.innerText.trim() !== ""
+                )
+                ||
+                (
+                    emailError &&
+                    emailError.innerText.trim() !== ""
+                );
+
+
+            const changed =
+                hasFormChanged();
+
+
+            // Edit page:
+            // unchanged = disabled
+            //
+            // Create page:
+            // enabled if no validation errors
+
+            if (
+                hasErrors ||
+                !changed
+            ) {
+
+                submitBtn.disabled = true;
+
+                submitBtn.style.opacity = "0.6";
+
+                submitBtn.style.cursor = "not-allowed";
+
+            }
+
+            else {
+
+                submitBtn.disabled = false;
+
+                submitBtn.style.opacity = "1";
+
+                submitBtn.style.cursor = "pointer";
+
+            }
+
+        };
+
+
+    // ========================================================
+    // FORM INPUT EVENT
+    // ========================================================
+
+    if (form) {
+
+        form.addEventListener(
+            "input",
+            function () {
+
+                window.toggleSubmitButton();
+
+            }
+        );
+
+        form.addEventListener(
+            "change",
+            function () {
+
+                window.toggleSubmitButton();
+
+            }
+        );
+
+    }
+
+
+    // ========================================================
+    // FORM SUBMIT VALIDATION
+    // ========================================================
+
+    if (form) {
+
+        form.addEventListener(
+            "submit",
+            async function (e) {
+
+                let isValid = true;
+
+
+                // --------------------------------------------
+                // LEAD NAME
+                // --------------------------------------------
+
+                if (!validateForm()) {
+
+                    e.preventDefault();
+
+                    isValid = false;
+
+                }
+
+
+                // --------------------------------------------
+                // PHONE
+                // --------------------------------------------
+
+                if (!validatePhone()) {
+
+                    e.preventDefault();
+
+                    isValid = false;
+
+                }
+
+
+                // --------------------------------------------
+                // EMAIL
+                // --------------------------------------------
+
+                if (!validateEmail()) {
+
+                    e.preventDefault();
+
+                    isValid = false;
+
+                }
+
+
+                // --------------------------------------------
+                // DUPLICATE EMAIL
+                // --------------------------------------------
+
+                if (
+                    isValid &&
+                    emailInput
+                ) {
+
+                    const emailAvailable =
+                        await window.checkLeadExists(
+                            "email",
+                            emailInput.value.trim().toLowerCase()
+                        );
+
+
+                    if (!emailAvailable) {
+
+                        e.preventDefault();
+
+                        isValid = false;
+
+                    }
+
+                }
+
+
+                // --------------------------------------------
+                // DUPLICATE PHONE
+                // --------------------------------------------
+
+                if (
+                    isValid &&
+                    phoneInput
+                ) {
+
+                    const phoneAvailable =
+                        await window.checkLeadExists(
+                            "phone",
+                            phoneInput.value.trim()
+                        );
+
+
+                    if (!phoneAvailable) {
+
+                        e.preventDefault();
+
+                        isValid = false;
+
+                    }
+
+                }
+
+
+                // --------------------------------------------
+                // ENQUIRY DATE
+                // --------------------------------------------
+
+                if (
+                    enquiryDate &&
+                    enquiryDate.value
+                ) {
+
+                    if (
+                        enquiryDate.value > today
+                    ) {
+
+                        e.preventDefault();
+
+                        alert(
+                            "Enquiry date cannot be a future date."
+                        );
+
+                        isValid = false;
+
+                    }
+
+                }
+
+
+                // --------------------------------------------
+                // NEXT FOLLOW-UP DATE
+                // --------------------------------------------
+
+                if (
+                    nextFollowupDate &&
+                    nextFollowupDate.value
+                ) {
+
+                    if (
+                        nextFollowupDate.value < today
+                    ) {
+
+                        e.preventDefault();
+
+                        alert(
+                            "Next follow-up date cannot be a past date."
+                        );
+
+                        isValid = false;
+
+                    }
+
+                }
+
+
+                // --------------------------------------------
+                // FINAL RESULT
+                // --------------------------------------------
+
+                if (!isValid) {
+
+                    e.preventDefault();
+
+                    window.toggleSubmitButton();
+
+                    return false;
+
+                }
+
+
+                return true;
+
+            }
+        );
+
+    }
+
+
+    // ========================================================
+    // INITIAL VALIDATION
+    // ========================================================
+
+    if (
+        emailInput &&
+        emailInput.value.trim()
+    ) {
+
+        validateEmail();
+
+    }
+
+
+    if (
+        phoneInput &&
+        phoneInput.value.trim()
+    ) {
+
+        validatePhone();
+
+    }
+
+
+    // ========================================================
+    // INITIAL BUTTON STATE
+    // ========================================================
+
+    window.toggleSubmitButton();
+
 });
 
-// Clear button function
+
+// ============================================================
+// CLEAR FORM
+// ============================================================
+
 function clearForm() {
-    const form = document.getElementById('leadForm');
-    if (form) form.reset();
 
-    const phoneError = document.getElementById('phoneError');
-    const emailError = document.getElementById('emailError');
-    const phoneInput = document.getElementById('phone_no');
-    const emailInput = document.getElementById('email');
+    const form =
+        document.getElementById("leadForm");
 
-    if (phoneError) phoneError.innerText = "";
-    if (emailError) emailError.innerText = "";
 
-    if (phoneInput) phoneInput.style.border = "";
-    if (emailInput) emailInput.style.border = "";
-
-    if (typeof toggleSubmitButton === 'function') {
-        toggleSubmitButton();
+    if (!form) {
+        return;
     }
-}
 
-// Calendar pickers
-const enquiryDate = document.getElementById("enquiryDate");
-if (enquiryDate) {
-    enquiryDate.addEventListener("click", function () {
-        this.showPicker();
-    });
-}
 
-const nextFollowUpDate = document.getElementById('nextFollowUpDate');
-if (nextFollowUpDate) {
-    nextFollowUpDate.addEventListener("click", function () {
-        this.showPicker();
+    form.reset();
+
+
+    // --------------------------------------------
+    // Error messages
+    // --------------------------------------------
+
+    const errors = [
+        document.getElementById("phoneError"),
+        document.getElementById("phone-error"),
+        document.getElementById("emailError"),
+        document.getElementById("email-error")
+    ];
+
+
+    errors.forEach(error => {
+
+        if (error) {
+            error.innerText = "";
+        }
+
     });
+
+
+    // --------------------------------------------
+    // Remove error styles
+    // --------------------------------------------
+
+    const inputs = [
+        document.getElementById("id_phone_no"),
+        document.getElementById("phone_no"),
+        document.getElementById("id_email"),
+        document.getElementById("email")
+    ];
+
+
+    inputs.forEach(input => {
+
+        if (input) {
+
+            input.classList.remove(
+                "error-input"
+            );
+
+            input.style.border = "";
+
+        }
+
+    });
+
+
+    // --------------------------------------------
+    // Update submit button
+    // --------------------------------------------
+
+    if (
+        typeof window.toggleSubmitButton ===
+        "function"
+    ) {
+
+        window.toggleSubmitButton();
+
+    }
+
 }

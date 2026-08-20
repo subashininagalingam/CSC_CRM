@@ -132,22 +132,77 @@ class AdmissionForm(forms.ModelForm):
 
 class EnrollmentForm(forms.ModelForm):
 
-    def clean_batch(self):
-        batch = self.cleaned_data['batch']
+    start_date = forms.DateField(
+        widget=forms.DateInput(
+            attrs={
+                'type': 'date'
+            }
+        )
+    )
 
-        if batch.enrollments.count() >= 30:
+    def clean_batch(self):
+        batch = self.cleaned_data.get('batch')
+
+        if not batch:
+            return batch
+
+        if batch.enrollments.exclude(pk=self.instance.pk).count() >= 30:
             raise forms.ValidationError(
                 "This batch is full. Maximum 30 students allowed."
-        )
+            )
 
         return batch
 
-    start_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
-
     def clean_start_date(self):
-        start_date = self.cleaned_data['start_date']
-        if start_date < date.today():
-            raise forms.ValidationError("Start date must be future!")
+        start_date = self.cleaned_data.get('start_date')
+
+        if not start_date:
+            raise forms.ValidationError(
+                "Start date is required."
+            )
+
+        today = date.today()
+
+        # Previous 1 month date
+        if today.month == 1:
+            previous_month = 12
+            previous_month_year = today.year - 1
+        else:
+            previous_month = today.month - 1
+            previous_month_year = today.year
+
+        # Handle different number of days in months
+        import calendar
+
+        last_day_of_previous_month = calendar.monthrange(
+            previous_month_year,
+            previous_month
+        )[1]
+
+        previous_month_same_day = min(
+            today.day,
+            last_day_of_previous_month
+        )
+
+        min_date = date(
+            previous_month_year,
+            previous_month,
+            previous_month_same_day
+        )
+
+        # Allow only:
+        # previous 1 month date <= start_date <= today
+
+        if start_date < min_date:
+            raise forms.ValidationError(
+                f"Start date cannot be earlier than {min_date.strftime('%d-%b-%Y')}."
+            )
+
+        if start_date > today:
+            raise forms.ValidationError(
+                "Start date cannot be a future date."
+            )
+
         return start_date
 
     class Meta:
@@ -160,5 +215,3 @@ class EnrollmentForm(forms.ModelForm):
         self.fields['batch'].widget.attrs.update({
             'id': 'id_batch'
         })
-
-   

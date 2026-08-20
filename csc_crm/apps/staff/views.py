@@ -26,10 +26,25 @@ from csc_crm.apps.student_attendance.models import *
 from .models import *
 from .forms import *
 
-# ============================ ROLE-BASED ACCESS DECORATOR ============================
+# ============================= LEAD CAPTURE TARGET - ROLES =============================
+MARKETING_TARGET_ROLES = [
+    'Marketing Lead', 'Digital Marketing', 'Content Creator',   # marketing team
+    'Admin', 'Manager', 'HR',                                   # view-only access
+]                                                                    # who can VIEW the page
+MARKETING_LEAD_ROLES = ['Marketing Lead']                          # who can ASSIGN/EDIT targets
+DELETE_TARGET_ROLES = ['Marketing Lead']                           # who can DELETE targets
+VIEW_ALL_TARGET_ROLES = ['Marketing Lead', 'Admin', 'Manager', 'HR']  # who can see ALL targets (not just their own)
 
-def role_required(allowed_roles):
-    """Only allow access if the logged-in user's Staff role is in allowed_roles."""
+# Marketing team members must stay inside Lead Capture Target only — they
+# never get the full Lead Management pages (Lead Capture, Pipeline,
+# Follow Up, Conversion Report, Call Log).
+MARKETING_ONLY_ROLES = ['Marketing Lead', 'Digital Marketing', 'Content Creator']
+
+# ============================ ROLE-BLOCK DECORATOR ============================
+
+def block_roles(blocked_roles):
+    """Deny access to the given roles, allow everyone else who's logged in.
+    Used to keep the Marketing team out of the full Lead Management pages."""
     def decorator(view_func):
         @wraps(view_func)
         def wrapper(request, *args, **kwargs):
@@ -40,13 +55,38 @@ def role_required(allowed_roles):
             except Staff.DoesNotExist:
                 messages.error(request, 'No staff profile found.')
                 return redirect('staff_login')
-            if staff.role.role_name not in allowed_roles:
+
+            if staff.role.role_name in blocked_roles:
                 messages.error(request, 'You do not have permission to access this page.')
-                return redirect('staff_dashboard')
+                return redirect('leads:lead_capture_target')
+
             return view_func(request, *args, **kwargs)
         return wrapper
     return decorator
 
+# ============================ ROLE-BASED ACCESS DECORATOR ============================
+
+def role_required(allowed_roles, marketing_only=False):
+    """Only allow access if the logged-in user's Staff role is in allowed_roles.
+    If marketing_only=True, staff must also belong to the Marketing department."""
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapper(request, *args, **kwargs):
+            if not request.user.is_authenticated:
+                return redirect('staff_login')
+            try:
+                staff = request.user.staff_profile
+            except Staff.DoesNotExist:
+                messages.error(request, 'No staff profile found.')
+                return redirect('staff_login')
+
+            if staff.role.role_name not in allowed_roles:
+                messages.error(request, 'You do not have permission to access this page.')
+                return redirect('staff_dashboard')
+
+            return view_func(request, *args, **kwargs)
+        return wrapper
+    return decorator
 
 # ============================ LOGIN / LOGOUT ============================
 
@@ -1315,38 +1355,60 @@ def update_document_status(request, doc_id):
 def staff_dashboard(request):
 
     auto_checkout_pending_attendance()
-    
+
+    # ================================
+    # STAFF DASHBOARD
+    # ================================
+
     total_staff = Staff.objects.count()
 
-    active_staff = Staff.objects.filter(status = 'active').count()
+    active_staff = Staff.objects.filter(status='active').count()
 
-    on_leave = Staff.objects.filter(status = 'on_leave').count()
+    on_leave = Staff.objects.filter(status='on_leave').count()
 
-    terminate = Staff.objects.filter(status = 'terminated').count()
+    terminate = Staff.objects.filter(status='terminated').count()
 
-    inactive = Staff.objects.filter(status = 'inactive').count()
+    inactive = Staff.objects.filter(status='inactive').count()
 
     recent_staff = Staff.objects.order_by('-created_at')[:5]
 
-    average_rating = round(Staff.objects.aggregate(Avg('performance_rating'))['performance_rating__avg'] or 0,2)
+    average_rating = round(
+        Staff.objects.aggregate(
+            Avg('performance_rating')
+        )['performance_rating__avg'] or 0,
+        2
+    )
 
     today = timezone.localdate()
 
-    present = Attendance.objects.filter(date = today, status = 'Present').count()
+    present = Attendance.objects.filter(
+        date=today,
+        status='Present'
+    ).count()
 
-    late = Attendance.objects.filter(date = today, status = 'Late').count()
+    late = Attendance.objects.filter(
+        date=today,
+        status='Late'
+    ).count()
 
-    absent = Attendance.objects.filter(date = today, status = 'Absent').count()
+    absent = Attendance.objects.filter(
+        date=today,
+        status='Absent'
+    ).count()
 
-    leave = Attendance.objects.filter(date = today, status = 'Leave').count()
+    leave = Attendance.objects.filter(
+        date=today,
+        status='Leave'
+    ).count()
 
-    departments = Department.objects.annotate(total_staff = Count('staff_members')).order_by('dept_name')
+    departments = Department.objects.annotate(
+        total_staff=Count('staff_members')
+    ).order_by('dept_name')
 
     total_attendance = present + late + absent + leave
 
     my_staff = getattr(request.user, 'staff_profile', None)
 
-    
     # ================================
     # TRAINER - MY STUDENTS & BATCHES
     # ================================
@@ -1373,13 +1435,21 @@ def staff_dashboard(request):
 
     if my_staff and my_staff.role and my_staff.role.role_name == 'Trainer':
 
-        trainer_enrollments = Enrollment.objects.filter(batch__trainer=my_staff)
+        trainer_enrollments = Enrollment.objects.filter(
+            batch__trainer=my_staff
+        )
 
-        trainer_total_students = trainer_enrollments.values('admission__student').distinct().count()
+        trainer_total_students = trainer_enrollments.values(
+            'admission__student'
+        ).distinct().count()
 
-        trainer_active_students = trainer_enrollments.filter(batch__status='Ongoing').count()
+        trainer_active_students = trainer_enrollments.filter(
+            batch__status='Ongoing'
+        ).count()
 
-        trainer_completed_students = trainer_enrollments.filter(batch__status='Completed').count()
+        trainer_completed_students = trainer_enrollments.filter(
+            batch__status='Completed'
+        ).count()
 
         trainer_dropped_students = Admission.objects.filter(
             status='dropped',
@@ -1391,34 +1461,75 @@ def staff_dashboard(request):
         ).distinct().order_by('-id')[:5]
 
         if trainer_total_students > 0:
-            trainer_active_students_pct = round((trainer_active_students / trainer_total_students) * 100, 1)
-            trainer_completed_students_pct = round((trainer_completed_students / trainer_total_students) * 100, 1)
-            trainer_dropped_students_pct = round((trainer_dropped_students / trainer_total_students) * 100, 1)
+
+            trainer_active_students_pct = round(
+                (trainer_active_students / trainer_total_students) * 100,
+                1
+            )
+
+            trainer_completed_students_pct = round(
+                (trainer_completed_students / trainer_total_students) * 100,
+                1
+            )
+
+            trainer_dropped_students_pct = round(
+                (trainer_dropped_students / trainer_total_students) * 100,
+                1
+            )
 
         trainer_active_students_deg = trainer_active_students_pct * 3.6
-        trainer_completed_students_deg = trainer_active_students_deg + (trainer_completed_students_pct * 3.6)
-        trainer_dropped_students_deg = trainer_completed_students_deg + (trainer_dropped_students_pct * 3.6)
 
-        trainer_batches_qs = Batch.objects.filter(trainer=my_staff)
+        trainer_completed_students_deg = (
+            trainer_active_students_deg +
+            (trainer_completed_students_pct * 3.6)
+        )
+
+        trainer_dropped_students_deg = (
+            trainer_completed_students_deg +
+            (trainer_dropped_students_pct * 3.6)
+        )
+
+        trainer_batches_qs = Batch.objects.filter(
+            trainer=my_staff
+        )
 
         trainer_total_batches = trainer_batches_qs.count()
-        trainer_ongoing_batches = trainer_batches_qs.filter(status='Ongoing').count()
-        trainer_upcoming_batches = trainer_batches_qs.filter(status='Upcoming').count()
-        trainer_completed_batches = trainer_batches_qs.filter(status='Completed').count()
 
-        trainer_batch_summary = trainer_batches_qs.select_related('course', 'trainer').annotate(
+        trainer_ongoing_batches = trainer_batches_qs.filter(
+            status='Ongoing'
+        ).count()
+
+        trainer_upcoming_batches = trainer_batches_qs.filter(
+            status='Upcoming'
+        ).count()
+
+        trainer_completed_batches = trainer_batches_qs.filter(
+            status='Completed'
+        ).count()
+
+        trainer_batch_summary = trainer_batches_qs.select_related(
+            'course',
+            'trainer'
+        ).annotate(
             enrolled_students=Count('enrollments'),
             occupancy_percentage=ExpressionWrapper(
                 Count('enrollments') * 100.0 / F('max_students'),
                 output_field=FloatField()
             )
-        ).order_by('-enrolled_students', 'batch_name')
+        ).order_by(
+            '-enrolled_students',
+            'batch_name'
+        )
 
     # ============================================
-    # MY DEPARTMENT ATTENDANCE (generic - any role, any department)
+    # MY DEPARTMENT ATTENDANCE
     # ============================================
 
-    my_dept_present = my_dept_late = my_dept_absent = my_dept_leave = 0
+    my_dept_present = 0
+    my_dept_late = 0
+    my_dept_absent = 0
+    my_dept_leave = 0
+
     my_dept_attendance_percentage = 0
     my_department_name = None
 
@@ -1432,157 +1543,367 @@ def staff_dashboard(request):
         ).values_list('id', flat=True)
 
         my_dept_present = Attendance.objects.filter(
-            staff_id__in=my_dept_staff_ids, date=today, status='Present'
+            staff_id__in=my_dept_staff_ids,
+            date=today,
+            status='Present'
         ).count()
 
         my_dept_late = Attendance.objects.filter(
-            staff_id__in=my_dept_staff_ids, date=today, status='Late'
+            staff_id__in=my_dept_staff_ids,
+            date=today,
+            status='Late'
         ).count()
 
         my_dept_absent = Attendance.objects.filter(
-            staff_id__in=my_dept_staff_ids, date=today, status='Absent'
+            staff_id__in=my_dept_staff_ids,
+            date=today,
+            status='Absent'
         ).count()
 
         my_dept_leave = Attendance.objects.filter(
-            staff_id__in=my_dept_staff_ids, date=today, status='Leave'
+            staff_id__in=my_dept_staff_ids,
+            date=today,
+            status='Leave'
         ).count()
 
         my_dept_total_staff = my_dept_staff_ids.count()
 
         my_dept_attendance_percentage = (
-            round(((my_dept_present + my_dept_late) / my_dept_total_staff) * 100, 1)
-            if my_dept_total_staff > 0 else 0
+            round(
+                (
+                    (my_dept_present + my_dept_late)
+                    / my_dept_total_staff
+                ) * 100,
+                1
+            )
+            if my_dept_total_staff > 0
+            else 0
         )
 
-    # My Attendance
+    # ================================
+    # MY ATTENDANCE
+    # ================================
 
     if my_staff:
-        my_attendance_qs = Attendance.objects.filter(staff=my_staff)
+
+        my_attendance_qs = Attendance.objects.filter(
+            staff=my_staff
+        )
+
         my_total_days = my_attendance_qs.count()
-        my_present_days = my_attendance_qs.filter(status='Present').count()
-        my_late_days = my_attendance_qs.filter(status='Late').count()
-        my_absent_days = my_attendance_qs.filter(status='Absent').count()
-        my_leave_days = my_attendance_qs.filter(status='Leave').count()
-    
+
+        my_present_days = my_attendance_qs.filter(
+            status='Present'
+        ).count()
+
+        my_late_days = my_attendance_qs.filter(
+            status='Late'
+        ).count()
+
+        my_absent_days = my_attendance_qs.filter(
+            status='Absent'
+        ).count()
+
+        my_leave_days = my_attendance_qs.filter(
+            status='Leave'
+        ).count()
+
         my_score = my_present_days + (my_late_days * 0.5)
-        my_attendance_percentage = round((my_score / my_total_days) * 100) if my_total_days > 0 else 0
+
+        my_attendance_percentage = (
+            round((my_score / my_total_days) * 100)
+            if my_total_days > 0
+            else 0
+        )
+
     else:
-        my_present_days = my_late_days = my_absent_days = my_leave_days = 0
+
+        my_present_days = 0
+        my_late_days = 0
+        my_absent_days = 0
+        my_leave_days = 0
         my_attendance_percentage = 0
 
-    # checkin
+    # ================================
+    # CHECK-IN
+    # ================================
 
     today_attendance_for_me = None
     today_status_for_me = 'Absent'
     show_checkout_for_me = False
     is_checkout_closed_for_me = True
-    
+
     if my_staff:
-        today_attendance_for_me = Attendance.objects.filter(staff=my_staff, date=today).first()
-        today_status_for_me = today_attendance_for_me.status if today_attendance_for_me else 'Absent'
+
+        today_attendance_for_me = Attendance.objects.filter(
+            staff=my_staff,
+            date=today
+        ).first()
+
+        today_status_for_me = (
+            today_attendance_for_me.status
+            if today_attendance_for_me
+            else 'Absent'
+        )
 
         current_time = timezone.localtime(timezone.now())
-        is_checkout_closed_for_me = current_time.time() >= time(19, 0)
-    
-        if today_attendance_for_me and today_attendance_for_me.log_in and not today_attendance_for_me.log_out:
+
+        is_checkout_closed_for_me = (
+            current_time.time() >= time(19, 0)
+        )
+
+        if (
+            today_attendance_for_me
+            and today_attendance_for_me.log_in
+            and not today_attendance_for_me.log_out
+        ):
             show_checkout_for_me = True
 
-    is_checkin_done_for_me = bool(today_attendance_for_me and today_attendance_for_me.log_in)
-    is_checkout_done_for_me = bool(today_attendance_for_me and today_attendance_for_me.log_out)
-    is_leave_or_absent_for_me = bool(today_attendance_for_me and today_attendance_for_me.status in ['Leave', 'Absent'])
-    active_attendance_for_me = today_attendance_for_me if (today_attendance_for_me and today_attendance_for_me.log_in and not today_attendance_for_me.log_out) else None
-    
+    is_checkin_done_for_me = bool(
+        today_attendance_for_me
+        and today_attendance_for_me.log_in
+    )
+
+    is_checkout_done_for_me = bool(
+        today_attendance_for_me
+        and today_attendance_for_me.log_out
+    )
+
+    is_leave_or_absent_for_me = bool(
+        today_attendance_for_me
+        and today_attendance_for_me.status in [
+            'Leave',
+            'Absent'
+        ]
+    )
+
+    active_attendance_for_me = (
+        today_attendance_for_me
+        if (
+            today_attendance_for_me
+            and today_attendance_for_me.log_in
+            and not today_attendance_for_me.log_out
+        )
+        else None
+    )
+
     if total_attendance > 0:
-        attendance_percentage = round(((present + late) / active_staff) * 100, 1)
+
+        attendance_percentage = round(
+            (
+                (present + late)
+                / active_staff
+            ) * 100,
+            1
+        )
+
     else:
+
         attendance_percentage = 0
 
-    staff_status = {    
-        'Active' : active_staff,
-        'On Leave' : on_leave,
-        'Inactive' : inactive,
-        'Terminated' : terminate,
+    staff_status = {
+        'Active': active_staff,
+        'On Leave': on_leave,
+        'Inactive': inactive,
+        'Terminated': terminate,
         'my_present_days': my_present_days,
-
     }
 
-    roles = (StaffRole.objects.annotate(total_staff = Count('staff_members')))
+    roles = StaffRole.objects.annotate(
+        total_staff=Count('staff_members')
+    )
 
-# ================================ Lead Dashboard ===================================
+    # ================================
+    # LEAD DASHBOARD
+    # ================================
 
     total_leads = LeadCapture.objects.count()
 
-    new_leads = LeadCapture.objects.filter(initial_status = 'new').count()
-
-    contacted_leads = LeadCapture.objects.filter(initial_status = 'contacted').count()
-
-    interested_leads = LeadCapture.objects.filter(initial_status = 'interested').count()
-
-    demo_leads = LeadCapture.objects.filter(initial_status = 'demo_scheduled').count()
-
-    enrolled_leads = LeadCapture.objects.filter(initial_status = 'enrolled').count()
-
-    lost_leads = LeadCapture.objects.filter(initial_status = 'lost').count()
-    
-    # =====================================================
-    # MY LEADS (Sales Exec - own assigned leads only)
-    # =====================================================
-
-    my_leads_qs = LeadCapture.objects.filter(assigned_to=my_staff) if my_staff else LeadCapture.objects.none()
-
-    my_total_leads = my_leads_qs.count()
-    my_new_leads = my_leads_qs.filter(initial_status='new').count()
-    my_contacted_leads = my_leads_qs.filter(initial_status='contacted').count()
-    my_interested_leads = my_leads_qs.filter(initial_status='interested').count()
-    my_demo_leads = my_leads_qs.filter(initial_status='demo_scheduled').count()
-    my_enrolled_leads = my_leads_qs.filter(initial_status='enrolled').count()
-    my_lost_leads = my_leads_qs.filter(initial_status='lost').count()
-
-    my_due_today = my_leads_qs.filter(next_followup_date=today).exclude(
-        initial_status__in=['enrolled', 'lost']
+    new_leads = LeadCapture.objects.filter(
+        initial_status='new'
     ).count()
 
-    my_overdue_count = my_leads_qs.filter(next_followup_date__lt=today).exclude(
-        initial_status__in=['enrolled', 'lost']
+    contacted_leads = LeadCapture.objects.filter(
+        initial_status='contacted'
+    ).count()
+
+    interested_leads = LeadCapture.objects.filter(
+        initial_status='interested'
+    ).count()
+
+    demo_leads = LeadCapture.objects.filter(
+        initial_status='demo_scheduled'
+    ).count()
+
+    enrolled_leads = LeadCapture.objects.filter(
+        initial_status='enrolled'
+    ).count()
+
+    lost_leads = LeadCapture.objects.filter(
+        initial_status='lost'
+    ).count()
+
+    # =====================================================
+    # MY LEADS
+    # =====================================================
+
+    my_leads_qs = (
+        LeadCapture.objects.filter(
+            assigned_to=my_staff
+        )
+        if my_staff
+        else LeadCapture.objects.none()
+    )
+
+    my_total_leads = my_leads_qs.count()
+
+    my_new_leads = my_leads_qs.filter(
+        initial_status='new'
+    ).count()
+
+    my_contacted_leads = my_leads_qs.filter(
+        initial_status='contacted'
+    ).count()
+
+    my_interested_leads = my_leads_qs.filter(
+        initial_status='interested'
+    ).count()
+
+    my_demo_leads = my_leads_qs.filter(
+        initial_status='demo_scheduled'
+    ).count()
+
+    my_enrolled_leads = my_leads_qs.filter(
+        initial_status='enrolled'
+    ).count()
+
+    my_lost_leads = my_leads_qs.filter(
+        initial_status='lost'
+    ).count()
+
+    my_due_today = my_leads_qs.filter(
+        next_followup_date=today
+    ).exclude(
+        initial_status__in=[
+            'enrolled',
+            'lost'
+        ]
+    ).count()
+
+    my_overdue_count = my_leads_qs.filter(
+        next_followup_date__lt=today
+    ).exclude(
+        initial_status__in=[
+            'enrolled',
+            'lost'
+        ]
     ).count()
 
     if my_total_leads > 0:
-        my_conversion_rate = round((my_enrolled_leads / my_total_leads) * 100, 1)
 
-        my_new_leads_pct = round((my_new_leads / my_total_leads) * 100, 1)
-        my_contacted_leads_pct = round((my_contacted_leads / my_total_leads) * 100, 1)
-        my_interested_leads_pct = round((my_interested_leads / my_total_leads) * 100, 1)
-        my_demo_leads_pct = round((my_demo_leads / my_total_leads) * 100, 1)
-        my_enrolled_leads_pct = round((my_enrolled_leads / my_total_leads) * 100, 1)
-        my_lost_leads_pct = round((my_lost_leads / my_total_leads) * 100, 1)
+        my_conversion_rate = round(
+            (my_enrolled_leads / my_total_leads) * 100,
+            1
+        )
+
+        my_new_leads_pct = round(
+            (my_new_leads / my_total_leads) * 100,
+            1
+        )
+
+        my_contacted_leads_pct = round(
+            (my_contacted_leads / my_total_leads) * 100,
+            1
+        )
+
+        my_interested_leads_pct = round(
+            (my_interested_leads / my_total_leads) * 100,
+            1
+        )
+
+        my_demo_leads_pct = round(
+            (my_demo_leads / my_total_leads) * 100,
+            1
+        )
+
+        my_enrolled_leads_pct = round(
+            (my_enrolled_leads / my_total_leads) * 100,
+            1
+        )
+
+        my_lost_leads_pct = round(
+            (my_lost_leads / my_total_leads) * 100,
+            1
+        )
+
     else:
+
         my_conversion_rate = 0
-        my_new_leads_pct = my_contacted_leads_pct = my_interested_leads_pct = 0
-        my_demo_leads_pct = my_enrolled_leads_pct = my_lost_leads_pct = 0
+
+        my_new_leads_pct = 0
+        my_contacted_leads_pct = 0
+        my_interested_leads_pct = 0
+        my_demo_leads_pct = 0
+        my_enrolled_leads_pct = 0
+        my_lost_leads_pct = 0
 
     my_new_leads_deg = my_new_leads_pct * 3.6
-    my_contacted_leads_deg = my_new_leads_deg + (my_contacted_leads_pct * 3.6)
-    my_interested_leads_deg = my_contacted_leads_deg + (my_interested_leads_pct * 3.6)
-    my_demo_leads_deg = my_interested_leads_deg + (my_demo_leads_pct * 3.6)
-    my_enrolled_leads_deg = my_demo_leads_deg + (my_enrolled_leads_pct * 3.6)
+
+    my_contacted_leads_deg = (
+        my_new_leads_deg +
+        (my_contacted_leads_pct * 3.6)
+    )
+
+    my_interested_leads_deg = (
+        my_contacted_leads_deg +
+        (my_interested_leads_pct * 3.6)
+    )
+
+    my_demo_leads_deg = (
+        my_interested_leads_deg +
+        (my_demo_leads_pct * 3.6)
+    )
+
+    my_enrolled_leads_deg = (
+        my_demo_leads_deg +
+        (my_enrolled_leads_pct * 3.6)
+    )
 
     # ==========================================
-    # Lead Percentage Calculation
+    # LEAD PERCENTAGE
     # ==========================================
 
     if total_leads > 0:
 
-        new_leads_pct = round((new_leads / total_leads) * 100, 1)
+        new_leads_pct = round(
+            (new_leads / total_leads) * 100,
+            1
+        )
 
-        contacted_leads_pct = round((contacted_leads / total_leads) * 100, 1)
+        contacted_leads_pct = round(
+            (contacted_leads / total_leads) * 100,
+            1
+        )
 
-        interested_leads_pct = round((interested_leads / total_leads) * 100, 1)
+        interested_leads_pct = round(
+            (interested_leads / total_leads) * 100,
+            1
+        )
 
-        demo_leads_pct = round((demo_leads / total_leads) * 100, 1)
+        demo_leads_pct = round(
+            (demo_leads / total_leads) * 100,
+            1
+        )
 
-        enrolled_leads_pct = round((enrolled_leads / total_leads) * 100, 1)
+        enrolled_leads_pct = round(
+            (enrolled_leads / total_leads) * 100,
+            1
+        )
 
-        lost_leads_pct = round((lost_leads / total_leads) * 100, 1)
+        lost_leads_pct = round(
+            (lost_leads / total_leads) * 100,
+            1
+        )
 
     else:
 
@@ -1593,132 +1914,290 @@ def staff_dashboard(request):
         enrolled_leads_pct = 0
         lost_leads_pct = 0
 
-
     # ==========================================
-    # Lead Donut Degrees
+    # LEAD DONUT DEGREES
     # ==========================================
 
     new_leads_deg = new_leads_pct * 3.6
 
-    contacted_leads_deg = new_leads_deg + (contacted_leads_pct * 3.6)
+    contacted_leads_deg = (
+        new_leads_deg +
+        (contacted_leads_pct * 3.6)
+    )
 
-    interested_leads_deg = contacted_leads_deg + (interested_leads_pct * 3.6)
+    interested_leads_deg = (
+        contacted_leads_deg +
+        (interested_leads_pct * 3.6)
+    )
 
-    demo_leads_deg = interested_leads_deg + (demo_leads_pct * 3.6)
+    demo_leads_deg = (
+        interested_leads_deg +
+        (demo_leads_pct * 3.6)
+    )
 
-    enrolled_leads_deg = demo_leads_deg + (enrolled_leads_pct * 3.6)
+    enrolled_leads_deg = (
+        demo_leads_deg +
+        (enrolled_leads_pct * 3.6)
+    )
 
-# ================================ 
-# CONVERSION RATE 
-# ================================
+    # ================================
+    # CONVERSION RATE
+    # ================================
 
     if total_leads > 0:
+
         conversion_rate = round(
             (enrolled_leads / total_leads) * 100,
             1
         )
+
     else:
+
         conversion_rate = 0
 
     # =====================================================
-    # Recent Leads
+    # RECENT LEADS
     # =====================================================
 
-    if my_staff and my_staff.role and my_staff.role.role_name == 'Sales Exec':
+    if (
+        my_staff
+        and my_staff.role
+        and my_staff.role.role_name == 'Sales Exec'
+    ):
+
         recent_leads = LeadCapture.objects.filter(
             assigned_to=my_staff
-        ).select_related('assigned_to').order_by('-created_at')[:5]
+        ).select_related(
+            'assigned_to'
+        ).order_by(
+            '-created_at'
+        )[:5]
+
     else:
-        recent_leads = LeadCapture.objects.select_related('assigned_to').order_by('created_at')[:5]
+
+        recent_leads = LeadCapture.objects.select_related(
+            'assigned_to'
+        ).order_by(
+            'created_at'
+        )[:5]
 
     # =====================================================
-    # Today's Follow-ups
+    # MARKETING - CAPTURE TARGET COUNTS
+    # =====================================================
+
+    my_targets_total = 0
+    my_targets_completed = 0
+    my_targets_active = 0
+    my_targets_expired = 0
+
+    my_capture_target = None
+    my_captured_leads_count = 0
+
+    marketing_team_targets_total = 0
+    marketing_team_targets_completed = 0
+    marketing_team_targets_active = 0
+    marketing_team_targets_expired = 0
+
+    marketing_team_captured_leads_count = 0
+
+    if (
+        my_staff
+        and my_staff.role
+        and my_staff.role.role_name in [
+            'Marketing Lead',
+            'Digital Marketing'
+        ]
+    ):
+
+        my_targets_qs = LeadCaptureTarget.objects.filter(
+            assigned_to=my_staff
+        )
+
+        my_targets_total = my_targets_qs.count()
+
+        my_targets_completed = my_targets_qs.filter(
+            is_completed=True
+        ).count()
+
+        my_targets_expired = my_targets_qs.filter(
+            is_completed=False,
+            end_date__lt=today
+        ).count()
+
+        my_targets_active = my_targets_qs.filter(
+            is_completed=False,
+            end_date__gte=today
+        ).count()
+
+        # My own current capture target
+        my_capture_target = my_targets_qs.order_by(
+            '-created_at'
+        ).first()
+
+        # =================================================
+        # FIX:
+        # LeadCapture has NO captured_by field.
+        # Use assigned_to instead.
+        # =================================================
+
+        my_captured_leads_count = LeadCapture.objects.filter(
+            assigned_to=my_staff
+        ).count()
+
+    if (
+        my_staff
+        and my_staff.role
+        and my_staff.role.role_name == 'Marketing Lead'
+    ):
+
+        marketing_team_targets_qs = LeadCaptureTarget.objects.filter(
+            assigned_to__department__dept_name='Marketing'
+        )
+
+        marketing_team_targets_total = (
+            marketing_team_targets_qs.count()
+        )
+
+        marketing_team_targets_completed = (
+            marketing_team_targets_qs.filter(
+                is_completed=True
+            ).count()
+        )
+
+        marketing_team_targets_expired = (
+            marketing_team_targets_qs.filter(
+                is_completed=False,
+                end_date__lt=today
+            ).count()
+        )
+
+        marketing_team_targets_active = (
+            marketing_team_targets_qs.filter(
+                is_completed=False,
+                end_date__gte=today
+            ).count()
+        )
+
+        # =================================================
+        # FIX:
+        # LeadCapture has NO captured_by field.
+        # Use assigned_to__department instead.
+        # =================================================
+
+        marketing_team_captured_leads_count = (
+            LeadCapture.objects.filter(
+                assigned_to__department__dept_name='Marketing'
+            ).count()
+        )
+
+    # =====================================================
+    # TODAY'S FOLLOW-UPS
     # =====================================================
 
     today_followups = LeadCapture.objects.filter(
         next_followup_date=today
     ).exclude(
-        initial_status__in=['enrolled', 'lost']
+        initial_status__in=[
+            'enrolled',
+            'lost'
+        ]
     )
 
     # =====================================================
-    # Follow-up Summary
+    # FOLLOW-UP SUMMARY
     # =====================================================
 
     due_today = today_followups.count()
 
     overdue_count = LeadCapture.objects.filter(
-        next_followup_date__lt = today
+        next_followup_date=today
     ).exclude(
-        initial_status__in = ['enrolled', 'lost']
+        initial_status__in=[
+            'enrolled',
+            'lost'
+        ]
     ).count()
 
     completed_today = LeadCapture.objects.filter(
         updated_at__date=today,
-        initial_status__in=['enrolled', 'lost']
+        initial_status__in=[
+            'enrolled',
+            'lost'
+        ]
     ).count()
 
     # =====================================================
-    # Lead Source Summary
+    # LEAD SOURCE SUMMARY
     # =====================================================
 
     lead_sources = LeadCapture.objects.values(
         'lead_source'
     ).annotate(
-        total = Count('id')
+        total=Count('id')
     ).order_by('-total')
 
     # =====================================================
-    # Course Interest Summary
+    # COURSE INTEREST SUMMARY
     # =====================================================
 
     course_interseted = LeadCapture.objects.values(
         'course_interested'
     ).annotate(
-        total = Count('id')
+        total=Count('id')
     ).order_by('-total')
 
     # =====================================================
-    # Assigned Staff Summary
+    # ASSIGNED STAFF SUMMARY
     # =====================================================
 
     assigned_staff = LeadCapture.objects.values(
         'assigned_to__first_name',
         'assigned_to__last_name'
     ).annotate(
-        total_leads = Count('id')
+        total_leads=Count('id')
     ).order_by('-total_leads')
 
     # ================================
-    # Student Dashboard
+    # STUDENT DASHBOARD
     # ================================
 
     total_students = Student.objects.count()
 
-    active_students = Enrollment.objects.filter(batch__status = 'Ongoing').count()
+    active_students = Enrollment.objects.filter(
+        batch__status='Ongoing'
+    ).count()
 
-    completed_students = Enrollment.objects.filter(batch__status='Completed').count()
+    completed_students = Enrollment.objects.filter(
+        batch__status='Completed'
+    ).count()
 
-    dropped_students = Admission.objects.filter(status = 'dropped').count()
+    dropped_students = Admission.objects.filter(
+        status='dropped'
+    ).count()
 
-    recent_students = Student.objects.order_by('-id')[:5]
+    recent_students = Student.objects.order_by(
+        '-id'
+    )[:5]
 
     # ==========================================
-    # Student Percentage
+    # STUDENT PERCENTAGE
     # ==========================================
 
     if total_students > 0:
 
         active_students_pct = round(
-            (active_students / total_students) * 100, 1
+            (active_students / total_students) * 100,
+            1
         )
 
         completed_students_pct = round(
-            (completed_students / total_students) * 100, 1
+            (completed_students / total_students) * 100,
+            1
         )
 
         dropped_students_pct = round(
-            (dropped_students / total_students) * 100, 1
+            (dropped_students / total_students) * 100,
+            1
         )
 
     else:
@@ -1739,48 +2218,60 @@ def staff_dashboard(request):
         (dropped_students_pct * 3.6)
     )
 
-
     # ================================
-    # Batch Dashboard
+    # BATCH DASHBOARD
     # ================================
 
     total_batches = Batch.objects.count()
 
-    ongoing_batches = Batch.objects.filter(status = 'Ongoing').count()
+    ongoing_batches = Batch.objects.filter(
+        status='Ongoing'
+    ).count()
 
-    upcoming_batches = Batch.objects.filter(status = 'Upcoming').count()
+    upcoming_batches = Batch.objects.filter(
+        status='Upcoming'
+    ).count()
 
-    completed_batches = Batch.objects.filter(status = 'Completed').count()
+    completed_batches = Batch.objects.filter(
+        status='Completed'
+    ).count()
 
     batch_summary = Batch.objects.select_related(
-    'course',
-    'trainer'
+        'course',
+        'trainer'
     ).annotate(
-    enrolled_students=Count('enrollments'),
-    occupancy_percentage=ExpressionWrapper(
-        Count('enrollments') * 100.0 / F('max_students'),
-        output_field=FloatField()
+        enrolled_students=Count('enrollments'),
+        occupancy_percentage=ExpressionWrapper(
+            Count('enrollments') * 100.0 / F('max_students'),
+            output_field=FloatField()
+        )
+    ).order_by(
+        '-enrolled_students',
+        'batch_name'
     )
-    ).order_by('-enrolled_students', 'batch_name')
+
+    # ================================
+    # CONTEXT
+    # ================================
 
     context = {
 
         # Staff Module
 
-        'total_staff' : total_staff,
-        'active_staff' : active_staff,
-        'on_leave' : on_leave,
-        'terminated' : terminate,
-        'inactive' : inactive,
-        'recent_staff' : recent_staff,
-        'average_rating' : average_rating,
-        'present' : present,
-        'late' : late,
-        'absent' : absent,
-        'leave' : leave,
+        'total_staff': total_staff,
+        'active_staff': active_staff,
+        'on_leave': on_leave,
+        'terminated': terminate,
+        'inactive': inactive,
+        'recent_staff': recent_staff,
+        'average_rating': average_rating,
+        'present': present,
+        'late': late,
+        'absent': absent,
+        'leave': leave,
         'departments': departments,
         'attendance_percentage': attendance_percentage,
-        'staff_status': staff_status,  
+        'staff_status': staff_status,
         'roles': roles,
 
         # Leads Module
@@ -1793,7 +2284,7 @@ def staff_dashboard(request):
         'enrolled_leads': enrolled_leads,
         'lost_leads': lost_leads,
         'conversion_rate': conversion_rate,
-        'recent_leads' : recent_leads,
+        'recent_leads': recent_leads,
         'today_followups': today_followups,
         'due_today': due_today,
         'overdue_count': overdue_count,
@@ -1801,6 +2292,7 @@ def staff_dashboard(request):
         'lead_sources': lead_sources,
         'course_interseted': course_interseted,
         'assigned_staff': assigned_staff,
+
         'new_leads_pct': new_leads_pct,
         'contacted_leads_pct': contacted_leads_pct,
         'interested_leads_pct': interested_leads_pct,
@@ -1838,13 +2330,15 @@ def staff_dashboard(request):
         'completed_batches': completed_batches,
         'batch_summary': batch_summary,
 
-        #My Attendance
+        # My Attendance
+
         'my_late_days': my_late_days,
         'my_absent_days': my_absent_days,
         'my_leave_days': my_leave_days,
         'my_attendance_percentage': my_attendance_percentage,
 
-        # Checkin
+        # Check-in
+
         'today_attendance': today_attendance_for_me,
         'today_status_for_me': today_status_for_me,
         'show_checkout_for_me': show_checkout_for_me,
@@ -1854,15 +2348,18 @@ def staff_dashboard(request):
         'active_attendance_for_me': active_attendance_for_me,
         'is_checkout_closed_for_me': is_checkout_closed_for_me,
 
-        # My department Attendance 
+        # My Department Attendance
+
         'my_dept_present': my_dept_present,
         'my_dept_late': my_dept_late,
         'my_dept_absent': my_dept_absent,
         'my_dept_leave': my_dept_leave,
-        'my_dept_attendance_percentage': my_dept_attendance_percentage,
+        'my_dept_attendance_percentage':
+            my_dept_attendance_percentage,
         'my_department_name': my_department_name,
 
-        # Sales exec own Leads
+        # Sales Exec Own Leads
+
         'my_total_leads': my_total_leads,
         'my_new_leads': my_new_leads,
         'my_contacted_leads': my_contacted_leads,
@@ -1873,41 +2370,77 @@ def staff_dashboard(request):
         'my_due_today': my_due_today,
         'my_overdue_count': my_overdue_count,
         'my_conversion_rate': my_conversion_rate,
+
         'my_new_leads_pct': my_new_leads_pct,
         'my_contacted_leads_pct': my_contacted_leads_pct,
         'my_interested_leads_pct': my_interested_leads_pct,
         'my_demo_leads_pct': my_demo_leads_pct,
         'my_enrolled_leads_pct': my_enrolled_leads_pct,
         'my_lost_leads_pct': my_lost_leads_pct,
+
         'my_new_leads_deg': my_new_leads_deg,
         'my_contacted_leads_deg': my_contacted_leads_deg,
         'my_interested_leads_deg': my_interested_leads_deg,
         'my_demo_leads_deg': my_demo_leads_deg,
         'my_enrolled_leads_deg': my_enrolled_leads_deg,
 
-        # Student Module
+        # Trainer
+
         'trainer_total_students': trainer_total_students,
         'trainer_active_students': trainer_active_students,
         'trainer_completed_students': trainer_completed_students,
         'trainer_dropped_students': trainer_dropped_students,
         'trainer_recent_students': trainer_recent_students,
 
-        'trainer_active_students_pct': trainer_active_students_pct,
-        'trainer_completed_students_pct': trainer_completed_students_pct,
-        'trainer_dropped_students_pct': trainer_dropped_students_pct,
+        'trainer_active_students_pct':
+            trainer_active_students_pct,
+        'trainer_completed_students_pct':
+            trainer_completed_students_pct,
+        'trainer_dropped_students_pct':
+            trainer_dropped_students_pct,
 
-        'trainer_active_students_deg': trainer_active_students_deg,
-        'trainer_completed_students_deg': trainer_completed_students_deg,
-        'trainer_dropped_students_deg': trainer_dropped_students_deg,
+        'trainer_active_students_deg':
+            trainer_active_students_deg,
+        'trainer_completed_students_deg':
+            trainer_completed_students_deg,
+        'trainer_dropped_students_deg':
+            trainer_dropped_students_deg,
 
         'trainer_total_batches': trainer_total_batches,
         'trainer_ongoing_batches': trainer_ongoing_batches,
         'trainer_upcoming_batches': trainer_upcoming_batches,
         'trainer_completed_batches': trainer_completed_batches,
         'trainer_batch_summary': trainer_batch_summary,
+
+        # Marketing
+
+        'my_targets_total': my_targets_total,
+        'my_targets_completed': my_targets_completed,
+        'my_targets_active': my_targets_active,
+        'my_targets_expired': my_targets_expired,
+        'my_capture_target': my_capture_target,
+        'my_captured_leads_count': my_captured_leads_count,
+
+        # Marketing Lead - Team Targets
+
+        'marketing_team_targets_total':
+            marketing_team_targets_total,
+        'marketing_team_targets_completed':
+            marketing_team_targets_completed,
+        'marketing_team_targets_active':
+            marketing_team_targets_active,
+        'marketing_team_targets_expired':
+            marketing_team_targets_expired,
+        'marketing_team_captured_leads_count':
+            marketing_team_captured_leads_count,
     }
-    return render( request, 'staff/dashboard.html', context)
-    
+
+    return render(
+        request,
+        'staff/dashboard.html',
+        context
+    )
+ 
 # ================================ MY PROFILE ================================
 
 @login_required(login_url='staff_login')

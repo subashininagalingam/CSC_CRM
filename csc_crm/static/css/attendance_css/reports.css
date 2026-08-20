@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
 :root{
 
     --primary:#262170;
@@ -21,7 +22,13 @@
     --shadow:0 4px 18px rgba(0,0,0,0.04);
 
 }
-*{
+
+
+/* =========================================================
+   GLOBAL
+========================================================= */
+
+.reports-page *{
 
     margin:0;
     padding:0;
@@ -37,16 +44,18 @@
 }
 
 
-/* =========================
+/* =========================================================
    TOPBAR
-========================= */
+========================================================= */
 
 .reports-topbar{
 
     display:flex;
     justify-content:space-between;
     align-items:center;
+
     margin-bottom:20px;
+
     flex-wrap:wrap;
     gap:14px;
 
@@ -57,7 +66,9 @@
     font-size:22px;
     font-weight:800;
     color:var(--text);
+
     margin:0;
+
     letter-spacing:-0.3px;
 
 }
@@ -66,41 +77,52 @@
 
     display:flex;
     gap:10px;
+
     flex-wrap:wrap;
 
 }
 
 
-/* =========================
+/* =========================================================
    EXPORT BUTTON
-========================= */
+========================================================= */
 
 .export-btn{
 
     border:none;
+
     border-radius:12px;
+
     padding:10px 16px;
+
     font-size:12px;
     font-weight:600;
+
     display:flex;
     align-items:center;
+
     gap:8px;
+
     transition:0.3s;
+
     cursor:pointer;
+
     color:white;
-    text-decoration: none !important;
+
+    text-decoration:none !important;
 
 }
 
 .export-btn:hover{
 
-    text-decoration: none !important;
+    text-decoration:none !important;
+
     transform:translateY(-2px);
 
 }
 
 
-/* PDF BUTTON */
+/* PDF */
 
 .pdf-btn{
 
@@ -111,12 +133,13 @@
 .pdf-btn:hover{
 
     background:var(--danger);
+
     box-shadow:0 6px 16px rgba(220,38,38,0.25);
 
 }
 
 
-/* EXCEL BUTTON */
+/* EXCEL */
 
 .excel-btn{
 
@@ -127,21 +150,28 @@
 .excel-btn:hover{
 
     background:var(--success);
+
     box-shadow:0 6px 16px rgba(22,163,74,0.25);
 
 }
 
-/* =========================
+
+/* =========================================================
    FILTER CARD
-========================= */
+========================================================= */
 
 .filter-card{
 
     background:var(--white);
+
     border-radius:18px;
+
     padding:20px 20px 8px;
+
     margin:0 0 24px;
+
     box-shadow:var(--shadow);
+
     border:1px solid var(--border);
 
 }
@@ -162,7 +192,9 @@
 .filter-field{
 
     display:flex;
+
     flex-direction:column;
+
     gap:6px;
 
 }
@@ -170,9 +202,13 @@
 .filter-label{
 
     font-size:11.5px;
+
     font-weight:700;
+
     color:var(--muted);
+
     text-transform:uppercase;
+
     letter-spacing:0.4px;
 
 }
@@ -180,7 +216,9 @@
 .filter-input-icon{
 
     position:relative;
+
     display:flex;
+
     align-items:center;
 
 }
@@ -188,9 +226,13 @@
 .filter-input-icon i{
 
     position:absolute;
+
     left:12px;
+
     font-size:12px;
+
     color:var(--muted);
+
     pointer-events:none;
 
 }
@@ -204,6 +246,7 @@
 .date-range-group{
 
     grid-column:span 2;
+
     min-width:280px;
 
 }
@@ -211,7 +254,9 @@
 .date-range-inputs{
 
     display:flex;
+
     align-items:center;
+
     gap:8px;
 
 }
@@ -219,6 +264,7 @@
 .date-range-inputs .filter-input-icon{
 
     flex:1 1 0;
+
     min-width:0;
 
 }
@@ -226,6 +272,7 @@
 .date-range-sep{
 
     color:var(--muted);
+
     font-weight:600;
 
 }
@@ -267,7 +314,9 @@
 .filter-actions-row{
 
     display:flex;
+
     gap:10px;
+
     padding-bottom:18px;
 
 }
@@ -290,9 +339,13 @@
     cursor:pointer;
 
     display:flex;
+
     align-items:center;
+
     gap:8px;
+
     padding:0 18px;
+
     transition:.3s;
 
 }
@@ -318,6 +371,7 @@
 .apply-btn:hover{
 
     background:var(--primary-dark);
+
     box-shadow:0 6px 16px rgba(38,33,112,0.25);
 
 }
@@ -335,9 +389,10 @@
 
 }
 
-/* =========================
-   CHART CARD
-========================= */
+
+/* =========================================================
+   COMMON CHART CARD
+========================================================= */
 
 .chart-card{
 
@@ -349,19 +404,26 @@
 
     box-shadow:var(--shadow);
 
+    border:1px solid var(--border);
+
     height:100%;
 
-    border:1px solid var(--border);
+    min-width:0;
 
 }
 
 .chart-header{
 
     margin-bottom:18px;
+
     display:flex;
+
     align-items:center;
+
     justify-content:space-between;
+
     flex-wrap:wrap;
+
     gap:10px;
 
 }
@@ -385,8 +447,11 @@
 .batch-wise-header-actions{
 
     display:flex;
+
     flex-direction:column;
+
     align-items:flex-end;
+
     gap:6px;
 
 }
@@ -394,7 +459,9 @@
 .chart-container{
 
     position:relative;
+
     width:100%;
+
     height:250px;
 
 }
@@ -402,10 +469,15 @@
 .pie-chart-container{
 
     position:relative;
+
     width:100%;
+
     height:250px;
+
     display:flex;
+
     justify-content:center;
+
     align-items:center;
 
 }
@@ -413,26 +485,38 @@
 canvas{
 
     max-width:100% !important;
+
     max-height:100% !important;
 
 }
 
-/* =========================
+
+/* =========================================================
    CHART EMPTY STATE
-========================= */
+========================================================= */
 
 .chart-empty-state{
 
     display:none;
+
     position:absolute;
+
     inset:0;
+
     flex-direction:column;
+
     align-items:center;
+
     justify-content:center;
+
     gap:8px;
+
     text-align:center;
+
     padding:20px;
+
     background:var(--white);
+
     z-index:2;
 
 }
@@ -446,6 +530,7 @@ canvas{
 .chart-empty-state i{
 
     font-size:30px;
+
     color:#cbd5e1;
 
 }
@@ -453,78 +538,272 @@ canvas{
 .chart-empty-state p{
 
     margin:0;
+
     font-size:13px;
+
     font-weight:600;
+
     color:var(--muted);
 
 }
+
+
+/* =========================================================
+   TABLE RESPONSIVE
+========================================================= */
+
 .table-responsive{
+
     overflow-x:auto;
 
     -webkit-overflow-scrolling:touch;
 
 }
-.attendance-info-banner {
 
-    background: #e0f2fe;
 
-    border-left: 4px solid #0284c7;
+/* =========================================================
+   ATTENDANCE INFO BANNER
+========================================================= */
 
-    color: #0f172a;
+.attendance-info-banner{
 
-    padding: 14px 18px;
+    background:#e0f2fe;
 
-    border-radius: 8px;
+    border-left:4px solid #0284c7;
 
-    margin-bottom: 20px;
+    color:#0f172a;
 
-    font-size: 14px;
+    padding:14px 18px;
 
-    font-weight: 500;
+    border-radius:8px;
 
-}
+    margin-bottom:20px;
 
-.attendance-info-banner i {
+    font-size:14px;
 
-    margin-right: 8px;
-
-}
-
-.attendance-info-banner.success {
-
-    background: #dcfce7;
-
-    border-left: 4px solid var(--success);
-
-    color: var(--success);
+    font-weight:500;
 
 }
 
+.attendance-info-banner i{
+
+    margin-right:8px;
+
+}
+
+.attendance-info-banner.success{
+
+    background:#dcfce7;
+
+    border-left:4px solid var(--success);
+
+    color:var(--success);
+
+}
 
 
-/* =========================
+/* =========================================================
+   CHARTS LAYOUT
+========================================================= */
+
+/*
+   ROW 1
+   Monthly Attendance Chart
+*/
+
+.charts-row{
+
+    display:flex;
+
+    gap:20px;
+
+    width:100%;
+
+    margin-bottom:24px;
+
+}
+
+.charts-row .chart-card{
+
+    flex:1;
+
+    min-width:0;
+
+    min-height:400px;
+
+}
+
+
+/*
+   ROW 2
+   Attendance Distribution + Batch-wise Attendance
+*/
+
+.charts-top-row{
+
+    display:flex;
+
+    align-items:stretch;
+
+    gap:20px;
+
+    width:100%;
+
+    margin-bottom:24px;
+
+}
+
+
+/*
+   IMPORTANT:
+   Both cards will always have equal height.
+*/
+
+.charts-top-row > .chart-card{
+
+    flex:1 1 0;
+
+    min-width:0;
+
+    height:auto;
+
+    min-height:400px;
+
+    display:flex;
+
+    flex-direction:column;
+
+}
+
+
+/*
+   Distribution card
+*/
+
+.charts-top-row .distribution-chart-card{
+
+    flex:1 1 0;
+
+}
+
+
+/*
+   Batch-wise card
+*/
+
+.charts-top-row > .chart-card:not(.distribution-chart-card){
+
+    flex:1 1 0;
+
+}
+
+
+/*
+   Chart area inside both cards
+   expands equally.
+*/
+
+.charts-top-row .pie-chart-container{
+
+    flex:1;
+
+    min-height:250px;
+
+    height:auto;
+
+}
+
+
+/*
+   Batch warning also fills the same height.
+*/
+
+.charts-top-row .chart-warning{
+
+    flex:1;
+
+    min-height:250px;
+
+    height:auto;
+
+    display:flex;
+
+    flex-direction:column;
+
+    justify-content:center;
+
+    align-items:center;
+
+    text-align:center;
+
+    color:#6b7280;
+
+}
+
+
+/* =========================================================
+   CHART WARNING
+========================================================= */
+
+.chart-warning i{
+
+    font-size:40px;
+
+    color:#f59e0b;
+
+    margin-bottom:10px;
+
+}
+
+.chart-warning h5{
+
+    margin-bottom:8px;
+
+    font-weight:600;
+
+}
+
+.chart-warning p{
+
+    margin:0;
+
+}
+
+
+/* =========================================================
    REPORT TABLE CARD
-========================= */
+========================================================= */
 
 .report-table-card{
 
     background:var(--white);
+
     border-radius:18px;
+
     padding:16px;
+
     margin-top:24px;
+
     box-shadow:var(--shadow);
+
     border:1px solid var(--border);
-    width: 100%;
+
+    width:100%;
 
 }
 
 .report-table-header{
 
     display:flex;
+
     justify-content:space-between;
+
     align-items:center;
+
     margin-bottom:20px;
+
     flex-wrap:wrap;
+
     gap:14px;
 
 }
@@ -532,8 +811,11 @@ canvas{
 .report-table-header h4{
 
     font-size:18px;
+
     font-weight:700;
+
     color:var(--text);
+
     margin:0;
 
 }
@@ -541,51 +823,72 @@ canvas{
 .table-actions{
 
     display:flex;
+
     gap:10px;
+
     flex-wrap:wrap;
 
 }
 
 
-/* =========================
+/* =========================================================
    TABLE
-========================= */
+========================================================= */
 
 .table{
 
     margin:0;
-width: 100%;
+
+    width:100%;
+
 }
 
 .table thead th{
 
     color:var(--muted);
+
     font-size:11.5px;
+
     font-weight:700;
+
     padding:14px 12px;
+
     border-bottom:1px solid var(--border);
+
     white-space:nowrap;
+
     letter-spacing:0.5px;
+
     background:var(--light);
 
 }
 
 .table thead th:first-child{
+
     border-top-left-radius:10px;
+
     border-bottom-left-radius:10px;
+
 }
 
 .table thead th:last-child{
+
     border-top-right-radius:10px;
+
     border-bottom-right-radius:10px;
+
 }
 
 .table tbody td{
 
     padding:14px 12px;
+
     vertical-align:middle;
+
     font-size:12.5px;
+
     color:var(--text);
+
     border-bottom:1px solid var(--border);
 
 }
@@ -597,14 +900,16 @@ width: 100%;
 }
 
 
-/* =========================
+/* =========================================================
    STUDENT CELL
-========================= */
+========================================================= */
 
 .student-cell{
 
     display:flex;
+
     align-items:center;
+
     gap:12px;
 
 }
@@ -612,15 +917,25 @@ width: 100%;
 .student-avatar{
 
     width:34px;
+
     height:34px;
+
     border-radius:50%;
+
     display:flex;
+
     align-items:center;
+
     justify-content:center;
+
     font-size:11px;
+
     font-weight:700;
+
     color:var(--white);
+
     background:var(--primary);
+
     flex-shrink:0;
 
 }
@@ -628,19 +943,22 @@ width: 100%;
 .student-cell span{
 
     font-size:12.5px;
+
     font-weight:600;
+
     color:var(--primary);
 
 }
 
 
-/* =========================
+/* =========================================================
    TEXT COLORS
-========================= */
+========================================================= */
 
 .present-text{
 
     color:var(--success) !important;
+
     font-weight:700;
 
 }
@@ -648,6 +966,7 @@ width: 100%;
 .absent-text{
 
     color:var(--danger) !important;
+
     font-weight:700;
 
 }
@@ -655,6 +974,7 @@ width: 100%;
 .late-text{
 
     color:var(--warning) !important;
+
     font-weight:700;
 
 }
@@ -662,35 +982,48 @@ width: 100%;
 .rate-text{
 
     color:var(--success) !important;
+
     font-weight:700;
 
 }
 
 
-/* =========================
+/* =========================================================
    STATUS BADGES
-========================= */
+========================================================= */
 
 .status-badge{
 
     padding:6px 16px;
+
     border-radius:999px;
+
     font-size:12px;
+
     font-weight:700;
+
     display:inline-flex;
+
     align-items:center;
+
     justify-content:center;
+
     min-width:78px;
 
 }
+
 .excellent-badge{
+
     background:#dcfce7;
+
     color:var(--success);
+
 }
 
 .good-badge{
 
     background:#e0e7ff;
+
     color:var(--primary);
 
 }
@@ -698,6 +1031,7 @@ width: 100%;
 .warning-badge{
 
     background:#fef3c7;
+
     color:var(--warning);
 
 }
@@ -705,6 +1039,7 @@ width: 100%;
 .critical-badge{
 
     background:#fee2e2;
+
     color:var(--danger);
 
 }
@@ -722,107 +1057,56 @@ width: 100%;
 }
 
 
-/* =========================================
-   CHARTS LAYOUT
-========================================= */
-
-.charts-top-row{
-
-    display:flex;
-    gap:20px;
-    width:100%;
-    margin-bottom:20px;
-
-}
-
-.charts-top-row .monthly-chart-card{
-
-    flex:2;
-    min-width:0;
-    min-height:340px;
-
-}
-
-.charts-top-row .distribution-chart-card{
-
-    flex:1;
-    min-width:280px;
-    min-height:340px;
-
-}
-
-.charts-row {
-    display: flex;
-    gap: 20px;
-    width: 100%;
-    margin-bottom: 24px;
-    height: 100%;
-
-}
-
-.charts-row .chart-card {
-    flex: 1;
-    min-width: 0;
-    min-height: 400px;
-}
-
-.chart-warning{
-    height:300px;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-    text-align:center;
-    color:#6b7280;
-}
-
-.chart-warning i{
-    font-size:40px;
-    color:#f59e0b;
-    margin-bottom:10px;
-}
-
-.chart-warning h5{
-    margin-bottom:8px;
-    font-weight:600;
-}
-
-.chart-warning p{
-    margin:0;
-}
-
-/* =========================
+/* =========================================================
    TOAST
-========================= */
+========================================================= */
 
 .attendance-toast{
-    width: 100%;
-    margin: 0 0 4px;
-    padding: 10px;
-    text-align: center;
-    border-radius: 8px;
-    font-size: 14px;
-    overflow: hidden;
-    max-height: 200px;
+
+    width:100%;
+
+    margin:0 0 4px;
+
+    padding:10px;
+
+    text-align:center;
+
+    border-radius:8px;
+
+    font-size:14px;
+
+    overflow:hidden;
+
+    max-height:200px;
+
     transition:
         opacity 0.4s ease,
         max-height 0.4s ease 0.15s,
         padding 0.4s ease 0.15s,
         margin 0.4s ease 0.15s;
+
 }
 
 .attendance-toast.fade-out{
-    opacity: 0;
-    visibility: hidden;
-    max-height: 0;
-    padding: 0;
-    margin: 0;
-    border: 0;
+
+    opacity:0;
+
+    visibility:hidden;
+
+    max-height:0;
+
+    padding:0;
+
+    margin:0;
+
+    border:0;
+
 }
 
-/* =========================
-   RESPONSIVE
-========================= */
+
+/* =========================================================
+   RESPONSIVE - 992px
+========================================================= */
 
 @media(max-width:992px){
 
@@ -832,20 +1116,45 @@ width: 100%;
 
     }
 
-    .charts-top-row .monthly-chart-card,
-    .charts-top-row .distribution-chart-card{
+    /*
+       On tablet/mobile, cards are stacked.
+       Equal height is no longer forced because
+       each card can have its own content height.
+    */
+
+    .charts-top-row > .chart-card{
+
+        width:100%;
 
         min-height:300px;
 
     }
 
+    .charts-top-row .pie-chart-container{
+
+        min-height:250px;
+
+    }
+
+    .charts-top-row .chart-warning{
+
+        min-height:250px;
+
+    }
+
 }
+
+
+/* =========================================================
+   RESPONSIVE - 768px
+========================================================= */
 
 @media(max-width:768px){
 
     .reports-topbar{
 
         flex-direction:column;
+
         align-items:flex-start;
 
     }
@@ -853,6 +1162,7 @@ width: 100%;
     .report-table-header{
 
         flex-direction:column;
+
         align-items:flex-start;
 
     }
@@ -866,23 +1176,32 @@ width: 100%;
     .table-actions{
 
         width:100%;
+
         display:flex;
+
         gap:10px;
 
     }
 
-    /* EXPORT BUTTON SMALL */
+
+    /* EXPORT BUTTON */
 
     .export-btn{
 
         width:auto;
+
         min-width:140px;
+
         justify-content:center;
+
         padding:10px 16px;
+
         font-size:12px;
+
         border-radius:10px;
 
     }
+
 
     .date-range-group{
 
@@ -896,8 +1215,8 @@ width: 100%;
 
     }
 
-}
-@media(max-width:768px){
+
+    /* MAIN CONTENT */
 
     .main-content{
 
@@ -909,8 +1228,91 @@ width: 100%;
 
     }
 
-    .charts-row {
-        flex-direction: column;
+
+    /* CHART ROW */
+
+    .charts-row{
+
+        flex-direction:column;
+
+    }
+
+    .charts-row .chart-card{
+
+        width:100%;
+
+        min-height:300px;
+
+    }
+
+
+    /*
+       Row 2 also becomes vertical.
+    */
+
+    .charts-top-row{
+
+        flex-direction:column;
+
+        gap:20px;
+
+    }
+
+    .charts-top-row > .chart-card{
+
+        width:100%;
+
+        min-height:300px;
+
+    }
+
+}
+
+
+/* =========================================================
+   RESPONSIVE - 480px
+========================================================= */
+
+@media(max-width:480px){
+
+    .reports-topbar h5{
+
+        font-size:19px;
+
+    }
+
+    .chart-card{
+
+        padding:14px;
+
+        border-radius:14px;
+
+    }
+
+    .report-table-card{
+
+        padding:14px;
+
+        border-radius:14px;
+
+    }
+
+    .topbar-actions{
+
+        width:100%;
+
+    }
+
+    .topbar-actions .export-btn{
+
+        flex:1;
+
+    }
+
+    .table-actions .export-btn{
+
+        flex:1;
+
     }
 
 }

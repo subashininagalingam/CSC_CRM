@@ -21,6 +21,8 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     <link rel="stylesheet" href="{% static 'css/followup.css' %}">
     <link rel="stylesheet" href="{% static 'css/pipeline_view.css' %}">
     <link rel="stylesheet" href="{% static 'css/conversion_report.css' %}">
+    <link rel="stylesheet" href="{% static 'css/target_assign_list.css' %}">
+
 </head>
 <body>
     <div class="sidebar-overlay"></div>
@@ -44,21 +46,15 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
     </div>
 
-       <!-- ==================== USER INFO ==================== -->
+    <!-- ==================== USER INFO ==================== -->
 
-            {% if request.user.is_authenticated and request.user.staff_profile %}
+{% if request.user.is_authenticated and request.user.staff_profile %}
 <div class="sidebar-user-main">
     <div class="sidebar-user">
 
-        {% if request.user.staff_profile.profile_photo %}
-        <div class="sidebar-user-avatar">
-            <img src="{{ request.user.staff_profile.profile_photo.url }}" alt="Profile" class="sidebar-user-avatar-img">
-        </div>
-        {% else %}
         <div class="sidebar-user-avatar">
             {{ request.user.staff_profile.get_initials }}
         </div>
-        {% endif %}
 
         <div class="sidebar-user-info">
             <p class="sidebar-user-name">
@@ -76,7 +72,6 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 </div>
 {% endif %}
 
-
 </nav>
 
     {% include "includes/sidebar.html" %}
@@ -89,6 +84,13 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         <!-- Leads Tabs -->
       <div class="top-tabs">
 
+    {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" or request.user.staff_profile.role.role_name == "Marketing Lead" or request.user.staff_profile.role.role_name == "Digital Marketing" or request.user.staff_profile.role.role_name == "Content Creator" %}
+    <a href="{% url 'leads:lead_capture_target' %}"
+       class="{% if request.resolver_match.url_name == 'lead_capture_target' or request.resolver_match.url_name == 'lead_capture_target_assign' %}active{% endif %}">
+        Lead Capture Target
+    </a>
+    {% endif %}
+
     {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "Sales Exec Lead" %}
     <a href="{% url 'leads:lead_capture_list' %}"
        class="{% if request.resolver_match.url_name == 'lead_capture_list' or request.resolver_match.url_name == 'lead_capture_create' %}active{% endif %}">
@@ -97,10 +99,12 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     {% endif %}
     
 
+    {% if request.user.staff_profile.role.role_name != "Marketing Lead" and request.user.staff_profile.role.role_name != "Digital Marketing" and request.user.staff_profile.role.role_name != "Content Creator" %}
     <a href="{% url 'leads:lead_pipeline_view' %}"
        class="{% if request.resolver_match.url_name == 'lead_pipeline_view' %}active{% endif %}">
         Pipeline View
     </a>
+    {% endif %}
 
     {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Sales Exec" %}
     <a href="{% url 'leads:call_logs' %}"
@@ -109,15 +113,19 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     </a>
     {% endif %}
 
+    {% if request.user.staff_profile.role.role_name != "Marketing Lead" and request.user.staff_profile.role.role_name != "Digital Marketing" and request.user.staff_profile.role.role_name != "Content Creator" %}
     <a href="{% url 'leads:followup_shedule' %}"
        class="{% if request.resolver_match.url_name == 'followup_shedule' %}active{% endif %}">
         Follow Up
     </a>
+    {% endif %}
 
+    {% if request.user.staff_profile.role.role_name != "Marketing Lead" and request.user.staff_profile.role.role_name != "Digital Marketing" and request.user.staff_profile.role.role_name != "Content Creator" %}
     <a href="{% url 'leads:lead_conversion_report' %}"
        class="{% if request.resolver_match.url_name == 'lead_conversion_report' %}active{% endif %}">
         Conversion Report
     </a>
+    {% endif %}
 
 </div>
         <!-- Content -->

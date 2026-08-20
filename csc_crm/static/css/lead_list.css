@@ -69,13 +69,8 @@
     color: var(--csc-purple-text);
 }
 
-/* .header-left {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-} */
 
-.lead-page-title {
+.leads-page-title{
     font-size: 18px;
     font-weight: 700;
     color: var(--csc-navy);
@@ -84,7 +79,7 @@
 }
 
 .leads-page-subtitle{
-    font-size: 14px;
+    font-size: 13px;
     color: var(--csc-text-muted);
     margin: 4px 0 0;
 }

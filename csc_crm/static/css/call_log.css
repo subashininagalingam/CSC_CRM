@@ -469,6 +469,56 @@ h2 {
     transform:none;
 }
 
+/* Lead Name Search Suggestions */
+.lead-suggestions{
+    display:none;
+    position:absolute;
+    top:calc(100% + 6px);
+    left:0;
+    width:100%;
+    background:#fff;
+    border:1px solid #d9dfe8;
+    border-radius:10px;
+    box-shadow:0 8px 20px rgba(17, 12, 60, 0.12);
+    max-height:220px;
+    overflow-y:auto;
+    z-index:20;
+}
+
+.lead-suggestion-item{
+    padding:9px 15px;
+    cursor:pointer;
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    border-bottom:1px solid #f0f1f6;
+}
+
+.lead-suggestion-item:last-child{
+    border-bottom:none;
+}
+
+.lead-suggestion-item:hover{
+    background:#f4f2ff;
+}
+
+.lead-suggestion-name{
+    font-size:13px;
+    font-weight:600;
+    color:rgb(11, 11, 149);
+}
+
+.lead-suggestion-meta{
+    font-size:11px;
+    color:#888;
+}
+
+.lead-suggestion-empty{
+    padding:10px 15px;
+    font-size:12px;
+    color:#888;
+}
+
 .textarea-box .textarea{
     padding-left:42px;
 }

@@ -23,6 +23,16 @@
         </li>
         {% endif %}
 
+        {% if request.user.staff_profile.role.role_name == "Marketing Lead" or request.user.staff_profile.role.role_name == "Digital Marketing" or request.user.staff_profile.role.role_name == "Content Creator" %}
+        <li>
+            <a href="{% url 'leads:lead_capture_target' %}"
+               class="{% if request.resolver_match.namespace == 'leads' %}active{% endif %}">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>Leads Module</span>
+            </a>
+        </li>
+        {% endif %}
+
         {% if request.user.staff_profile.role.role_name == "HR" or request.user.staff_profile.role.role_name == "Sales Exec" %}
         <li>
             <a href="{% url 'leads:lead_pipeline_view' %}"

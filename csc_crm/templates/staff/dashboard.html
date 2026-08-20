@@ -325,7 +325,135 @@
         </div>
          {% endif %}
 
+         <!--======================= KPI Cards Marketing Lead / Digital Marketing (target counts only) ============================-->
+         {% if request.user.staff_profile.role.role_name == "Marketing Lead" or request.user.staff_profile.role.role_name == "Digital Marketing" %}
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-indigo">
+                <i class="fa-solid fa-bullseye"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>My Total Targets</span>
+                <h2>{{ my_targets_total }}</h2>
+                <small>All Time</small>
+            </div>
+        </div>
 
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-green">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>Completed</span>
+                <h2>{{ my_targets_completed }}</h2>
+                <small>Targets achieved</small>
+            </div>
+        </div>
+
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-amber">
+                <i class="fa-regular fa-clock"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>Active</span>
+                <h2>{{ my_targets_active }}</h2>
+                <small>In progress</small>
+            </div>
+        </div>
+
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-red">
+                <i class="fa-solid fa-hourglass-end"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>Expired</span>
+                <h2>{{ my_targets_expired }}</h2>
+                <small>Not completed in time</small>
+            </div>
+        </div>
+
+        {% if my_capture_target %}
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-gray">
+                <i class="fa-solid fa-chart-line"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>Current Target Progress</span>
+                <h2>{{ my_capture_target.achieved_count }}/{{ my_capture_target.target_count }}</h2>
+                <small>{{ my_capture_target.progress_percent }}% complete</small>
+            </div>
+        </div>
+        {% endif %}
+
+       <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-blue">
+                <i class="fa-solid fa-star"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>My Rating</span>
+                <h2>{{ request.user.staff_profile.performance_rating|default:0 }}/5</h2>
+                <small>Performance Score</small>
+            </div>
+        </div>
+
+        
+         {% endif %}
+
+         <!--======================= KPI Cards Marketing Lead (whole team target counts) ============================-->
+         {% if request.user.staff_profile.role.role_name == "Marketing Lead" %}
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-indigo">
+                <i class="fa-solid fa-people-group"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>Team Total Targets</span>
+                <h2>{{ marketing_team_targets_total }}</h2>
+                <small>Whole Marketing Team</small>
+            </div>
+        </div>
+
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-green">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>Team Completed</span>
+                <h2>{{ marketing_team_targets_completed }}</h2>
+                <small>Targets achieved</small>
+            </div>
+        </div>
+
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-amber">
+                <i class="fa-regular fa-clock"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>Team Active</span>
+                <h2>{{ marketing_team_targets_active }}</h2>
+                <small>In progress</small>
+            </div>
+        </div>
+
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-red">
+                <i class="fa-solid fa-hourglass-end"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>Team Expired</span>
+                <h2>{{ marketing_team_targets_expired }}</h2>
+                <small>Not completed in time</small>
+            </div>
+        </div>
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-blue">
+                <i class="fa-solid fa-user-plus"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>Team Lead Capture Count</span>
+                <h2>{{ marketing_team_captured_leads_count }}</h2>
+                <small>Total leads captured by team</small>
+            </div>
+        </div>
+         {% endif %}
 
     </div>
 
@@ -592,8 +720,8 @@
         
 
 
-        <!-- ============================= MY ATTENDANCE (Trainer / Sales Exec Lead / Sales Exec) ========================== -->
-{% if request.user.staff_profile.role.role_name == "Trainer" or request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Sales Exec" or request.user.staff_profile.role.role_name == "Marketing Lead" %}
+        <!-- ============================= MY ATTENDANCE (Trainer / Sales Exec Lead / Sales Exec / Marketing Lead / Digital Marketing) ========================== -->
+{% if request.user.staff_profile.role.role_name == "Trainer" or request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Sales Exec" or request.user.staff_profile.role.role_name == "Marketing Lead" or request.user.staff_profile.role.role_name == "Digital Marketing" %}
         <div class="dash-panel">
 
             <div class="dash-panel-header">
@@ -783,6 +911,25 @@
         </div>
         {% endif %}
 
+        <!-- ==================== TEAM CAPTURE TARGETS Marketing Lead =================== -->
+         {% if request.user.staff_profile.role.role_name == "Marketing Lead" %}
+        <div class="dash-panel">
+
+            <div class="dash-panel-header">
+                <h3>Marketing Team Target Status</h3>
+                <a href="{% url 'leads:lead_capture_target' %}">View All <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+
+            <ul class="dash-legend">
+                <li><i class="dash-dot" style="background:#2563eb;"></i>Total Targets <b>{{ marketing_team_targets_total }}</b></li>
+                <li><i class="dash-dot" style="background:#16a34a;"></i>Completed <b>{{ marketing_team_targets_completed }}</b></li>
+                <li><i class="dash-dot" style="background:#f59e0b;"></i>Active <b>{{ marketing_team_targets_active }}</b></li>
+                <li><i class="dash-dot" style="background:#ef4444;"></i>Expired <b>{{ marketing_team_targets_expired }}</b></li>
+            </ul>
+
+        </div>
+        {% endif %}
+
 
         <!-- ============================ RECENT STUDENTS ============================= -->
          {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" %}
@@ -939,7 +1086,6 @@
         {% endif %}
 
     </div>
-    
 
     <!-- ================== QUICK ACTIONS ===================== -->
 
@@ -971,12 +1117,6 @@
                 <span><i class="fa-solid fa-user-group"></i>Search & Filter</span>
                 <i class="fa-solid fa-arrow-right"></i>
             </a>
-
-            <a href="{% url 'batches_page' %}" class="dash-action-btn action-indigo">
-    <span><i class="fa-solid fa-clipboard-check"></i> Mark Attendance</span>
-    <i class="fa-solid fa-arrow-right"></i>
-    
-</a>
             
             <a href="{% url 'attendance_history' %}" class="dash-action-btn action-indigo">
                 <span><i class="fa-solid fa-user-plus"></i> Attendance History</span>
@@ -1038,7 +1178,5 @@ window.onclick = function(e){
         window.location.href = "{% url 'staff_dashboard' %}";
     }
 }
-
 </script>
 {% endblock %}
-

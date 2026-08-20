@@ -10,7 +10,9 @@ import csv
 from django.http import HttpResponse
 from django.http import JsonResponse
 from django.core.paginator import Paginator
+from csc_crm.apps.staff.views import (role_required,block_roles,MARKETING_TARGET_ROLES,MARKETING_LEAD_ROLES,DELETE_TARGET_ROLES,VIEW_ALL_TARGET_ROLES,MARKETING_ONLY_ROLES,)
 
+@block_roles(MARKETING_ONLY_ROLES)
 def lead_capture_list(request):
 
     leads = LeadCapture.objects.all().order_by('-created_at')
@@ -86,6 +88,7 @@ def check_lead_exists(request):
     return JsonResponse(data)
 
 # Get Lead in Leads and Their Information
+@block_roles(MARKETING_ONLY_ROLES)
 def lead_capture_details(request, id):
 
     lead = get_object_or_404(LeadCapture, id=id)
@@ -95,7 +98,7 @@ def lead_capture_details(request, id):
     }
     return render(request, 'leads/lead_details.html', context)
 
-
+@block_roles(MARKETING_ONLY_ROLES)
 def lead_capture_download_pdf(request, id):
     lead = get_object_or_404(LeadCapture, id=id)
 
@@ -126,6 +129,7 @@ def lead_capture_download_pdf(request, id):
 
 
 #Create Leads
+@block_roles(MARKETING_ONLY_ROLES)
 @require_http_methods(["GET", "POST"])
 def lead_capture_create(request):
     if request.method == 'POST':
@@ -165,6 +169,7 @@ def lead_capture_create(request):
     return render(request, 'leads/lead_list.html', context)
 
 # Update leads
+@block_roles(MARKETING_ONLY_ROLES)
 @require_http_methods(['GET','POST'])
 def lead_capture_update(request, id):
     lead = get_object_or_404(LeadCapture, id=id)
@@ -214,6 +219,7 @@ def lead_capture_update(request, id):
 
 
 # PIPELINE VIEW
+@block_roles(MARKETING_ONLY_ROLES)
 def lead_pipeline_view(request):
 
     leads = LeadCapture.objects.all().order_by('created_at')
@@ -292,6 +298,7 @@ def lead_pipeline_view(request):
     return render(request, 'leads/pipeline_view.html', context)
 
 # csv download
+@block_roles(MARKETING_ONLY_ROLES)
 def export_leads_csv(request):
 
     leads = LeadCapture.objects.all().order_by('created_at')
@@ -349,6 +356,7 @@ def export_leads_csv(request):
     return response
 
 # Lead Conversion 
+@block_roles(MARKETING_ONLY_ROLES)
 def lead_conversion_report(request):
 
     my_staff = getattr(request.user, 'staff_profile', None)
@@ -401,6 +409,7 @@ def lead_conversion_report(request):
     return render(request, 'leads/conversion_report.html', context)
 
 # ============================= FOLLOW UP =============================
+@block_roles(MARKETING_ONLY_ROLES)
 def followup_shedule(request):
     today = timezone.localdate()
 
@@ -517,6 +526,7 @@ def followup_shedule(request):
         context
     )
 
+@block_roles(MARKETING_ONLY_ROLES)
 def mark_followup_completed(request, id):
 
     if request.method == 'POST':
@@ -538,7 +548,33 @@ def mark_followup_completed(request, id):
 
     return redirect('leads:followup_shedule')
 
+# Search Leads by Name (for Call-Log "Contact Name" autocomplete)
+@block_roles(MARKETING_ONLY_ROLES)
+def search_lead_by_name(request):
+
+    query = request.GET.get('q', '').strip()
+
+    results = []
+
+    if query:
+        leads = LeadCapture.objects.filter(
+            lead_name__icontains=query
+        ).order_by('lead_name')[:10]
+
+        results = [
+            {
+                'id': lead.id,
+                'lead_name': lead.lead_name,
+                'phone_no': lead.phone_no,
+                'course_interested': lead.get_course_interested_display(),
+            }
+            for lead in leads
+        ]
+
+    return JsonResponse({'leads': results})
+
 # Call-log View
+@block_roles(MARKETING_ONLY_ROLES)
 def call_log_view(request):
     if request.method == 'POST':
         form = CallLogForm(request.POST)
@@ -555,6 +591,7 @@ def call_log_view(request):
         'logs': logs
     })
 
+@block_roles(MARKETING_ONLY_ROLES)
 def delete_call_log(request, id):
     
     log = get_object_or_404(CallLog, id=id)
@@ -574,3 +611,157 @@ def call_history(request):
         "logs": logs,
         "selected": outcome or "All"
     })
+
+# ============================= LEAD CAPTURE TARGET (MARKETING) =============================
+
+@role_required(MARKETING_TARGET_ROLES, marketing_only=True)
+def lead_capture_target(request):
+
+    staff = request.user.staff_profile
+    can_assign = staff.role.role_name in MARKETING_LEAD_ROLES
+    can_delete = staff.role.role_name in DELETE_TARGET_ROLES
+    can_view_all = staff.role.role_name in VIEW_ALL_TARGET_ROLES
+
+    if can_view_all:
+        # Marketing Lead + Admin/Manager/HR see every target (Admin/Manager/HR = view-only)
+        targets = LeadCaptureTarget.objects.select_related('assigned_to', 'assigned_by').all()
+    else:
+        # Marketing team members (Digital Marketing, Content Creator) only see their own target(s)
+        targets = LeadCaptureTarget.objects.select_related('assigned_to', 'assigned_by').filter(
+            assigned_to=staff
+        )
+
+    active_count = sum(1 for t in targets if t.status == 'active')
+    completed_count = sum(1 for t in targets if t.status == 'completed')
+    expired_count = sum(1 for t in targets if t.status == 'expired')
+
+    form = LeadCaptureTargetForm() if can_assign else None
+    edit_form = LeadCaptureTargetUpdateForm() if can_assign else None
+    progress_form = LeadCaptureTargetProgressForm()
+
+    context = {
+        'targets': targets,
+        'form': form,
+        'edit_form': edit_form,
+        'progress_form': progress_form,
+        'can_assign': can_assign,
+        'can_delete': can_delete,
+        'active_count': active_count,
+        'completed_count': completed_count,
+        'expired_count': expired_count,
+        'total_count': targets.count() if hasattr(targets, 'count') else len(targets),
+        'page_title': 'Lead Capture Target',
+    }
+
+    return render(request, 'leads/target_assign_list.html', context)
+
+@role_required(MARKETING_TARGET_ROLES, marketing_only=True)
+def lead_capture_target_assign(request):
+
+    form = LeadCaptureTargetForm(request.POST)
+
+    if form.is_valid():
+        target = form.save(commit=False)
+        target.assigned_by = request.user.staff_profile
+        target.save()
+        messages.success(
+            request,
+            f'Lead capture target of {target.target_count} leads assigned to '
+            f'{target.assigned_to.full_name()} successfully!'
+        )
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, f'{field}: {error}')
+
+    return redirect('leads:lead_capture_target')
+
+
+@role_required(MARKETING_LEAD_ROLES, marketing_only=True)
+@require_http_methods(['POST'])
+def lead_capture_target_update(request, pk):
+
+    target = get_object_or_404(LeadCaptureTarget, pk=pk)
+
+    form = LeadCaptureTargetUpdateForm(request.POST, instance=target)
+
+    if form.is_valid():
+        form.save()
+        messages.success(
+            request,
+            f'Target for {target.assigned_to.full_name()} updated successfully!'
+        )
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, f'{field}: {error}')
+
+    return redirect('leads:lead_capture_target')
+
+
+@role_required(MARKETING_LEAD_ROLES, marketing_only=True)
+@require_http_methods(['POST'])
+def lead_capture_target_delete(request, pk):
+
+    target = get_object_or_404(LeadCaptureTarget, pk=pk)
+    staff_name = target.assigned_to.full_name()
+
+    target.delete()
+
+    messages.success(request, f'Lead capture target for {staff_name} deleted.')
+
+    return redirect('leads:lead_capture_target')
+
+
+@require_http_methods(['POST'])
+def lead_capture_target_progress(request, pk):
+    """Team member self-reports how many leads they captured against
+    their own target — they never touch the Lead Management page."""
+
+    if not request.user.is_authenticated:
+        return redirect('staff_login')
+
+    staff = getattr(request.user, 'staff_profile', None)
+    if staff is None:
+        messages.error(request, 'No staff profile found.')
+        return redirect('leads:lead_capture_target')
+
+    target = get_object_or_404(LeadCaptureTarget, pk=pk)
+
+    # Only the person the target belongs to can update it
+    if target.assigned_to_id != staff.id:
+        messages.error(request, 'You can only update progress on your own target.')
+        return redirect('leads:lead_capture_target')
+
+    if target.is_completed:
+        messages.error(request, 'This target is already completed.')
+        return redirect('leads:lead_capture_target')
+
+    if target.is_expired:
+        messages.error(request, 'This target has expired and can no longer be updated.')
+        return redirect('leads:lead_capture_target')
+
+    form = LeadCaptureTargetProgressForm(request.POST)
+
+    if form.is_valid():
+        count = form.cleaned_data['captured_count']
+        remaining = target.target_count - target.achieved_count
+
+        if count > remaining:
+            messages.error(
+                request,
+                f'Only {remaining} lead(s) remaining on this target — enter {remaining} or fewer.'
+            )
+        else:
+            target.achieved_count += count
+            if target.achieved_count >= target.target_count:
+                target.is_completed = True
+                target.completed_at = timezone.now()
+            target.save(update_fields=['achieved_count', 'is_completed', 'completed_at', 'updated_at'])
+            messages.success(request, f'Progress updated — {count} lead(s) added.')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, f'{field}: {error}')
+
+    return redirect('leads:lead_capture_target')

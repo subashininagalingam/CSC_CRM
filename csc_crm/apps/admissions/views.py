@@ -35,12 +35,12 @@ from django.contrib.auth.decorators import login_required
 
 def student(request):
 
-    print(request.POST)
-    print("BATCH =", request.POST.get("batch"))
     student_form = StudentForm()
     admission_form = AdmissionForm()
     enrollment_form = EnrollmentForm()
     courses = Course.objects.all()
+
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
     if request.method == "POST":
 
@@ -48,122 +48,84 @@ def student(request):
         admission_form = AdmissionForm(request.POST)
         enrollment_form = EnrollmentForm(request.POST, request.FILES)
 
-        if (student_form.is_valid() and admission_form.is_valid() and enrollment_form.is_valid()):
+        if student_form.is_valid() and admission_form.is_valid() and enrollment_form.is_valid():
+
+            enrollment_preview = enrollment_form.save(commit=False)
+
+            if enrollment_preview.batch.course_id != admission_form.cleaned_data['course_name'].id:
+                error_msg = "Selected batch does not belong to selected course."
+                if is_ajax:
+                    return JsonResponse({
+                        'success': False,
+                        'errors': {'batch': [error_msg]}
+                    })
+                messages.error(request, error_msg)
+                return render(request, 'admissions/register.html', {
+                    'student_form': student_form,
+                    'admission_form': admission_form,
+                    'enrollment_form': enrollment_form,
+                    'courses': courses,
+                })
+
             try:
                 with transaction.atomic():
-                    student = student_form.save()
-                    id_proofs = request.FILES.getlist("id_proof")
 
-                    for file in id_proofs:
-                         StudentDocument.objects.create(
-                         student=student,
-                         document_type="id_proof",
-                         document=file
+                    student = student_form.save()
+
+                    for file in request.FILES.getlist("id_proof"):
+                        StudentDocument.objects.create(
+                            student=student, document_type="id_proof", document=file
                         )
-                    certificates = request.FILES.getlist("certificate")
-                    
-                    for file in certificates:
-                         StudentDocument.objects.create(
-                         student=student,
-                         document_type="certificate",
-                         document=file
-                       )
+
+                    for file in request.FILES.getlist("certificate"):
+                        StudentDocument.objects.create(
+                            student=student, document_type="certificate", document=file
+                        )
+
                     admission = Admission.objects.create(
                         student=student,
                         course_name=admission_form.cleaned_data['course_name'],
                         status=admission_form.cleaned_data['status']
-                        )
+                    )
+
                     enrollment = enrollment_form.save(commit=False)
-
-                    if ( enrollment.batch.course_id!= admission.course_name_id):
-                        messages.error(
-                            request,
-                            "Selected batch does not belong to selected course."
-                        )
-                        raise ValueError( "Batch and Course mismatch")
-
                     enrollment.admission = admission
-                    print("Before save")
                     enrollment.save()
-                    print("After save")
-                
+
                     try:
-                        # Confirmation emails to student and admin
-                        # (currently disabled, left commented out below)
-
-                        # USER EMAIL
-
-#                         send_mail(
-#                             subject='🎓 Admission Confirmation - CSC Academy',
-
-#                             message=f'''
-# Dear {student.first_name},
-
-# Congratulations! 🎉
-
-# Your admission has been successfully confirmed at CSC Academy.
-
-# Course Enrolled:
-# {admission.course_name}
-
-# We are excited to have you as part of our learning journey.
-
-# Best Regards,
-# CSC Academy
-# ''',
-
-#                             from_email=settings.EMAIL_HOST_USER,
-
-#                             recipient_list=[student.email],
-
-#                             fail_silently=False,
-#                         )
-
-                        # ADMIN EMAIL
-
-#                         send_mail(
-#                             subject='📌 New Student Admission Alert',
-
-#                             message=f'''
-# A new student admission has been registered.
-
-# Student Details
-# -------------------------
-
-# Name   : {student.first_name} {student.last_name}
-
-# Course : {admission.course_name}
-
-# Phone  : {student.phone_no}
-
-# Email  : {student.email}
-
-# Please verify the records from the admin panel.
-# ''',
-
-#                             from_email=settings.EMAIL_HOST_USER,
-
-#                             recipient_list=['admin@gmail.com'],
-
-#                             fail_silently=False,
-#                         )
-
                         print("MAIL SENT SUCCESS")
+                    except Exception as mail_error:
+                        print("MAIL ERROR:", mail_error)
 
-                    except Exception as e:
-                        print("MAIL ERROR:", e)
+                # ---- SUCCESS ----
+                if is_ajax:
+                    return JsonResponse({
+                        'success': True,
+                        'redirect_url': reverse('fee_dashboard')
+                    })
+                messages.success(request, "Student enrolled successfully!")
+                return redirect('fee_dashboard')
 
-                    messages.success(request, "Student enrolled successfully!")
-
-                    return redirect('fee_dashboard')
             except Exception as e:
-
                 print("ERROR:", e)
+                if is_ajax:
+                    return JsonResponse({
+                        'success': False,
+                        'errors': {'__all__': [f"Something went wrong while saving: {e}"]}
+                    })
+                messages.error(request, f"Something went wrong while saving the student: {e}")
 
         else:
-
+            if is_ajax:
+                return JsonResponse({
+                    'success': False,
+                    'errors': {
+                        **student_form.errors,
+                        **admission_form.errors,
+                        **enrollment_form.errors,
+                    }
+                })
             messages.error(request, "Form has errors. Please check!")
-            print("FORM ERRORS :", student_form.errors, admission_form.errors, enrollment_form.errors)
 
     return render(request, 'admissions/register.html', {
         'student_form': student_form,
@@ -171,6 +133,7 @@ def student(request):
         'enrollment_form': enrollment_form,
         'courses': courses,
     })
+
 #=================== STUDENT DOCUMENT DELETE ====================
 def delete_student_document(request, pk):
     """Delete a student document"""

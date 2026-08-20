@@ -1,4 +1,3 @@
-
 {% extends 'leads/base.html' %}
 
 {% block content %}
@@ -49,7 +48,9 @@
         <div class="input-box">
             <i class="fa-regular fa-user"></i>
 
-            <input type="text" name="lead_name" id="lead_name" class="input" placeholder="Enter name" oninput="onlyLetters(this)" required>
+            <input type="text" name="lead_name" id="lead_name" class="input" placeholder="Search or enter name" oninput="onlyLetters(this); searchLeadName(this.value)" autocomplete="off" required>
+
+            <div id="lead_suggestions" class="lead-suggestions"></div>
         </div>
 
         <span id="name_error"></span>
@@ -145,6 +146,10 @@
         </form>
     </div>
     </div>
+
+<script>
+const searchLeadNameUrl = "{% url 'leads:search_lead_by_name' %}";
+</script>
 
    {% if logs %}
     <div class="history card-box">

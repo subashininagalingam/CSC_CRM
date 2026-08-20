@@ -4,6 +4,8 @@
 
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/attendance_css/reports.css' %}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
 
 <div class="main-content">
 
@@ -50,6 +52,8 @@
 
                 <!-- ============ COURSE FILTER ============ -->
                 {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" %}
+                <div class="filter-field">
+                <label class="filter-label" for="CourseFilter">Course</label>
                 <select id="courseFilter" class="filter-input">
 
                     <option value="">
@@ -65,6 +69,7 @@
                     {% endfor %}
 
                 </select>
+                </div>
                 {% endif %}
 
                 <!-- ============ BATCH FILTER ============ -->
@@ -139,7 +144,7 @@
                         max="100" value="{{ attendance_filter }}">
                 </div>
 
-                 <!-- ============ MIN % FILTER (DISTRIBUTION CHART) ============ -->
+                <!-- ============ MIN % FILTER (DISTRIBUTION CHART) ============ -->
                 <div class="filter-field">
                     <label class="filter-label" for="distributionPercentageFilter">Min % (Distribution)</label>
                     <input type="number" id="distributionPercentageFilter" class="filter-input" placeholder="e.g. 60"
@@ -177,111 +182,78 @@
 
         </div>
 
-        <!-- ============ MONTHLY ATTENDANCE BAR CHART + DISTRIBUTION DONUT ============ -->
-        <div class="charts-top-row">
+        <!-- ============ MONTHLY ATTENDANCE BAR CHART (Row 1 - full width) ============ -->
+        <div class="charts-row">
 
-             <!-- ============ MONTHLY ATTENDANCE BAR CHART ============ -->
             <div class="chart-card monthly-chart-card">
 
                 <div class="chart-header">
-
                     <h4 id="monthlyChartTitle">
-
                         {{ monthly_chart_title }}
-
                     </h4>
-
                 </div>
 
                 <div class="chart-container">
-
                     <canvas id="attendanceChart"></canvas>
 
                     <div class="chart-empty-state" id="attendanceChartEmpty">
                         <i class="fas fa-chart-bar"></i>
-                        <p>No attendance data found for the selected filters.</p>
+                        <p>No data available for the selected filters.</p>
                     </div>
-
                 </div>
 
             </div>
 
-            <!-- ============ ATTENDANCE DISTRIBUTION DONUT CHART ============ -->
+        </div>
+
+        <!-- ============ DISTRIBUTION + BATCH-WISE (Row 2 - side by side) ============ -->
+        <div class="charts-top-row">
+
             <div class="chart-card distribution-chart-card">
-
                 <div class="chart-header">
-                    <h4>
-                        Attendance Distribution
-                    </h4>
+                    <h4>Attendance Distribution</h4>
                 </div>
-
                 <div class="pie-chart-container">
                     <canvas id="distributionChart"></canvas>
-
                     <div class="chart-empty-state" id="distributionChartEmpty">
                         <i class="fas fa-chart-pie"></i>
                         <p>No data available for the selected filters.</p>
                     </div>
-
                 </div>
-
             </div>
 
-        </div>
-
-        <!-- ============ BATCH-WISE ATTENDANCE CHART (WITH DROPDOWN SELECTOR) ============ -->
-        <div class="charts-row">
-
-            <!-- BATCH-WISE ATTENDANCE (dropdown selector) -->
             <div class="chart-card">
-
                 <div class="chart-header batch-wise-header">
-
-                    <h4>
-                        Batch-wise Attendance
-                    </h4>
-
+                    <h4>Batch-wise Attendance</h4>
                     <div class="batch-wise-header-actions">
-
                         <select id="batchWiseSelector" class="filter-input" style="max-width:220px;">
                             <option value="">All Batches</option>
                         </select>
-
                         <div class="text-muted">
                             Attendance Updated On : {{ attendance_date }}
                         </div>
-
                     </div>
-
                 </div>
 
                 {% if show_batch_chart %}
-
                 <div class="pie-chart-container">
                     <canvas id="batchChart"></canvas>
-
                     <div class="chart-empty-state" id="batchChartEmpty">
                         <i class="fas fa-chart-pie"></i>
                         <p>No data available for the selected batch.</p>
                     </div>
-
                 </div>
-
                 {% else %}
-
                 <div class="chart-warning">
                     <i class="fas fa-exclamation-triangle"></i>
-
                     <h5>Attendance Not Available</h5>
-
                     <p>{{ warning_message }}</p>
                 </div>
-
                 {% endif %}
-
             </div>
 
         </div>
+
 
         <!-- ============ STUDENT PERFORMANCE REPORT TABLE ============ -->
         <div class="report-table-card">
@@ -460,7 +432,7 @@
 
 {% block extra_js %}
 
- <!-- ============ CHART.JS LIBRARY + JSON DATA FOR reports.js ============ -->
+<!-- ============ CHART.JS LIBRARY + JSON DATA FOR reports.js ============ -->
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {{ monthly_present|json_script:"monthly-present" }}
