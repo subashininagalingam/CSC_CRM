@@ -163,6 +163,7 @@ def staff_management(request):
 
     queryset = (
         Staff.objects
+        .exclude(role__role_name='Admin')
         .select_related('role', 'department')
         .annotate(
             leads_assigned=Count('leadcapture'),
@@ -175,19 +176,25 @@ def staff_management(request):
         .order_by('-created_at')
     )
 
-    # Sales Exec Lead -> Sales department only
+    # Sales Exec Lead -> Sales department only (excluding own record)
     if my_role == 'Sales Exec Lead':
-        queryset = queryset.filter(department__dept_name='Sales')
+        queryset = queryset.filter(
+            department__dept_name='Sales'
+        ).exclude(id=my_staff.id)
 
-    # Marketing Lead -> Marketing department only
+    # Marketing Lead -> Marketing department only (excluding own record)
     elif my_role == 'Marketing Lead':
-        queryset = queryset.filter(department__dept_name='Marketing')
+        queryset = queryset.filter(
+            department__dept_name='Marketing'
+        ).exclude(id=my_staff.id)
 
     # Sales Exec, Digital Marketing, Content Creator, Developer -> own record only
     elif my_role in ['Sales Exec', 'Digital Marketing', 'Content Creator', 'Trainer', 'Developer']:
         queryset = queryset.filter(id=my_staff.id)
 
-    # Admin, Manager, HR -> all departments (no filter)
+    # Admin, Manager, HR -> all departments, but excluding own record
+    else:
+        queryset = queryset.exclude(id=my_staff.id)
 
     # Apply filters
     department = request.GET.get('department')
@@ -565,8 +572,8 @@ def export_staff(request):
         'Status', 'Monthly Target', 'Performance Rating', 'Date of Joining'
     ])
 
-    # Get all staff
-    staff_list = Staff.objects.select_related('role', 'department').all()
+    # Get all staff (Admin's own record excluded — same as Staff Management list)
+    staff_list = Staff.objects.exclude(role__role_name='Admin').select_related('role', 'department')
 
     # Sales Exec Lead -> Sales department only
     if my_role == 'Sales Exec Lead':
@@ -1360,20 +1367,22 @@ def staff_dashboard(request):
     # STAFF DASHBOARD
     # ================================
 
-    total_staff = Staff.objects.count()
+    total_staff = Staff.objects.exclude(role__role_name='Admin').count()
 
-    active_staff = Staff.objects.filter(status='active').count()
+    active_staff = Staff.objects.exclude(role__role_name='Admin').filter(status='active').count()
 
-    on_leave = Staff.objects.filter(status='on_leave').count()
+    on_leave = Staff.objects.exclude(role__role_name='Admin').filter(status='on_leave').count()
 
-    terminate = Staff.objects.filter(status='terminated').count()
+    terminate = Staff.objects.exclude(role__role_name='Admin').filter(status='terminated').count()
 
-    inactive = Staff.objects.filter(status='inactive').count()
+    inactive = Staff.objects.exclude(role__role_name='Admin').filter(status='inactive').count()
 
-    recent_staff = Staff.objects.order_by('-created_at')[:5]
+    recent_staff = Staff.objects.exclude(
+        role__role_name='Admin'
+    ).order_by('-created_at')[:5]
 
     average_rating = round(
-        Staff.objects.aggregate(
+        Staff.objects.exclude(role__role_name='Admin').aggregate(
             Avg('performance_rating')
         )['performance_rating__avg'] or 0,
         2
@@ -1381,28 +1390,31 @@ def staff_dashboard(request):
 
     today = timezone.localdate()
 
-    present = Attendance.objects.filter(
+    present = Attendance.objects.exclude(staff__role__role_name='Admin').filter(
         date=today,
         status='Present'
     ).count()
 
-    late = Attendance.objects.filter(
+    late = Attendance.objects.exclude(staff__role__role_name='Admin').filter(
         date=today,
         status='Late'
     ).count()
 
-    absent = Attendance.objects.filter(
+    absent = Attendance.objects.exclude(staff__role__role_name='Admin').filter(
         date=today,
         status='Absent'
     ).count()
 
-    leave = Attendance.objects.filter(
+    leave = Attendance.objects.exclude(staff__role__role_name='Admin').filter(
         date=today,
         status='Leave'
     ).count()
 
     departments = Department.objects.annotate(
-        total_staff=Count('staff_members')
+        total_staff=Count(
+            'staff_members',
+            filter=~Q(staff_members__role__role_name='Admin')
+        )
     ).order_by('dept_name')
 
     total_attendance = present + late + absent + leave
@@ -1537,7 +1549,9 @@ def staff_dashboard(request):
 
         my_department_name = my_staff.department.get_dept_name_display()
 
-        my_dept_staff_ids = Staff.objects.filter(
+        my_dept_staff_ids = Staff.objects.exclude(
+            role__role_name='Admin'
+        ).filter(
             department=my_staff.department,
             status='active'
         ).values_list('id', flat=True)

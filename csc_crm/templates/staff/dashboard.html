@@ -679,11 +679,11 @@
         </div>
         {% endif %}
 
-        <!-- ============================= ATTENDANCE SUMMARY Sales Department ========================== -->
+        <!-- Attendance Summary Sales Department (Sales Exec Lead / Marketing Lead) -->
 
  {% if request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Marketing Lead" %}
        
-<div class="dash-panel">
+<div class="dash-panel dash-attendance-half">
 
     <div class="dash-panel-header">
         <h3>Attendance Summary</h3>
@@ -735,7 +735,7 @@
 
         <!-- ============================= MY ATTENDANCE (Trainer / Sales Exec Lead / Sales Exec / Marketing Lead / Digital Marketing) ========================== -->
 {% if request.user.staff_profile.role.role_name == "Trainer" or request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Sales Exec" or request.user.staff_profile.role.role_name == "Marketing Lead" or request.user.staff_profile.role.role_name == "Digital Marketing" %}
-        <div class="dash-panel">
+        <div class="dash-panel dash-attendance-half">
 
             <div class="dash-panel-header">
                 <h3>Attendance Summary</h3>
@@ -1173,6 +1173,15 @@
                 <i class="fa-solid fa-arrow-right"></i>
             </a>
             {% endif %}
+
+            <!--=============== Digital Marketing =============-->
+         {% if request.user.staff_profile.role.role_name == "Digital Marketing" %}
+            <a href="{% url 'leads:my_lead_capture_target' %}" class="dash-action-btn action-indigo">
+                <span><i class="fa-solid fa-user-plus"></i> My Target</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </a>
+            {% endif %}
+            
 
         </div>
     </div>

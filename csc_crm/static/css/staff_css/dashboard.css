@@ -237,8 +237,8 @@
     min-width: 0;
 }
 
-.dash-overview-grid > .dash-panel:nth-child(1):nth-last-child(2),
-.dash-overview-grid > .dash-panel:nth-child(2):nth-last-child(1) {
+.dash-overview-grid > .dash-panel:nth-child(1):nth-last-child(2):not(.dash-attendance-half),
+.dash-overview-grid > .dash-panel:nth-child(2):nth-last-child(1):not(.dash-attendance-half) {
     grid-column: span 2;
 }
 

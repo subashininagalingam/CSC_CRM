@@ -118,6 +118,11 @@ if (batchSearchInput && batchesGrid) {
 /* ---- Grid / List view toggle ---- */
 
 //================ BATCH OVERVIEW - GRID/LIST VIEW TOGGLE ==================//
+// NOTE: We toggle a CSS class ("list-view") instead of setting an inline
+// style directly. Inline styles (element.style.xxx) always win over the
+// responsive @media rules in dashboard.css, so once "1fr" was set inline
+// the grid would get permanently stuck at 1 column regardless of screen
+// width/zoom/scaling. Using a class keeps the CSS cascade in control.
 const viewButtons = document.querySelectorAll(".view-toggle button");
 
 viewButtons.forEach((btn, index) => {
@@ -128,9 +133,9 @@ viewButtons.forEach((btn, index) => {
         this.classList.add("active");
 
         if (index === 1) {
-            batchesGrid.style.gridTemplateColumns = "1fr";
+            batchesGrid.classList.add("list-view");
         } else {
-            batchesGrid.style.gridTemplateColumns = "";
+            batchesGrid.classList.remove("list-view");
         }
     });
 });

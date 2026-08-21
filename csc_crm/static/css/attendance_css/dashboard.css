@@ -420,6 +420,14 @@
     gap: 18px;
 }
 
+/* Explicit "list" view (forced 1-column), toggled via JS by adding/removing
+   this class on #batchesGrid. Using a class instead of an inline style
+   keeps this working correctly alongside the responsive @media rules below
+   instead of permanently overriding them. */
+.batches-grid.list-view {
+    grid-template-columns: 1fr !important;
+}
+
 .batch-card {
     background: #fff;
     border: 1px solid #eef0f4;
