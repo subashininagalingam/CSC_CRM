@@ -28,12 +28,22 @@ class Command(BaseCommand):
                 )
             )
 
-        admin_role = StaffRole.objects.get(
-            role_name="Admin"
+        admin_role, role_created = StaffRole.objects.get_or_create(
+            role_name="Admin",
+            defaults={
+                "description": "System Administrator",
+                "can_manage_leads": True,
+                "can_manage_staff": True,
+                "can_view_reports": True,
+                "can_mark_attendance": True,
+            }
         )
 
-        mgmt_dept = Department.objects.get(
-            dept_name="Management"
+        mgmt_dept, dept_created = Department.objects.get_or_create(
+            dept_name="Management",
+            defaults={
+                "description": "Management Department"
+            }
         )
 
         staff, created = Staff.objects.get_or_create(
