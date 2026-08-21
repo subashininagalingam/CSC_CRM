@@ -1,6 +1,7 @@
 from django import forms
 from .models import *
 
+
 class LeadCaptureForm(forms.ModelForm):
 
     class Meta:
@@ -9,26 +10,25 @@ class LeadCaptureForm(forms.ModelForm):
         exclude = ['lead_id', 'created_at', 'updated_at']
         widgets = {
             'enquiry_date': forms.DateInput(attrs={
-                'type':'date',
-                'id':'enquiryDate',
-                }),
-            'next_followup_date':forms.DateInput(attrs={
+                'type': 'date',
+                'id': 'enquiryDate',
+            }),
+            'next_followup_date': forms.DateInput(attrs={
                 'type': 'date',
                 'id': 'nextFollowUpDate',
-                }),
-            'phone_no':forms.TextInput(attrs={
-                'id':'phone_no',
+            }),
+            'phone_no': forms.TextInput(attrs={
+                'id': 'phone_no',
                 'placeholder': 'Enter phone number',
             }),
-            'lead_name':forms.TextInput(attrs={
+            'lead_name': forms.TextInput(attrs={
                 'placeholder': 'Enter lead name',
-                'id':'id_lead_name'
+                'id': 'id_lead_name'
             }),
-            'email':forms.TextInput(attrs={
+            'email': forms.TextInput(attrs={
                 'id': 'email',
                 'placeholder': 'Enter email address'
             }),
-            
         }
 
     def __init__(self, *args, **kwargs):
@@ -39,11 +39,19 @@ class LeadCaptureForm(forms.ModelForm):
             status='active'
         )
 
-def clean_phone_no(self):
+    def clean_phone_no(self):
         phone = self.cleaned_data.get('phone_no')
+
         if phone:
-            if not phone.startswith('+91') or not phone[3:].isdigit() or len(phone[3:]) != 10:
-                raise forms.ValidationError('Phone number should start with +91 and contain a valid 10-digit Indian mobile number.')
+            if (
+                not phone.startswith('+91')
+                or not phone[3:].isdigit()
+                or len(phone[3:]) != 10
+            ):
+                raise forms.ValidationError(
+                    'Phone number should start with +91 and contain a valid 10-digit Indian mobile number.'
+                )
+
         return phone
 
 
@@ -86,8 +94,7 @@ class LeadCaptureTargetForm(forms.ModelForm):
         self.fields['assigned_to'].queryset = Staff.objects.filter(
             department__dept_name='Marketing',
             status='active'
-        ).exclude(role__role_name='Marketing Lead')
-
+        )
     def clean_end_date(self):
         end_date = self.cleaned_data.get('end_date')
         today = timezone.localdate()

@@ -84,10 +84,17 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         <!-- Leads Tabs -->
       <div class="top-tabs">
 
-    {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" or request.user.staff_profile.role.role_name == "Marketing Lead" or request.user.staff_profile.role.role_name == "Digital Marketing" or request.user.staff_profile.role.role_name == "Content Creator" %}
+        {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" or request.user.staff_profile.role.role_name == "Marketing Lead" %}
     <a href="{% url 'leads:lead_capture_target' %}"
        class="{% if request.resolver_match.url_name == 'lead_capture_target' or request.resolver_match.url_name == 'lead_capture_target_assign' %}active{% endif %}">
         Lead Capture Target
+    </a>
+    {% endif %}
+
+    {% if request.user.staff_profile.role.role_name == "Marketing Lead" or request.user.staff_profile.role.role_name == "Digital Marketing" or request.user.staff_profile.role.role_name == "Content Creator" %}
+    <a href="{% url 'leads:my_lead_capture_target' %}"
+       class="{% if request.resolver_match.url_name == 'my_lead_capture_target' %}active{% endif %}">
+        My Target
     </a>
     {% endif %}
 

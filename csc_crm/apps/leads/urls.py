@@ -25,4 +25,5 @@ urlpatterns = [
     path('target/<int:pk>/update/', lead_capture_target_update, name='lead_capture_target_update'),
     path('target/<int:pk>/delete/', lead_capture_target_delete, name='lead_capture_target_delete'),
     path('target/<int:pk>/progress/', lead_capture_target_progress, name='lead_capture_target_progress'),
+    path('lead-capture-target/my-target/',my_lead_capture_target, name='my_lead_capture_target'),
 ]

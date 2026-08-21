@@ -10,7 +10,9 @@ import csv
 from django.http import HttpResponse
 from django.http import JsonResponse
 from django.core.paginator import Paginator
+from django.contrib.auth.decorators import login_required
 from csc_crm.apps.staff.views import (role_required,block_roles,MARKETING_TARGET_ROLES,MARKETING_LEAD_ROLES,DELETE_TARGET_ROLES,VIEW_ALL_TARGET_ROLES,MARKETING_ONLY_ROLES,)
+
 
 @block_roles(MARKETING_ONLY_ROLES)
 def lead_capture_list(request):
@@ -613,69 +615,330 @@ def call_history(request):
     })
 
 # ============================= LEAD CAPTURE TARGET (MARKETING) =============================
+def is_target_assigner(user):
+    """
+    Only Admin / Manager / Marketing Lead can assign targets.
+    Django superuser is always allowed.
+    """
+
+    if user.is_superuser:
+        return True
+
+    staff = getattr(user, 'staff_profile', None)
+
+    if not staff or not staff.role:
+        return False
+
+    role_name = staff.role.role_name.strip()
+
+    return role_name in [
+        'Admin',
+        'Manager',
+        'Marketing Lead',
+    ]
+
 
 @role_required(MARKETING_TARGET_ROLES, marketing_only=True)
 def lead_capture_target(request):
 
-    staff = request.user.staff_profile
-    can_assign = staff.role.role_name in MARKETING_LEAD_ROLES
-    can_delete = staff.role.role_name in DELETE_TARGET_ROLES
-    can_view_all = staff.role.role_name in VIEW_ALL_TARGET_ROLES
+    # ==========================================================
+    # CURRENT STAFF
+    # ==========================================================
 
-    if can_view_all:
-        # Marketing Lead + Admin/Manager/HR see every target (Admin/Manager/HR = view-only)
-        targets = LeadCaptureTarget.objects.select_related('assigned_to', 'assigned_by').all()
-    else:
-        # Marketing team members (Digital Marketing, Content Creator) only see their own target(s)
-        targets = LeadCaptureTarget.objects.select_related('assigned_to', 'assigned_by').filter(
+    staff = getattr(request.user, 'staff_profile', None)
+
+    if not staff:
+        messages.error(
+            request,
+            'Staff profile not found.'
+        )
+        return redirect('home')
+
+    current_role = (
+        staff.role.role_name.strip()
+        if staff.role
+        else ''
+    )
+
+    # ==========================================================
+    # ROLE FLAGS
+    # ==========================================================
+
+    is_admin = (
+        request.user.is_superuser
+        or current_role == 'Admin'
+    )
+
+    is_manager = (
+        current_role == 'Manager'
+    )
+
+    is_marketing_lead = (
+        current_role == 'Marketing Lead'
+    )
+
+    is_marketing_member = (
+        current_role in [
+            'Marketing Member',
+            'Digital Marketing',
+            'Content Creator',
+        ]
+    )
+
+    # ==========================================================
+    # ASSIGN PERMISSION
+    # ==========================================================
+
+    can_assign = (
+        is_admin
+        or is_manager
+        or is_marketing_lead
+    )
+
+    # ==========================================================
+    # MARKETING MEMBERS DON'T MANAGE THE LIST
+    # Send them to their own "My Target" page instead
+    # ==========================================================
+
+    if is_marketing_member and not can_assign:
+        return redirect('leads:my_lead_capture_target')
+
+    # ==========================================================
+    # TARGET VISIBILITY
+    # (own target excluded — this page is for managing others only)
+    # ==========================================================
+
+    if is_admin or is_manager:
+
+        # Admin / Manager
+        # Full access - see every target except their own
+
+        targets = LeadCaptureTarget.objects.select_related(
+            'assigned_to',
+            'assigned_to__role',
+            'assigned_to__department',
+            'assigned_by',
+            'assigned_by__role',
+            'assigned_by__department',
+            'assigned_by__user',
+        ).exclude(
             assigned_to=staff
         )
 
-    active_count = sum(1 for t in targets if t.status == 'active')
-    completed_count = sum(1 for t in targets if t.status == 'completed')
-    expired_count = sum(1 for t in targets if t.status == 'expired')
+    else:
 
-    form = LeadCaptureTargetForm() if can_assign else None
-    edit_form = LeadCaptureTargetUpdateForm() if can_assign else None
-    progress_form = LeadCaptureTargetProgressForm()
+        # Marketing Lead
+        # Can see Marketing Lead + Marketing Member targets, except their own
+
+        targets = LeadCaptureTarget.objects.select_related(
+            'assigned_to',
+            'assigned_to__role',
+            'assigned_to__department',
+            'assigned_by',
+            'assigned_by__role',
+            'assigned_by__department',
+            'assigned_by__user',
+        ).filter(
+            assigned_to__role__role_name__in=[
+                'Marketing Lead',
+                'Marketing Member',
+                'Digital Marketing',
+                'Content Creator',
+            ]
+        ).exclude(
+            assigned_to=staff
+        )
+
+    # ==========================================================
+    # CONVERT QUERYSET TO LIST
+    # ==========================================================
+
+    targets = list(targets)
+
+    # ==========================================================
+    # EDIT / DELETE PERMISSION
+    # ==========================================================
+
+    for target in targets:
+
+        assigned_to_role = (
+            target.assigned_to.role.role_name.strip()
+            if (
+                target.assigned_to
+                and target.assigned_to.role
+            )
+            else ''
+        )
+
+        # ------------------------------------------------------
+        # ADMIN / MANAGER
+        # Full access
+        # ------------------------------------------------------
+
+        if is_admin or is_manager:
+
+            target.can_edit = True
+            target.can_delete = True
+
+        # ------------------------------------------------------
+        # MARKETING LEAD
+        # ------------------------------------------------------
+
+        else:
+
+            # Marketing Lead can edit/delete
+            # targets assigned to Marketing Members
+            if assigned_to_role in [
+                'Marketing Member',
+                'Digital Marketing',
+                'Content Creator',
+            ]:
+
+                target.can_edit = True
+                target.can_delete = True
+
+            else:
+
+                # Marketing Lead cannot edit/delete
+                # targets assigned to Marketing Lead
+                #
+                # Example:
+                # Admin -> Marketing Lead
+                # Manager -> Marketing Lead
+                #
+                # Marketing Lead cannot edit/delete them.
+
+                target.can_edit = False
+                target.can_delete = False
+
+    # ==========================================================
+    # STATUS COUNTS
+    # ==========================================================
+
+    active_count = sum(
+        1
+        for target in targets
+        if target.status == 'active'
+    )
+
+    completed_count = sum(
+        1
+        for target in targets
+        if target.status == 'completed'
+    )
+
+    expired_count = sum(
+        1
+        for target in targets
+        if target.status == 'expired'
+    )
+
+    total_count = len(targets)
+
+    # ==========================================================
+    # FORMS
+    # ==========================================================
+
+    form = LeadCaptureTargetForm()
+    edit_form = LeadCaptureTargetUpdateForm()
+
+    # ==========================================================
+    # CONTEXT
+    # ==========================================================
 
     context = {
         'targets': targets,
+
         'form': form,
         'edit_form': edit_form,
-        'progress_form': progress_form,
+
         'can_assign': can_assign,
-        'can_delete': can_delete,
+
+        'is_admin': is_admin,
+        'is_manager': is_manager,
+        'is_marketing_lead': is_marketing_lead,
+        'is_marketing_member': is_marketing_member,
+
         'active_count': active_count,
         'completed_count': completed_count,
         'expired_count': expired_count,
-        'total_count': targets.count() if hasattr(targets, 'count') else len(targets),
+        'total_count': total_count,
+
         'page_title': 'Lead Capture Target',
     }
 
-    return render(request, 'leads/target_assign_list.html', context)
+    return render(
+        request,
+        'leads/target_assign_list.html',
+        context
+    )
 
-@role_required(MARKETING_TARGET_ROLES, marketing_only=True)
+@login_required
+@require_http_methods(['GET', 'POST'])
 def lead_capture_target_assign(request):
 
-    form = LeadCaptureTargetForm(request.POST)
-
-    if form.is_valid():
-        target = form.save(commit=False)
-        target.assigned_by = request.user.staff_profile
-        target.save()
-        messages.success(
+    # ==========================================
+    # ADMIN + MARKETING LEAD ONLY
+    # ==========================================
+    if not is_target_assigner(request.user):
+        messages.error(
             request,
-            f'Lead capture target of {target.target_count} leads assigned to '
-            f'{target.assigned_to.full_name()} successfully!'
+            'You do not have permission to assign lead capture targets.'
         )
+        return redirect('leads:lead_capture_target')
+
+    if request.method == 'POST':
+
+        form = LeadCaptureTargetForm(request.POST)
+
+        if form.is_valid():
+
+            target = form.save(commit=False)
+
+            # Get logged-in user's Staff record
+            staff = getattr(request.user, 'staff_profile', None)
+
+            if not staff:
+                messages.error(
+                    request,
+                    'Staff profile not found for the logged-in user.'
+                )
+                return redirect('leads:lead_capture_target')
+
+            # ==========================================
+            # WHO ASSIGNED THE TARGET
+            # ==========================================
+            target.assigned_by = staff
+
+            # ==========================================
+            # TARGET START DATE
+            # ==========================================
+            target.start_date = timezone.localdate()
+
+            # ==========================================
+            # INITIAL PROGRESS
+            # ==========================================
+            target.achieved_count = 0
+            target.is_completed = False
+            target.completed_at = None
+
+            target.save()
+
+            messages.success(
+                request,
+                f'Lead target successfully assigned to '
+                f'{target.assigned_to.full_name()}.'
+            )
+
+            return redirect('leads:lead_capture_target')
+
     else:
-        for field, errors in form.errors.items():
-            for error in errors:
-                messages.error(request, f'{field}: {error}')
+        form = LeadCaptureTargetForm()
 
-    return redirect('leads:lead_capture_target')
-
+    return render(
+        request,
+        'leads/lead_capture_target.html',{'form': form,}
+    )
 
 @role_required(MARKETING_LEAD_ROLES, marketing_only=True)
 @require_http_methods(['POST'])
@@ -765,3 +1028,48 @@ def lead_capture_target_progress(request, pk):
                 messages.error(request, f'{field}: {error}')
 
     return redirect('leads:lead_capture_target')
+
+# ============================= MY LEAD CAPTURE TARGET (SELF VIEW) =============================
+@login_required
+def my_lead_capture_target(request):
+    """
+    Marketing Member's own Lead Capture Target page.
+    Shows only their own target(s) + self-report progress.
+    """
+
+    staff = getattr(request.user, 'staff_profile', None)
+
+    if not staff:
+        messages.error(request, 'Staff profile not found.')
+        return redirect('home')
+
+    targets = LeadCaptureTarget.objects.select_related(
+        'assigned_to',
+        'assigned_to__role',
+        'assigned_by',
+        'assigned_by__role',
+    ).filter(
+        assigned_to=staff
+    ).order_by('-start_date')
+
+    for target in targets:
+        target.can_update_progress = (target.status == 'active')
+
+    active_count = sum(1 for t in targets if t.status == 'active')
+    completed_count = sum(1 for t in targets if t.status == 'completed')
+    expired_count = sum(1 for t in targets if t.status == 'expired')
+    total_count = len(targets)
+
+    progress_form = LeadCaptureTargetProgressForm()
+
+    context = {
+        'targets': targets,
+        'progress_form': progress_form,
+        'active_count': active_count,
+        'completed_count': completed_count,
+        'expired_count': expired_count,
+        'total_count': total_count,
+        'page_title': 'My Lead Capture Target',
+    }
+
+    return render(request, 'leads/my_target.html', context)

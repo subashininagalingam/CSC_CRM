@@ -72,6 +72,7 @@ Student List
         </div>
         {% endif %}
 
+        {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" %}
         <div class="stat-card">
             <div class="stat-icon icon-purple"><i class="fa-solid fa-book"></i></div>
             <div class="stat-info">
@@ -80,6 +81,7 @@ Student List
                 <span class="stat-sub">All Courses</span>
             </div>
         </div>
+        {% endif %}
 
     </div>
 

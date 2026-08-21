@@ -326,7 +326,7 @@
          {% endif %}
 
          <!--======================= KPI Cards Marketing Lead / Digital Marketing (target counts only) ============================-->
-         {% if request.user.staff_profile.role.role_name == "Marketing Lead" or request.user.staff_profile.role.role_name == "Digital Marketing" %}
+         {% if request.user.staff_profile.role.role_name == "Digital Marketing" %}
         <div class="dash-stat-card">
             <div class="dash-stat-icon icon-indigo">
                 <i class="fa-solid fa-bullseye"></i>
@@ -443,14 +443,27 @@
                 <small>Not completed in time</small>
             </div>
         </div>
+        {% if my_capture_target %}
         <div class="dash-stat-card">
-            <div class="dash-stat-icon icon-blue">
-                <i class="fa-solid fa-user-plus"></i>
+            <div class="dash-stat-icon icon-gray">
+                <i class="fa-solid fa-chart-line"></i>
             </div>
             <div class="dash-stat-body">
-                <span>Team Lead Capture Count</span>
-                <h2>{{ marketing_team_captured_leads_count }}</h2>
-                <small>Total leads captured by team</small>
+                <span>Current Target Progress</span>
+                <h2>{{ my_capture_target.achieved_count }}/{{ my_capture_target.target_count }}</h2>
+                <small>{{ my_capture_target.progress_percent }}% complete</small>
+            </div>
+        </div>
+        {% endif %}
+
+       <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-blue">
+                <i class="fa-solid fa-star"></i>
+            </div>
+            <div class="dash-stat-body">
+                <span>My Rating</span>
+                <h2>{{ request.user.staff_profile.performance_rating|default:0 }}/5</h2>
+                <small>Performance Score</small>
             </div>
         </div>
          {% endif %}
@@ -668,7 +681,7 @@
 
         <!-- ============================= ATTENDANCE SUMMARY Sales Department ========================== -->
 
- {% if request.user.staff_profile.role.role_name == "Sales Exec Lead" %}
+ {% if request.user.staff_profile.role.role_name == "Sales Exec Lead" or request.user.staff_profile.role.role_name == "Marketing Lead" %}
        
 <div class="dash-panel">
 
@@ -1149,6 +1162,14 @@
          
             <a href="{% url 'student' %}" class="dash-action-btn action-indigo">
                 <span><i class="fa-solid fa-user-plus"></i>Student Register</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </a>
+            {% endif %}
+
+            <!--=============== Marketing Lead =============-->
+         {% if request.user.staff_profile.role.role_name == "Marketing Lead" %}
+            <a href="{% url 'leads:lead_capture_target' %}" class="dash-action-btn action-indigo">
+                <span><i class="fa-solid fa-user-plus"></i> Lead Capture Target</span>
                 <i class="fa-solid fa-arrow-right"></i>
             </a>
             {% endif %}
