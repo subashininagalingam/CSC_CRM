@@ -5,27 +5,9 @@ from datetime import date
 
 
 class Command(BaseCommand):
-    help = "Create default admin staff account"
+    help = "Create admin staff"
 
-    def handle(self, *args, **options):
-
-        admin_role, _ = StaffRole.objects.get_or_create(
-            role_name="Admin",
-            defaults={
-                "description": "System Administrator",
-                "can_manage_leads": True,
-                "can_manage_staff": True,
-                "can_view_reports": True,
-                "can_mark_attendance": True,
-            }
-        )
-
-        mgmt_dept, _ = Department.objects.get_or_create(
-            dept_name="Management",
-            defaults={
-                "description": "Management Department"
-            }
-        )
+    def handle(self, *args, **kwargs):
 
         username = "EMP001"
         password = "Admin@12345"
@@ -33,16 +15,28 @@ class Command(BaseCommand):
 
         user, created = User.objects.get_or_create(
             username=username,
-            defaults={
-                "email": email,
-            }
+            defaults={"email": email}
         )
 
         if created:
             user.set_password(password)
             user.save()
+        else:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"User {username} already exists"
+                )
+            )
 
-        staff, staff_created = Staff.objects.get_or_create(
+        admin_role = StaffRole.objects.get(
+            role_name="Admin"
+        )
+
+        mgmt_dept = Department.objects.get(
+            dept_name="Management"
+        )
+
+        staff, created = Staff.objects.get_or_create(
             employee_id=username,
             defaults={
                 "first_name": "Senthil",
@@ -57,8 +51,15 @@ class Command(BaseCommand):
             }
         )
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"Admin ready: {username}"
+        if created:
+            self.stdout.write(
+                self.style.SUCCESS(
+                    "Admin Staff created successfully!"
+                )
             )
-        )
+        else:
+            self.stdout.write(
+                self.style.WARNING(
+                    "Admin Staff already exists!"
+                )
+            )
