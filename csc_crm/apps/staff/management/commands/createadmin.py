@@ -13,21 +13,33 @@ class Command(BaseCommand):
         password = "Admin@12345"
         email = "admin@cscCrm.com"
 
-        user, created = User.objects.get_or_create(
+        # Create User
+        user, user_created = User.objects.get_or_create(
             username=username,
-            defaults={"email": email}
+            defaults={
+                "email": email
+            }
         )
 
-        if created:
+        if user_created:
             user.set_password(password)
+            user.is_staff = True
+            user.is_superuser = True
             user.save()
+
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"User {username} created successfully!"
+                )
+            )
         else:
             self.stdout.write(
                 self.style.WARNING(
-                    f"User {username} already exists"
+                    f"User {username} already exists."
                 )
             )
 
+        # Create Admin Role
         admin_role, role_created = StaffRole.objects.get_or_create(
             role_name="Admin",
             defaults={
@@ -39,6 +51,7 @@ class Command(BaseCommand):
             }
         )
 
+        # Create Management Department
         mgmt_dept, dept_created = Department.objects.get_or_create(
             dept_name="Management",
             defaults={
@@ -46,7 +59,8 @@ class Command(BaseCommand):
             }
         )
 
-        staff, created = Staff.objects.get_or_create(
+        # Create Staff
+        staff, staff_created = Staff.objects.get_or_create(
             employee_id=username,
             defaults={
                 "first_name": "Senthil",
@@ -61,7 +75,7 @@ class Command(BaseCommand):
             }
         )
 
-        if created:
+        if staff_created:
             self.stdout.write(
                 self.style.SUCCESS(
                     "Admin Staff created successfully!"
