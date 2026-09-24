@@ -35,12 +35,16 @@ class Student(models.Model):
     ).aggregate(
         total=Sum('amount')
     )['total'] or 0
-    
+
     def total_fee(self):
-        admission = self.admissions.first()
-        if admission and admission.course_name:
-            return admission.course_name.course_fee
-        return 0
+        admission = self.admissions.select_related("course_name").first()
+        return admission.course_name.course_fee if admission and admission.course_name else 0
+
+    def total_paid(self):
+        return self.payments.aggregate(total=Sum("amount"))["total"] or 0
+
+    def pending_amount(self):
+        return max(self.total_fee() - self.total_paid(), 0)
     
     def pending_amount(self):
         pending = self.total_fee() - self.total_paid()

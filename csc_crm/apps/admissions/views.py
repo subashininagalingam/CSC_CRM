@@ -24,6 +24,7 @@ from .filters import StudentFilter
 from .services import get_fee_summary
 from csc_crm.apps.student_attendance.models import Batch
 from csc_crm.apps.admissions.models import Payment
+from django.db.models import Prefetch, Sum
 
 
 def get_role(request):
@@ -198,107 +199,143 @@ def fee_dashboard(request):
         messages.error(request, "You do not have permission to access fee dashboard.")
         return redirect('staff_dashboard')
 
-    students = Student.objects.all().order_by('-id')
-    fee_students = [
-        student for student in students
-        if student.pending_amount() > 0
-    ]
+    students = (
+        Student.objects
+        .prefetch_related(
+            Prefetch(
+                'admissions',
+                queryset=Admission.objects.select_related('course_name')
+            ),
+            'payments'
+        )
+        .annotate(total_paid_db=Sum('payments__amount'))
+        .order_by('-id')
+    )
 
-    latest_payments = []
-    seen_students = set()
+    fee_students = []
+    student_fee_status = []
 
-    for payment in Payment.objects.order_by('-date', '-id'):
-        if payment.student.id not in seen_students:
-            latest_payments.append(payment)
-            seen_students.add(payment.student.id)
+    for student in students:
+        admission = student.admissions.first()
 
-        if len(latest_payments) == 5:
-            break
+        total_fee = (
+            admission.course_name.course_fee
+            if admission and admission.course_name else 0
+        )
 
-    selected_student_id = request.GET.get('student_id')
+        paid = student.total_paid_db or 0
+        pending = max(total_fee - paid, 0)
+
+        if pending > 0:
+            fee_students.append(student)
+
+        if pending <= 0:
+            status = "Paid"
+        elif paid == 0:
+            status = "Pending"
+        else:
+            status = "Partial"
+
+        student_fee_status.append({
+            "student": student,
+            "total_fee": total_fee,
+            "paid": paid,
+            "pending": pending,
+            "status": status,
+        })
+
+    latest_payments = (
+        Payment.objects
+        .select_related('student')
+        .order_by('-date', '-id')[:5]
+    )
+
+    selected_student_id = request.GET.get("student_id")
     remaining_payments = 0
 
-    if request.method == 'POST':
-        student_id = request.POST.get('student')
-        amount = request.POST.get('amount')
+    if request.method == "POST":
+        student_id = request.POST.get("student")
 
         try:
-            amount = float(amount)
-        except:
-            messages.error(request, "Invalid amount")
-            return redirect('fee_dashboard')
+            amount = float(request.POST.get("amount"))
+        except (TypeError, ValueError):
+            messages.error(request, "Invalid amount.")
+            return redirect("fee_dashboard")
 
-        mode = request.POST.get('mode')
-        reference = request.POST.get('reference')
+        mode = request.POST.get("mode")
+        reference = request.POST.get("reference") or f"TXN{uuid.uuid4().hex[:8].upper()}"
+        remarks = request.POST.get("remarks")
 
-        if not reference or not reference.strip():
-            reference = f"TXN{uuid.uuid4().hex[:8].upper()}"
+        student_obj = Student.objects.prefetch_related(
+            Prefetch(
+                'admissions',
+                queryset=Admission.objects.select_related('course_name')
+            ),
+            'payments'
+        ).get(id=student_id)
 
-        remarks = request.POST.get('remarks')
-        student_obj = Student.objects.get(id=student_id)
+        admission = student_obj.admissions.first()
 
-        total_fee = student_obj.total_fee()
-        paid_amount = student_obj.total_paid()
-        pending_amount = total_fee - paid_amount
+        total_fee = (
+            admission.course_name.course_fee
+            if admission and admission.course_name else 0
+        )
+
+        paid_amount = sum(p.amount for p in student_obj.payments.all())
+        pending_amount = max(total_fee - paid_amount, 0)
 
         if amount <= 0:
             messages.error(request, "Amount must be greater than 0.")
-            return redirect('fee_dashboard')
+            return redirect("fee_dashboard")
 
         if amount > pending_amount:
             messages.error(
                 request,
                 f"Only remaining amount ₹{pending_amount} can be paid."
             )
-            return redirect('fee_dashboard')
+            return redirect("fee_dashboard")
 
-        payment_count = Payment.objects.filter(student=student_obj).count()
+        payment_count = student_obj.payments.count()
 
         if payment_count >= 6:
             messages.error(request, "Only 6 payments allowed.")
-            return redirect('fee_dashboard')
+            return redirect("fee_dashboard")
 
         if payment_count == 5 and amount != pending_amount:
             messages.error(
                 request,
                 f"6th payment must clear full remaining amount ₹{pending_amount}"
             )
-            return redirect('fee_dashboard')
+            return redirect("fee_dashboard")
 
         Payment.objects.create(
-            student_id=student_id,
+            student=student_obj,
             amount=amount,
             mode=mode,
             reference_id=reference,
-            remarks=remarks
+            remarks=remarks,
         )
 
         remaining_payments = 6 - (payment_count + 1)
-        new_pending = pending_amount - amount
 
-        if new_pending <= 0:
-            messages.success(
-                request,
-                "Payment Successful! Full fee has been paid."
-            )
+        if pending_amount - amount <= 0:
+            messages.success(request, "Payment Successful! Full fee has been paid.")
         else:
             messages.success(
                 request,
                 f"Payment Successful! Remaining payments: {remaining_payments}"
             )
 
-        return redirect('fee_dashboard')
+        return redirect("fee_dashboard")
 
-    format = request.GET.get('format')
-
-    if format == 'excel':
+    if request.GET.get("format") == "excel":
         wb = Workbook()
         ws = wb.active
         ws.title = "Fee Payments"
 
         ws.append([
-            "Student", "Course", "Batch", "Amount",
-            "Mode", "Reference", "Date"
+            "Student", "Course", "Batch",
+            "Amount", "Mode", "Reference", "Date"
         ])
 
         header_fill = PatternFill(
@@ -312,21 +349,23 @@ def fee_dashboard(request):
             cell.fill = header_fill
             cell.alignment = Alignment(horizontal="center")
 
-        for payment in Payment.objects.select_related(
+        payments = Payment.objects.select_related(
             'student'
-        ).order_by('-date', '-id'):
-
-            admission = payment.student.admissions.first()
-            enrollment = (
-                admission.enrollment
-                if admission and hasattr(admission, 'enrollment')
-                else None
+        ).prefetch_related(
+            Prefetch(
+                'student__admissions',
+                queryset=Admission.objects.select_related('course_name')
             )
+        ).order_by('-date', '-id')
+
+        for payment in payments:
+            admission = payment.student.admissions.first()
+            enrollment = getattr(admission, "enrollment", None)
 
             ws.append([
                 f"{payment.student.first_name} {payment.student.last_name}",
-                str(admission.course_name) if admission else "-",
-                str(enrollment.batch) if enrollment else "-",
+                admission.course_name.course_name if admission and admission.course_name else "-",
+                enrollment.batch.batch_name if enrollment else "-",
                 payment.amount,
                 payment.mode,
                 payment.reference_id,
@@ -334,59 +373,39 @@ def fee_dashboard(request):
             ])
 
         for col, width in {
-            'A': 25, 'B': 25, 'C': 18,
-            'D': 15, 'E': 15, 'F': 20, 'G': 18
+            "A":25, "B":25, "C":18,
+            "D":15, "E":15, "F":20, "G":18
         }.items():
             ws.column_dimensions[col].width = width
 
         response = HttpResponse(
-            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-        response['Content-Disposition'] = 'attachment; filename=fee_payments.xlsx'
+        response["Content-Disposition"] = 'attachment; filename="fee_payments.xlsx"'
         wb.save(response)
         return response
 
     summary = get_fee_summary()
-    collected = _get_summary_value(summary, 'collected', 0) or 0
-    outstanding = _get_summary_value(summary, 'outstanding', 0) or 0
+
+    collected = _get_summary_value(summary, "collected", 0) or 0
+    outstanding = _get_summary_value(summary, "outstanding", 0) or 0
     total_expected = collected + outstanding
 
     collection_percentage = (
         round((collected / total_expected) * 100)
-        if total_expected > 0 else 0
+        if total_expected else 0
     )
 
-    student_fee_status = []
-
-    for student_obj in students:
-        total_fee = student_obj.total_fee()
-        paid = student_obj.total_paid()
-        pending = student_obj.pending_amount()
-
-        if pending <= 0:
-            status = 'Paid'
-        elif paid == 0:
-            status = 'Pending'
-        else:
-            status = 'Partial'
-
-        student_fee_status.append({
-            'student': student_obj,
-            'total_fee': total_fee,
-            'paid': paid,
-            'pending': pending,
-            'status': status
-        })
-
-    return render(request, 'admissions/fee_dashboard.html', {
-        'students': fee_students,
-        'payments': latest_payments,
-        'summary': summary,
-        'remaining_payments': remaining_payments,
-        'student_fee_status': student_fee_status,
-        'selected_student_id': selected_student_id,
-        'collection_percentage': collection_percentage,
+    return render(request, "admissions/fee_dashboard.html", {
+        "students": fee_students,
+        "payments": latest_payments,
+        "summary": summary,
+        "remaining_payments": remaining_payments,
+        "student_fee_status": student_fee_status,
+        "selected_student_id": selected_student_id,
+        "collection_percentage": collection_percentage,
     })
+
 
 
 @login_required(login_url='staff_login')
