@@ -3,6 +3,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 from django.conf import settings
 import uuid
+from cloudinary.models import CloudinaryField
 
 
 class Department(models.Model):
@@ -86,8 +87,8 @@ class Staff(models.Model):
     department = models.ForeignKey(Department, on_delete=models.PROTECT, related_name='staff_members')
 
     # Photos & Documents
-    profile_photo = models.ImageField(upload_to='staff/photos/', blank=True, null=True)
-    documents = models.FileField(upload_to='staff/documents/', blank=True, null=True)
+    profile_photo = CloudinaryField('staff/photos/', blank=True, null=True)
+    documents = CloudinaryField('staff/documents/', blank=True, null=True)
 
     # Performance & Target
     monthly_target = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(0)], blank=True, null=True)
@@ -194,7 +195,7 @@ class StaffDocument(models.Model):
         related_name='staff_documents'
     )
 
-    document = models.FileField(upload_to='staff/documents/')
+    document = CloudinaryField('staff/documents/')
 
     uploaded_at = models.DateTimeField(auto_now_add=True)
 

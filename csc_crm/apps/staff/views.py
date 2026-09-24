@@ -8,6 +8,7 @@ from django.db.models.functions import TruncMonth
 from django.db.models import Q, Avg, Count, F, FloatField, ExpressionWrapper
 from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
+from django.core.exceptions import PermissionDenied
 
 from datetime import datetime, time
 
@@ -81,9 +82,7 @@ def role_required(allowed_roles, marketing_only=False):
                 return redirect('staff_login')
 
             if staff.role.role_name not in allowed_roles:
-                messages.error(request, 'You do not have permission to access this page.')
-                return redirect('staff_dashboard')
-
+                raise PermissionDenied
             return view_func(request, *args, **kwargs)
         return wrapper
     return decorator
@@ -145,17 +144,11 @@ def staff_management(request):
     my_role = my_staff.role.role_name if my_staff and my_staff.role else None
 
     allowed_roles = [
-        'Admin',
-        'Manager',
-        'HR',
-        'Sales Exec Lead',
-        'Marketing Lead',
-        'Sales Exec',
-        'Trainer',
-        'Digital Marketing',
-        'Content Creator',
-        'Developer',
-    ]
+    'Admin',
+    'Manager',
+    'Sales Exec Lead',
+    'Marketing Lead',
+]
 
     if my_role not in allowed_roles:
         messages.error(request, 'You do not have permission to access this page.')
@@ -187,10 +180,6 @@ def staff_management(request):
         queryset = queryset.filter(
             department__dept_name='Marketing'
         ).exclude(id=my_staff.id)
-
-    # Sales Exec, Digital Marketing, Content Creator, Developer -> own record only
-    elif my_role in ['Sales Exec', 'Digital Marketing', 'Content Creator', 'Trainer', 'Developer']:
-        queryset = queryset.filter(id=my_staff.id)
 
     # Admin, Manager, HR -> all departments, but excluding own record
     else:
@@ -632,6 +621,12 @@ def export_staff(request):
 @login_required(login_url='staff_login')
 def overview(request, staff_id=None):
 
+    my_staff = request.user.staff_profile
+
+    # Only Admin and Manager can access Overview
+    if my_staff.role.role_name not in ['Admin', 'Manager']:
+        raise PermissionDenied
+
     def get_weekly_enrollment_amounts(year, month, staff):
         week_amounts = {}
         last_day = calendar.monthrange(year, month)[1]
@@ -674,6 +669,12 @@ def overview(request, staff_id=None):
         staff = get_object_or_404(Staff, id=staff_id)
     else:
         staff = Staff.objects.filter(status="active").first()
+
+    my_staff = request.user.staff_profile
+
+    if staff_id and my_staff.role.role_name not in ["Admin", "Manager"]:
+        if staff.id != my_staff.id:
+            raise PermissionDenied
 
     if not staff:
         return render(request, "staff/overview.html", {
@@ -954,7 +955,7 @@ def auto_checkout_pending_attendance():
         auto_logout_time = timezone.make_aware(
             datetime.combine(
                 attendance.date,
-                time(18, 30)
+                time(19, 0)
             )
         )
 
@@ -2014,6 +2015,10 @@ def staff_dashboard(request):
 
     marketing_team_captured_leads_count = 0
 
+    marketing_team_target_count = 0
+    marketing_team_achieved_count = 0
+    marketing_team_progress_percent = 0
+
     if (
         my_staff
         and my_staff.role
@@ -2058,15 +2063,30 @@ def staff_dashboard(request):
             assigned_to=my_staff
         ).count()
 
-    if (
-        my_staff
-        and my_staff.role
-        and my_staff.role.role_name == 'Marketing Lead'
-    ):
+    if (my_staff and my_staff.role and my_staff.role.role_name == 'Marketing Lead'):
 
         marketing_team_targets_qs = LeadCaptureTarget.objects.filter(
             assigned_to__department__dept_name='Marketing'
         )
+
+        marketing_team_target_count = (
+            marketing_team_targets_qs.aggregate(
+            total=Sum("target_count")
+            )["total"] or 0
+        )
+
+        marketing_team_achieved_count = (
+            marketing_team_targets_qs.aggregate(
+            total=Sum("achieved_count")
+            )["total"] or 0
+        )
+
+        if marketing_team_target_count > 0:
+            marketing_team_progress_percent = round(
+            (marketing_team_achieved_count / marketing_team_target_count) * 100
+        )
+        else:
+            marketing_team_progress_percent = 0
 
         marketing_team_targets_total = (
             marketing_team_targets_qs.count()
@@ -2345,7 +2365,7 @@ def staff_dashboard(request):
         'batch_summary': batch_summary,
 
         # My Attendance
-
+        'my_present_days': my_present_days,
         'my_late_days': my_late_days,
         'my_absent_days': my_absent_days,
         'my_leave_days': my_leave_days,
@@ -2447,6 +2467,10 @@ def staff_dashboard(request):
             marketing_team_targets_expired,
         'marketing_team_captured_leads_count':
             marketing_team_captured_leads_count,
+
+        'marketing_team_target_count': marketing_team_target_count,
+        'marketing_team_achieved_count': marketing_team_achieved_count,
+        'marketing_team_progress_percent': marketing_team_progress_percent,
     }
 
     return render(
@@ -2461,7 +2485,12 @@ def staff_dashboard(request):
 def staff_profile(request, staff_id):
     """View and edit a staff member's own profile page"""
 
+    auto_checkout_pending_attendance()
+
     staff = get_object_or_404(Staff, id=staff_id)
+
+    if request.user.staff_profile.id != staff.id:
+        raise PermissionDenied
 
     # Handle Edit Profile form submission
     if request.method == 'POST':
@@ -2522,9 +2551,13 @@ def staff_profile(request, staff_id):
 
     # 2) Document uploads: each StaffDocument with filename as designation
     for doc in documents.order_by('-uploaded_at')[:10]:
-        raw_name = doc.document.name.split('/')[-1] if doc.document else 'Document'
-        # Strip extension for label
-        doc_label = raw_name.rsplit('.', 1)[0].replace('_', ' ').title()
+
+        if doc.document:
+            raw_name = os.path.basename(doc.document.public_id)
+        else:
+            raw_name = "Document"
+
+        doc_label = raw_name.replace("_", " ").replace("-", " ").title()
         activity_feed.append({
             'type': 'document',
             'icon': 'fa-file-arrow-up',

@@ -89,18 +89,32 @@ class LeadCaptureTargetForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
 
-        self.fields['assigned_to'].queryset = Staff.objects.filter(
+        # Only active Marketing team members
+        queryset = Staff.objects.filter(
             department__dept_name='Marketing',
             status='active'
         )
+
+        # Don't show the logged-in user's own name
+        if user:
+            staff = getattr(user, 'staff_profile', None)
+
+            if staff:
+                queryset = queryset.exclude(id=staff.id)
+
+        self.fields['assigned_to'].queryset = queryset
+
     def clean_end_date(self):
         end_date = self.cleaned_data.get('end_date')
         today = timezone.localdate()
 
         if end_date and end_date < today:
-            raise forms.ValidationError('End date cannot be in the past.')
+            raise forms.ValidationError(
+                'End date cannot be in the past.'
+            )
 
         return end_date
 
@@ -108,10 +122,12 @@ class LeadCaptureTargetForm(forms.ModelForm):
         target_count = self.cleaned_data.get('target_count')
 
         if target_count is not None and target_count <= 0:
-            raise forms.ValidationError('Lead target count must be greater than 0.')
+            raise forms.ValidationError(
+                'Lead target count must be greater than 0.'
+            )
 
         return target_count
-
+    
 
 # Lead Capture Target UPDATE Form (Marketing)
 # Assignee cannot be changed here - only the target count and end date,

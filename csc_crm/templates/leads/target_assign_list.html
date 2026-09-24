@@ -245,7 +245,7 @@
             </div>
 
             <div class="form-group">
-                <label for="id_target_end_date"> End Date </label>
+                <label for="id_target_end_date">End Date</label>
                 {{ form.end_date }}
             </div>
 
@@ -311,7 +311,7 @@
             </div>
 
             <div class="form-group">
-                <label for="id_edit_target_end_date"> {{ edit_form.end_date.label }} </label>
+                <label for="id_edit_target_end_date">{{ edit_form.end_date.label }}</label>
                 {{ edit_form.end_date }}
             </div>
 
@@ -369,6 +369,31 @@
         openTargetModal();
     });
     {% endif %}
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    function enableDatePicker(id) {
+        const input = document.getElementById(id);
+        if (!input) return;
+
+        input.addEventListener('click', function () {
+            if (this.showPicker) {
+                this.showPicker();
+            }
+        });
+
+        input.addEventListener('focus', function () {
+            if (this.showPicker) {
+                this.showPicker();
+            }
+        });
+    }
+
+    enableDatePicker('id_target_end_date');
+    enableDatePicker('id_edit_target_end_date');
+});
 </script>
 
 {% endblock %}

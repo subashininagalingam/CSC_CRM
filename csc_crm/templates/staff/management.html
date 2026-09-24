@@ -136,8 +136,12 @@
                             <td class="staff-info-cell">
                                 <div class="staff-info">
                                     <div class="staff-avatar">
-                                        {{ staff.get_initials }}
-                                    </div>
+    {% if staff.profile_photo %}
+        <img src="{{ staff.profile_photo.url }}" alt="{{ staff.full_name }}">
+    {% else %}
+        {{ staff.get_initials }}
+    {% endif %}
+</div>
                                     <div class="staff-details">
                                         <h3 class="staff-name">{{ staff.first_name }} {{ staff.last_name }}</h3>
                                         <p class="staff-id">{{ staff.employee_id }}</p>

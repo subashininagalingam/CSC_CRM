@@ -24,16 +24,13 @@
       <a href="{% url 'staff_management' %}" class="sp-back-btn"><i class="fa fa-arrow-left"></i> Back to Staff Management</a>
       {% endif %}
 
-      {% if request.user.staff_profile.role.role_name == "Sales Exec" or request.user.staff_profile.role.role_name == "Developer" or request.user.staff_profile.role.role_name == "Trainer" or request.user.staff_profile.role.role_name == "Digital Marketing" or request.user.staff_profile.role.role_name == "Content Creator" %}
-      <a href="{% url 'staff_dashboard' %}" class="sp-back-btn"><i class="fa fa-arrow-left"></i> Back to Staff Management</a>
-      {% endif %}
 
     </div>
     <h1 class="sp-title">Staff Profile</h1>
     <p class="sp-subtitle">Complete employee information</p>
   </div>
 
-  {% if request.user.staff_profile.role.role_name in "Admin,Manager" %}
+  {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" %}
   <button class="sp-edit-btn" onclick="openEditModal()"><i class="fa fa-pencil"></i> Edit Profile</button>
   {% endif %}
 </div>
@@ -45,10 +42,10 @@
   <!-- Avatar col -->
   <div class="sp-avatar-col">
     <div class="sp-avatar-wrap">
-      {% if staff.profile_photo %}
-        <img src="{{ staff.profile_photo.url }}" alt="Photo">
+      {% if staff.profile_photo and staff.profile_photo.url %}
+      <img src="{{ staff.profile_photo.url }}" alt="{{ staff.full_name }}">
       {% else %}
-        <img src="https://ui-avatars.com/api/?name={{ staff.first_name }}+{{ staff.last_name }}&background=262170&color=fff&size=120" alt="Avatar">
+      <img src="https://ui-avatars.com/api/?name={{ staff.first_name }}+{{ staff.last_name }}&background=262170&color=fff&size=120" alt="Avatar">
       {% endif %}
       <span class="sp-dot sp-dot-{{ staff.status }}"></span>
     </div>
@@ -160,7 +157,7 @@
 </div>
 
 <!--============================== BOTTOM: Documents + Recent Activity ======================== -->
-
+<!-- {% if request.user.staff_profile.role.role_name != "Marketing Lead" %} -->
 <div class="sp-bot-grid">
 
   <!-- Documents -->
@@ -177,7 +174,7 @@
             <i class="fa fa-file-{% if doc.get_file_extension == 'PDF' %}pdf{% elif doc.get_file_extension == 'DOCX' or doc.get_file_extension == 'DOC' %}word{% else %}image{% endif %}"></i>
           </div>
           <div class="sp-doc-info">
-            <div class="sp-doc-name">{{ doc.document_type|default:doc.document.name|truncatechars:18 }}</div>
+            <div class="sp-doc-name">{{ doc.document_type|default:"Document"|truncatechars:18 }}</div>
             <div class="sp-doc-date">Uploaded on {{ doc.uploaded_at|date:"d M Y" }}</div>
           </div>
           <div class="sp-doc-actions">
@@ -216,7 +213,7 @@
   </div>
 
 </div>
-
+<!-- {% endif %} -->
 <!-- ============================= EDIT MODAL ================================= -->
 
 <div class="sp-modal-overlay" id="editModal">

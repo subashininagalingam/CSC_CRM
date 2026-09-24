@@ -615,6 +615,8 @@ def call_history(request):
     })
 
 # ============================= LEAD CAPTURE TARGET (MARKETING) =============================
+# ============================= LEAD CAPTURE TARGET (MARKETING) =============================
+
 def is_target_assigner(user):
     """
     Only Admin / Manager / Marketing Lead can assign targets.
@@ -697,7 +699,6 @@ def lead_capture_target(request):
 
     # ==========================================================
     # MARKETING MEMBERS DON'T MANAGE THE LIST
-    # Send them to their own "My Target" page instead
     # ==========================================================
 
     if is_marketing_member and not can_assign:
@@ -705,13 +706,12 @@ def lead_capture_target(request):
 
     # ==========================================================
     # TARGET VISIBILITY
-    # (own target excluded — this page is for managing others only)
     # ==========================================================
 
     if is_admin or is_manager:
 
         # Admin / Manager
-        # Full access - see every target except their own
+        # Can see every target except their own
 
         targets = LeadCaptureTarget.objects.select_related(
             'assigned_to',
@@ -728,7 +728,8 @@ def lead_capture_target(request):
     else:
 
         # Marketing Lead
-        # Can see Marketing Lead + Marketing Member targets, except their own
+        # Can see Marketing Lead + Marketing Member targets
+        # except their own
 
         targets = LeadCaptureTarget.objects.select_related(
             'assigned_to',
@@ -757,59 +758,28 @@ def lead_capture_target(request):
 
     # ==========================================================
     # EDIT / DELETE PERMISSION
+    # ONLY THE PERSON WHO ASSIGNED THE TARGET
+    # CAN EDIT / DELETE IT
     # ==========================================================
 
     for target in targets:
 
-        assigned_to_role = (
-            target.assigned_to.role.role_name.strip()
-            if (
-                target.assigned_to
-                and target.assigned_to.role
-            )
-            else ''
+        is_assigned_by_me = (
+            target.assigned_by_id == staff.id
         )
 
-        # ------------------------------------------------------
-        # ADMIN / MANAGER
-        # Full access
-        # ------------------------------------------------------
+        target.can_edit = is_assigned_by_me
+        target.can_delete = is_assigned_by_me
 
-        if is_admin or is_manager:
+        # Completed target → disable both buttons
+        if target.is_completed:
+            target.can_edit = False
+            target.can_delete = False
 
-            target.can_edit = True
-            target.can_delete = True
-
-        # ------------------------------------------------------
-        # MARKETING LEAD
-        # ------------------------------------------------------
-
+        # Active target → only assigner can edit/delete
         else:
-
-            # Marketing Lead can edit/delete
-            # targets assigned to Marketing Members
-            if assigned_to_role in [
-                'Marketing Member',
-                'Digital Marketing',
-                'Content Creator',
-            ]:
-
-                target.can_edit = True
-                target.can_delete = True
-
-            else:
-
-                # Marketing Lead cannot edit/delete
-                # targets assigned to Marketing Lead
-                #
-                # Example:
-                # Admin -> Marketing Lead
-                # Manager -> Marketing Lead
-                #
-                # Marketing Lead cannot edit/delete them.
-
-                target.can_edit = False
-                target.can_delete = False
+            target.can_edit = is_assigned_by_me
+            target.can_delete = is_assigned_by_me
 
     # ==========================================================
     # STATUS COUNTS
@@ -839,7 +809,10 @@ def lead_capture_target(request):
     # FORMS
     # ==========================================================
 
-    form = LeadCaptureTargetForm()
+    form = LeadCaptureTargetForm(
+        user=request.user
+    )
+
     edit_form = LeadCaptureTargetUpdateForm()
 
     # ==========================================================
@@ -873,13 +846,19 @@ def lead_capture_target(request):
         context
     )
 
+
+# ==========================================================
+# ASSIGN TARGET
+# ==========================================================
+
 @login_required
 @require_http_methods(['GET', 'POST'])
 def lead_capture_target_assign(request):
 
     # ==========================================
-    # ADMIN + MARKETING LEAD ONLY
+    # ADMIN + MANAGER + MARKETING LEAD ONLY
     # ==========================================
+
     if not is_target_assigner(request.user):
         messages.error(
             request,
@@ -889,35 +868,47 @@ def lead_capture_target_assign(request):
 
     if request.method == 'POST':
 
-        form = LeadCaptureTargetForm(request.POST)
+        form = LeadCaptureTargetForm(
+            request.POST,
+            user=request.user
+        )
 
         if form.is_valid():
 
             target = form.save(commit=False)
 
             # Get logged-in user's Staff record
-            staff = getattr(request.user, 'staff_profile', None)
+            staff = getattr(
+                request.user,
+                'staff_profile',
+                None
+            )
 
             if not staff:
                 messages.error(
                     request,
                     'Staff profile not found for the logged-in user.'
                 )
-                return redirect('leads:lead_capture_target')
+                return redirect(
+                    'leads:lead_capture_target'
+                )
 
             # ==========================================
             # WHO ASSIGNED THE TARGET
             # ==========================================
+
             target.assigned_by = staff
 
             # ==========================================
             # TARGET START DATE
             # ==========================================
+
             target.start_date = timezone.localdate()
 
             # ==========================================
             # INITIAL PROGRESS
             # ==========================================
+
             target.achieved_count = 0
             target.is_completed = False
             target.completed_at = None
@@ -930,51 +921,148 @@ def lead_capture_target_assign(request):
                 f'{target.assigned_to.full_name()}.'
             )
 
-            return redirect('leads:lead_capture_target')
+            return redirect(
+                'leads:lead_capture_target'
+            )
 
     else:
-        form = LeadCaptureTargetForm()
+
+        form = LeadCaptureTargetForm(
+            user=request.user
+        )
 
     return render(
         request,
-        'leads/lead_capture_target.html',{'form': form,}
+        'leads/lead_capture_target.html',
+        {
+            'form': form,
+        }
     )
+
+
+# ==========================================================
+# UPDATE TARGET
+# ONLY ASSIGNER CAN EDIT
+# ==========================================================
 
 @role_required(MARKETING_LEAD_ROLES, marketing_only=True)
 @require_http_methods(['POST'])
 def lead_capture_target_update(request, pk):
 
-    target = get_object_or_404(LeadCaptureTarget, pk=pk)
+    target = get_object_or_404(
+        LeadCaptureTarget,
+        pk=pk
+    )
 
-    form = LeadCaptureTargetUpdateForm(request.POST, instance=target)
+    staff = getattr(
+        request.user,
+        'staff_profile',
+        None
+    )
+
+    # ==========================================
+    # ONLY THE ASSIGNER CAN EDIT
+    # ==========================================
+
+    if not staff or target.assigned_by_id != staff.id:
+
+        messages.error(
+            request,
+            'You can only edit targets assigned by you.'
+        )
+
+        return redirect(
+            'leads:lead_capture_target'
+        )
+
+    # ==========================================
+    # UPDATE FORM
+    # ==========================================
+
+    form = LeadCaptureTargetUpdateForm(
+        request.POST,
+        instance=target
+    )
 
     if form.is_valid():
+
         form.save()
+
         messages.success(
             request,
-            f'Target for {target.assigned_to.full_name()} updated successfully!'
+            f'Target for '
+            f'{target.assigned_to.full_name()} '
+            f'updated successfully!'
         )
+
     else:
+
         for field, errors in form.errors.items():
+
             for error in errors:
-                messages.error(request, f'{field}: {error}')
 
-    return redirect('leads:lead_capture_target')
+                messages.error(
+                    request,
+                    f'{field}: {error}'
+                )
 
+    return redirect(
+        'leads:lead_capture_target'
+    )
+
+
+# ==========================================================
+# DELETE TARGET
+# ONLY ASSIGNER CAN DELETE
+# ==========================================================
 
 @role_required(MARKETING_LEAD_ROLES, marketing_only=True)
 @require_http_methods(['POST'])
 def lead_capture_target_delete(request, pk):
 
-    target = get_object_or_404(LeadCaptureTarget, pk=pk)
+    target = get_object_or_404(
+        LeadCaptureTarget,
+        pk=pk
+    )
+
+    staff = getattr(
+        request.user,
+        'staff_profile',
+        None
+    )
+
+    # ==========================================
+    # ONLY THE ASSIGNER CAN DELETE
+    # ==========================================
+
+    if not staff or target.assigned_by_id != staff.id:
+
+        messages.error(
+            request,
+            'You can only delete targets assigned by you.'
+        )
+
+        return redirect(
+            'leads:lead_capture_target'
+        )
+
+    # ==========================================
+    # DELETE TARGET
+    # ==========================================
+
     staff_name = target.assigned_to.full_name()
 
     target.delete()
 
-    messages.success(request, f'Lead capture target for {staff_name} deleted.')
+    messages.success(
+        request,
+        f'Lead capture target for '
+        f'{staff_name} deleted.'
+    )
 
-    return redirect('leads:lead_capture_target')
-
+    return redirect(
+        'leads:lead_capture_target'
+    )
 
 @require_http_methods(['POST'])
 def lead_capture_target_progress(request, pk):

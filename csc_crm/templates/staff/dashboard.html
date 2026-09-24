@@ -28,7 +28,9 @@
         {% endif %}
 
         <div class="dash-breadcrumb">
-            Home / <span>Staff</span> / <span>Dashboard</span>
+            <span>Home</span> /
+            <a href="{% url 'staff_profile' request.user.staff_profile.id %}" style="text-decoration: none;color:blue;">Staff</a> /
+            <span>Dashboard</span>
         </div>
 
     </div>
@@ -445,15 +447,15 @@
         </div>
         {% if my_capture_target %}
         <div class="dash-stat-card">
-            <div class="dash-stat-icon icon-gray">
-                <i class="fa-solid fa-chart-line"></i>
-            </div>
-            <div class="dash-stat-body">
-                <span>Current Target Progress</span>
-                <h2>{{ my_capture_target.achieved_count }}/{{ my_capture_target.target_count }}</h2>
-                <small>{{ my_capture_target.progress_percent }}% complete</small>
-            </div>
-        </div>
+    <div class="dash-stat-icon icon-gray">
+        <i class="fa-solid fa-chart-line"></i>
+    </div>
+    <div class="dash-stat-body">
+        <span>Team Current Target Progress</span>
+        <h2>{{ marketing_team_achieved_count }}/{{ marketing_team_target_count }}</h2>
+        <small>{{ marketing_team_progress_percent }}% complete</small>
+    </div>
+</div>
         {% endif %}
 
        <div class="dash-stat-card">
