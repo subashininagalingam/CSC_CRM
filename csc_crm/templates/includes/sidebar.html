@@ -56,7 +56,7 @@
  {% if request.user.staff_profile.role.role_name == "HR" or request.user.staff_profile.role.role_name == "Trainer" %}
 <li>
        
-       <a href="{% url 'student_list' %}" class="{% if request.resolver_match.url_name == 'fee_dashboard' or request.resolver_match.url_name == 'student_list' or request.resolver_match.url_name == 'search_students' or request.resolver_match.url_name == 'view_student' or request.resolver_match.url_name == 'edit_student' or request.resolver_match.url_name == 'delete_student' or request.resolver_match.url_name == 'generate_receipt' or request.resolver_match.url_name == 'preview_receipt' %}active{% endif %}">
+    <a href="{% url 'batch_list' %}" class="{% if request.resolver_match.url_name == 'fee_dashboard' or request.resolver_match.url_name == 'batch_list' or request.resolver_match.url_name == 'search_batch_list' or request.resolver_match.url_name == 'view_student' or request.resolver_match.url_name == 'edit_student' or request.resolver_match.url_name == 'delete_student' or request.resolver_match.url_name == 'generate_receipt' or request.resolver_match.url_name == 'preview_receipt' %}active{% endif %}">
         <i class="fa-solid fa-user-graduate"></i>
         <span>Student Module</span>
     </a>

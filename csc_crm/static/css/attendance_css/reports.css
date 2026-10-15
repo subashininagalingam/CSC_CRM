@@ -1,25 +1,25 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-:root{
+:root {
 
-    --primary:#262170;
-    --primary-dark:#1c1852;
-    --secondary:#FEF200;
+    --primary: #262170;
+    --primary-dark: #1c1852;
+    --secondary: #FEF200;
 
-    --white:#ffffff;
-    --light:#f8f9fc;
-    --page-bg:#f4f5fa;
+    --white: #ffffff;
+    --light: #f8f9fc;
+    --page-bg: #f4f5fa;
 
-    --border:#e5e7eb;
+    --border: #e5e7eb;
 
-    --text:#111827;
-    --muted:#6b7280;
+    --text: #111827;
+    --muted: #6b7280;
 
-    --success:#16a34a;
-    --danger:#ef4444;
-    --warning:#f59e0b;
+    --success: #16a34a;
+    --danger: #ef4444;
+    --warning: #f59e0b;
 
-    --shadow:0 4px 18px rgba(0,0,0,0.04);
+    --shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
 
 }
 
@@ -28,18 +28,18 @@
    GLOBAL
 ========================================================= */
 
-.reports-page *{
+.reports-page * {
 
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-    font-family:'Inter',sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
 
 }
 
-.reports-page{
+.reports-page {
 
-    background:var(--page-bg);
+    background: var(--page-bg);
 
 }
 
@@ -48,37 +48,37 @@
    TOPBAR
 ========================================================= */
 
-.reports-topbar{
+.reports-topbar {
 
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 
-    margin-bottom:20px;
+    margin-bottom: 20px;
 
-    flex-wrap:wrap;
-    gap:14px;
-
-}
-
-.reports-topbar h5{
-
-    font-size:22px;
-    font-weight:800;
-    color:var(--text);
-
-    margin:0;
-
-    letter-spacing:-0.3px;
+    flex-wrap: wrap;
+    gap: 14px;
 
 }
 
-.topbar-actions{
+.reports-topbar h5 {
 
-    display:flex;
-    gap:10px;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
 
-    flex-wrap:wrap;
+    margin: 0;
+
+    letter-spacing: -0.3px;
+
+}
+
+.topbar-actions {
+
+    display: flex;
+    gap: 10px;
+
+    flex-wrap: wrap;
 
 }
 
@@ -87,71 +87,71 @@
    EXPORT BUTTON
 ========================================================= */
 
-.export-btn{
+.export-btn {
 
-    border:none;
+    border: none;
 
-    border-radius:12px;
+    border-radius: 12px;
 
-    padding:10px 16px;
+    padding: 10px 16px;
 
-    font-size:12px;
-    font-weight:600;
+    font-size: 12px;
+    font-weight: 600;
 
-    display:flex;
-    align-items:center;
+    display: flex;
+    align-items: center;
 
-    gap:8px;
+    gap: 8px;
 
-    transition:0.3s;
+    transition: 0.3s;
 
-    cursor:pointer;
+    cursor: pointer;
 
-    color:white;
+    color: white;
 
-    text-decoration:none !important;
+    text-decoration: none !important;
 
 }
 
-.export-btn:hover{
+.export-btn:hover {
 
-    text-decoration:none !important;
+    text-decoration: none !important;
 
-    transform:translateY(-2px);
+    transform: translateY(-2px);
 
 }
 
 
 /* PDF */
 
-.pdf-btn{
+.pdf-btn {
 
-    background:var(--danger);
+    background: var(--danger);
 
 }
 
-.pdf-btn:hover{
+.pdf-btn:hover {
 
-    background:var(--danger);
+    background: var(--danger);
 
-    box-shadow:0 6px 16px rgba(220,38,38,0.25);
+    box-shadow: 0 6px 16px rgba(220, 38, 38, 0.25);
 
 }
 
 
 /* EXCEL */
 
-.excel-btn{
+.excel-btn {
 
-    background:var(--success);
+    background: var(--success);
 
 }
 
-.excel-btn:hover{
+.excel-btn:hover {
 
-    background:var(--success);
+    background: var(--success);
 
-    box-shadow:0 6px 16px rgba(22,163,74,0.25);
+    box-shadow: 0 6px 16px rgba(22, 163, 74, 0.25);
 
 }
 
@@ -160,232 +160,232 @@
    FILTER CARD
 ========================================================= */
 
-.filter-card{
+.filter-card {
 
-    background:var(--white);
+    background: var(--white);
 
-    border-radius:18px;
+    border-radius: 18px;
 
-    padding:20px 20px 8px;
+    padding: 20px 20px 8px;
 
-    margin:0 0 24px;
+    margin: 0 0 24px;
 
-    box-shadow:var(--shadow);
+    box-shadow: var(--shadow);
 
-    border:1px solid var(--border);
+    border: 1px solid var(--border);
 
 }
 
-.filter-container{
+.filter-container {
 
-    display:grid;
+    display: grid;
 
     grid-template-columns:
-    repeat(auto-fit, minmax(170px, 1fr));
+        repeat(auto-fit, minmax(170px, 1fr));
 
-    gap:14px;
+    gap: 14px;
 
-    margin-bottom:16px;
-
-}
-
-.filter-field{
-
-    display:flex;
-
-    flex-direction:column;
-
-    gap:6px;
+    margin-bottom: 16px;
 
 }
 
-.filter-label{
+.filter-field {
 
-    font-size:11.5px;
+    display: flex;
 
-    font-weight:700;
+    flex-direction: column;
 
-    color:var(--muted);
-
-    text-transform:uppercase;
-
-    letter-spacing:0.4px;
+    gap: 6px;
 
 }
 
-.filter-input-icon{
+.filter-label {
 
-    position:relative;
+    font-size: 11.5px;
 
-    display:flex;
+    font-weight: 700;
 
-    align-items:center;
+    color: var(--muted);
 
-}
+    text-transform: uppercase;
 
-.filter-input-icon i{
-
-    position:absolute;
-
-    left:12px;
-
-    font-size:12px;
-
-    color:var(--muted);
-
-    pointer-events:none;
+    letter-spacing: 0.4px;
 
 }
 
-.filter-input-icon .filter-input{
+.filter-input-icon {
 
-    padding-left:32px;
+    position: relative;
 
-}
+    display: flex;
 
-.date-range-group{
-
-    grid-column:span 2;
-
-    min-width:280px;
+    align-items: center;
 
 }
 
-.date-range-inputs{
+.filter-input-icon i {
 
-    display:flex;
+    position: absolute;
 
-    align-items:center;
+    left: 12px;
 
-    gap:8px;
+    font-size: 12px;
 
-}
+    color: var(--muted);
 
-.date-range-inputs .filter-input-icon{
-
-    flex:1 1 0;
-
-    min-width:0;
+    pointer-events: none;
 
 }
 
-.date-range-sep{
+.filter-input-icon .filter-input {
 
-    color:var(--muted);
+    padding-left: 32px;
 
-    font-weight:600;
+}
+
+.date-range-group {
+
+    grid-column: span 2;
+
+    min-width: 280px;
+
+}
+
+.date-range-inputs {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+}
+
+.date-range-inputs .filter-input-icon {
+
+    flex: 1 1 0;
+
+    min-width: 0;
+
+}
+
+.date-range-sep {
+
+    color: var(--muted);
+
+    font-weight: 600;
 
 }
 
 .filter-input,
-.filter-select{
+.filter-select {
 
-    width:100%;
+    width: 100%;
 
-    height:42px;
+    height: 42px;
 
-    border:1px solid var(--border);
+    border: 1px solid var(--border);
 
-    border-radius:10px;
+    border-radius: 10px;
 
-    padding:0 12px;
+    padding: 0 12px;
 
-    font-size:12px;
+    font-size: 12px;
 
-    color:var(--text);
+    color: var(--text);
 
-    background:var(--white);
+    background: var(--white);
 
-    transition:.3s;
+    transition: .3s;
 
 }
 
 .filter-input:focus,
-.filter-select:focus{
+.filter-select:focus {
 
-    outline:none;
+    outline: none;
 
-    border:2px solid var(--primary);
+    border: 2px solid var(--primary);
 
-    box-shadow:none;
+    box-shadow: none;
 
 }
 
-.filter-actions-row{
+.filter-actions-row {
 
-    display:flex;
+    display: flex;
 
-    gap:10px;
+    gap: 10px;
 
-    padding-bottom:18px;
+    padding-bottom: 18px;
 
 }
 
 .clear-btn,
-.apply-btn{
+.apply-btn {
 
-    height:42px;
+    height: 42px;
 
-    border:none;
+    border: none;
 
-    border-radius:10px;
+    border-radius: 10px;
 
-    color:var(--white);
+    color: var(--white);
 
-    font-size:13px;
+    font-size: 13px;
 
-    font-weight:600;
+    font-weight: 600;
 
-    cursor:pointer;
+    cursor: pointer;
 
-    display:flex;
+    display: flex;
 
-    align-items:center;
+    align-items: center;
 
-    gap:8px;
+    gap: 8px;
 
-    padding:0 18px;
+    padding: 0 18px;
 
-    transition:.3s;
-
-}
-
-.clear-btn{
-
-    background:#4b4a6b;
+    transition: .3s;
 
 }
 
-.clear-btn:hover{
+.clear-btn {
 
-    background:#3d3c58;
-
-}
-
-.apply-btn{
-
-    background:var(--primary);
+    background: #4b4a6b;
 
 }
 
-.apply-btn:hover{
+.clear-btn:hover {
 
-    background:var(--primary-dark);
+    background: #3d3c58;
 
-    box-shadow:0 6px 16px rgba(38,33,112,0.25);
+}
+
+.apply-btn {
+
+    background: var(--primary);
+
+}
+
+.apply-btn:hover {
+
+    background: var(--primary-dark);
+
+    box-shadow: 0 6px 16px rgba(38, 33, 112, 0.25);
 
 }
 
 .apply-btn:disabled,
-.clear-btn:disabled{
+.clear-btn:disabled {
 
-    cursor:not-allowed;
+    cursor: not-allowed;
 
 }
 
-.filter-message{
+.filter-message {
 
-    width:100%;
+    width: 100%;
 
 }
 
@@ -394,99 +394,99 @@
    COMMON CHART CARD
 ========================================================= */
 
-.chart-card{
+.chart-card {
 
-    background:var(--white);
+    background: var(--white);
 
-    border-radius:18px;
+    border-radius: 18px;
 
-    padding:16px;
+    padding: 16px;
 
-    box-shadow:var(--shadow);
+    box-shadow: var(--shadow);
 
-    border:1px solid var(--border);
+    border: 1px solid var(--border);
 
-    height:100%;
+    height: 100%;
 
-    min-width:0;
-
-}
-
-.chart-header{
-
-    margin-bottom:18px;
-
-    display:flex;
-
-    align-items:center;
-
-    justify-content:space-between;
-
-    flex-wrap:wrap;
-
-    gap:10px;
+    min-width: 0;
 
 }
 
-.chart-header h4{
+.chart-header {
 
-    font-size:16px;
+    margin-bottom: 18px;
 
-    font-weight:700;
+    display: flex;
 
-    color:var(--text);
+    align-items: center;
 
-}
+    justify-content: space-between;
 
-.batch-wise-header{
+    flex-wrap: wrap;
 
-    align-items:flex-start;
-
-}
-
-.batch-wise-header-actions{
-
-    display:flex;
-
-    flex-direction:column;
-
-    align-items:flex-end;
-
-    gap:6px;
+    gap: 10px;
 
 }
 
-.chart-container{
+.chart-header h4 {
 
-    position:relative;
+    font-size: 16px;
 
-    width:100%;
+    font-weight: 700;
 
-    height:250px;
-
-}
-
-.pie-chart-container{
-
-    position:relative;
-
-    width:100%;
-
-    height:250px;
-
-    display:flex;
-
-    justify-content:center;
-
-    align-items:center;
+    color: var(--text);
 
 }
 
-canvas{
+.batch-wise-header {
 
-    max-width:100% !important;
+    align-items: flex-start;
 
-    max-height:100% !important;
+}
+
+.batch-wise-header-actions {
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: flex-end;
+
+    gap: 6px;
+
+}
+
+.chart-container {
+
+    position: relative;
+
+    width: 100%;
+
+    height: 250px;
+
+}
+
+.pie-chart-container {
+
+    position: relative;
+
+    width: 100%;
+
+    height: 250px;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+}
+
+canvas {
+
+    max-width: 100% !important;
+
+    max-height: 100% !important;
 
 }
 
@@ -495,55 +495,55 @@ canvas{
    CHART EMPTY STATE
 ========================================================= */
 
-.chart-empty-state{
+.chart-empty-state {
 
-    display:none;
+    display: none;
 
-    position:absolute;
+    position: absolute;
 
-    inset:0;
+    inset: 0;
 
-    flex-direction:column;
+    flex-direction: column;
 
-    align-items:center;
+    align-items: center;
 
-    justify-content:center;
+    justify-content: center;
 
-    gap:8px;
+    gap: 8px;
 
-    text-align:center;
+    text-align: center;
 
-    padding:20px;
+    padding: 20px;
 
-    background:var(--white);
+    background: var(--white);
 
-    z-index:2;
-
-}
-
-.chart-empty-state.show{
-
-    display:flex;
+    z-index: 2;
 
 }
 
-.chart-empty-state i{
+.chart-empty-state.show {
 
-    font-size:30px;
-
-    color:#cbd5e1;
+    display: flex;
 
 }
 
-.chart-empty-state p{
+.chart-empty-state i {
 
-    margin:0;
+    font-size: 30px;
 
-    font-size:13px;
+    color: #cbd5e1;
 
-    font-weight:600;
+}
 
-    color:var(--muted);
+.chart-empty-state p {
+
+    margin: 0;
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    color: var(--muted);
 
 }
 
@@ -552,11 +552,11 @@ canvas{
    TABLE RESPONSIVE
 ========================================================= */
 
-.table-responsive{
+.table-responsive {
 
-    overflow-x:auto;
+    overflow-x: auto;
 
-    -webkit-overflow-scrolling:touch;
+    -webkit-overflow-scrolling: touch;
 
 }
 
@@ -565,39 +565,39 @@ canvas{
    ATTENDANCE INFO BANNER
 ========================================================= */
 
-.attendance-info-banner{
+.attendance-info-banner {
 
-    background:#e0f2fe;
+    background: #e0f2fe;
 
-    border-left:4px solid #0284c7;
+    border-left: 4px solid #0284c7;
 
-    color:#0f172a;
+    color: #0f172a;
 
-    padding:14px 18px;
+    padding: 14px 18px;
 
-    border-radius:8px;
+    border-radius: 8px;
 
-    margin-bottom:20px;
+    margin-bottom: 20px;
 
-    font-size:14px;
+    font-size: 14px;
 
-    font-weight:500;
-
-}
-
-.attendance-info-banner i{
-
-    margin-right:8px;
+    font-weight: 500;
 
 }
 
-.attendance-info-banner.success{
+.attendance-info-banner i {
 
-    background:#dcfce7;
+    margin-right: 8px;
 
-    border-left:4px solid var(--success);
+}
 
-    color:var(--success);
+.attendance-info-banner.success {
+
+    background: #dcfce7;
+
+    border-left: 4px solid var(--success);
+
+    color: var(--success);
 
 }
 
@@ -611,25 +611,25 @@ canvas{
    Monthly Attendance Chart
 */
 
-.charts-row{
+.charts-row {
 
-    display:flex;
+    display: flex;
 
-    gap:20px;
+    gap: 20px;
 
-    width:100%;
+    width: 100%;
 
-    margin-bottom:24px;
+    margin-bottom: 24px;
 
 }
 
-.charts-row .chart-card{
+.charts-row .chart-card {
 
-    flex:1;
+    flex: 1;
 
-    min-width:0;
+    min-width: 0;
 
-    min-height:400px;
+    min-height: 400px;
 
 }
 
@@ -639,17 +639,17 @@ canvas{
    Attendance Distribution + Batch-wise Attendance
 */
 
-.charts-top-row{
+.charts-top-row {
 
-    display:flex;
+    display: flex;
 
-    align-items:stretch;
+    align-items: stretch;
 
-    gap:20px;
+    gap: 20px;
 
-    width:100%;
+    width: 100%;
 
-    margin-bottom:24px;
+    margin-bottom: 24px;
 
 }
 
@@ -659,19 +659,19 @@ canvas{
    Both cards will always have equal height.
 */
 
-.charts-top-row > .chart-card{
+.charts-top-row>.chart-card {
 
-    flex:1 1 0;
+    flex: 1 1 0;
 
-    min-width:0;
+    min-width: 0;
 
-    height:auto;
+    height: auto;
 
-    min-height:400px;
+    min-height: 400px;
 
-    display:flex;
+    display: flex;
 
-    flex-direction:column;
+    flex-direction: column;
 
 }
 
@@ -680,9 +680,9 @@ canvas{
    Distribution card
 */
 
-.charts-top-row .distribution-chart-card{
+.charts-top-row .distribution-chart-card {
 
-    flex:1 1 0;
+    flex: 1 1 0;
 
 }
 
@@ -691,9 +691,9 @@ canvas{
    Batch-wise card
 */
 
-.charts-top-row > .chart-card:not(.distribution-chart-card){
+.charts-top-row>.chart-card:not(.distribution-chart-card) {
 
-    flex:1 1 0;
+    flex: 1 1 0;
 
 }
 
@@ -703,13 +703,13 @@ canvas{
    expands equally.
 */
 
-.charts-top-row .pie-chart-container{
+.charts-top-row .pie-chart-container {
 
-    flex:1;
+    flex: 1;
 
-    min-height:250px;
+    min-height: 250px;
 
-    height:auto;
+    height: auto;
 
 }
 
@@ -718,25 +718,25 @@ canvas{
    Batch warning also fills the same height.
 */
 
-.charts-top-row .chart-warning{
+.charts-top-row .chart-warning {
 
-    flex:1;
+    flex: 1;
 
-    min-height:250px;
+    min-height: 250px;
 
-    height:auto;
+    height: auto;
 
-    display:flex;
+    display: flex;
 
-    flex-direction:column;
+    flex-direction: column;
 
-    justify-content:center;
+    justify-content: center;
 
-    align-items:center;
+    align-items: center;
 
-    text-align:center;
+    text-align: center;
 
-    color:#6b7280;
+    color: #6b7280;
 
 }
 
@@ -745,27 +745,27 @@ canvas{
    CHART WARNING
 ========================================================= */
 
-.chart-warning i{
+.chart-warning i {
 
-    font-size:40px;
+    font-size: 40px;
 
-    color:#f59e0b;
+    color: #f59e0b;
 
-    margin-bottom:10px;
-
-}
-
-.chart-warning h5{
-
-    margin-bottom:8px;
-
-    font-weight:600;
+    margin-bottom: 10px;
 
 }
 
-.chart-warning p{
+.chart-warning h5 {
 
-    margin:0;
+    margin-bottom: 8px;
+
+    font-weight: 600;
+
+}
+
+.chart-warning p {
+
+    margin: 0;
 
 }
 
@@ -774,59 +774,59 @@ canvas{
    REPORT TABLE CARD
 ========================================================= */
 
-.report-table-card{
+.report-table-card {
 
-    background:var(--white);
+    background: var(--white);
 
-    border-radius:18px;
+    border-radius: 18px;
 
-    padding:16px;
+    padding: 16px;
 
-    margin-top:24px;
+    margin-top: 24px;
 
-    box-shadow:var(--shadow);
+    box-shadow: var(--shadow);
 
-    border:1px solid var(--border);
+    border: 1px solid var(--border);
 
-    width:100%;
-
-}
-
-.report-table-header{
-
-    display:flex;
-
-    justify-content:space-between;
-
-    align-items:center;
-
-    margin-bottom:20px;
-
-    flex-wrap:wrap;
-
-    gap:14px;
+    width: 100%;
 
 }
 
-.report-table-header h4{
+.report-table-header {
 
-    font-size:18px;
+    display: flex;
 
-    font-weight:700;
+    justify-content: space-between;
 
-    color:var(--text);
+    align-items: center;
 
-    margin:0;
+    margin-bottom: 20px;
+
+    flex-wrap: wrap;
+
+    gap: 14px;
 
 }
 
-.table-actions{
+.report-table-header h4 {
 
-    display:flex;
+    font-size: 18px;
 
-    gap:10px;
+    font-weight: 700;
 
-    flex-wrap:wrap;
+    color: var(--text);
+
+    margin: 0;
+
+}
+
+.table-actions {
+
+    display: flex;
+
+    gap: 10px;
+
+    flex-wrap: wrap;
 
 }
 
@@ -835,67 +835,67 @@ canvas{
    TABLE
 ========================================================= */
 
-.table{
+.table {
 
-    margin:0;
+    margin: 0;
 
-    width:100%;
-
-}
-
-.table thead th{
-
-    color:var(--muted);
-
-    font-size:11.5px;
-
-    font-weight:700;
-
-    padding:14px 12px;
-
-    border-bottom:1px solid var(--border);
-
-    white-space:nowrap;
-
-    letter-spacing:0.5px;
-
-    background:var(--light);
+    width: 100%;
 
 }
 
-.table thead th:first-child{
+.table thead th {
 
-    border-top-left-radius:10px;
+    color: var(--muted);
 
-    border-bottom-left-radius:10px;
+    font-size: 11.5px;
 
-}
+    font-weight: 700;
 
-.table thead th:last-child{
+    padding: 14px 12px;
 
-    border-top-right-radius:10px;
+    border-bottom: 1px solid var(--border);
 
-    border-bottom-right-radius:10px;
+    white-space: nowrap;
 
-}
+    letter-spacing: 0.5px;
 
-.table tbody td{
-
-    padding:14px 12px;
-
-    vertical-align:middle;
-
-    font-size:12.5px;
-
-    color:var(--text);
-
-    border-bottom:1px solid var(--border);
+    background: var(--light);
 
 }
 
-.table tbody tr:hover{
+.table thead th:first-child {
 
-    background:var(--light);
+    border-top-left-radius: 10px;
+
+    border-bottom-left-radius: 10px;
+
+}
+
+.table thead th:last-child {
+
+    border-top-right-radius: 10px;
+
+    border-bottom-right-radius: 10px;
+
+}
+
+.table tbody td {
+
+    padding: 14px 12px;
+
+    vertical-align: middle;
+
+    font-size: 12.5px;
+
+    color: var(--text);
+
+    border-bottom: 1px solid var(--border);
+
+}
+
+.table tbody tr:hover {
+
+    background: var(--light);
 
 }
 
@@ -904,49 +904,49 @@ canvas{
    STUDENT CELL
 ========================================================= */
 
-.student-cell{
+.student-cell {
 
-    display:flex;
+    display: flex;
 
-    align-items:center;
+    align-items: center;
 
-    gap:12px;
-
-}
-
-.student-avatar{
-
-    width:34px;
-
-    height:34px;
-
-    border-radius:50%;
-
-    display:flex;
-
-    align-items:center;
-
-    justify-content:center;
-
-    font-size:11px;
-
-    font-weight:700;
-
-    color:var(--white);
-
-    background:var(--primary);
-
-    flex-shrink:0;
+    gap: 12px;
 
 }
 
-.student-cell span{
+.student-avatar {
 
-    font-size:12.5px;
+    width: 34px;
 
-    font-weight:600;
+    height: 34px;
 
-    color:var(--primary);
+    border-radius: 50%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    color: var(--white);
+
+    background: var(--primary);
+
+    flex-shrink: 0;
+
+}
+
+.student-cell span {
+
+    font-size: 12.5px;
+
+    font-weight: 600;
+
+    color: var(--primary);
 
 }
 
@@ -955,35 +955,35 @@ canvas{
    TEXT COLORS
 ========================================================= */
 
-.present-text{
+.present-text {
 
-    color:var(--success) !important;
+    color: var(--success) !important;
 
-    font-weight:700;
-
-}
-
-.absent-text{
-
-    color:var(--danger) !important;
-
-    font-weight:700;
+    font-weight: 700;
 
 }
 
-.late-text{
+.absent-text {
 
-    color:var(--warning) !important;
+    color: var(--danger) !important;
 
-    font-weight:700;
+    font-weight: 700;
 
 }
 
-.rate-text{
+.late-text {
 
-    color:var(--success) !important;
+    color: var(--warning) !important;
 
-    font-weight:700;
+    font-weight: 700;
+
+}
+
+.rate-text {
+
+    color: var(--success) !important;
+
+    font-weight: 700;
 
 }
 
@@ -992,67 +992,67 @@ canvas{
    STATUS BADGES
 ========================================================= */
 
-.status-badge{
+.status-badge {
 
-    padding:6px 16px;
+    padding: 6px 16px;
 
-    border-radius:999px;
+    border-radius: 999px;
 
-    font-size:12px;
+    font-size: 12px;
 
-    font-weight:700;
+    font-weight: 700;
 
-    display:inline-flex;
+    display: inline-flex;
 
-    align-items:center;
+    align-items: center;
 
-    justify-content:center;
+    justify-content: center;
 
-    min-width:78px;
-
-}
-
-.excellent-badge{
-
-    background:#dcfce7;
-
-    color:var(--success);
+    min-width: 78px;
 
 }
 
-.good-badge{
+.excellent-badge {
 
-    background:#e0e7ff;
+    background: #dcfce7;
 
-    color:var(--primary);
-
-}
-
-.warning-badge{
-
-    background:#fef3c7;
-
-    color:var(--warning);
+    color: var(--success);
 
 }
 
-.critical-badge{
+.good-badge {
 
-    background:#fee2e2;
+    background: #e0e7ff;
 
-    color:var(--danger);
+    color: var(--primary);
 
 }
 
-.report-table-footer{
+.warning-badge {
 
-    padding:12px 16px;
+    background: #fef3c7;
 
-    font-size:13px;
+    color: var(--warning);
 
-    color:var(--text);
+}
 
-    text-align:right;
+.critical-badge {
+
+    background: #fee2e2;
+
+    color: var(--danger);
+
+}
+
+.report-table-footer {
+
+    padding: 12px 16px;
+
+    font-size: 13px;
+
+    color: var(--text);
+
+    text-align: right;
 
 }
 
@@ -1061,23 +1061,23 @@ canvas{
    TOAST
 ========================================================= */
 
-.attendance-toast{
+.attendance-toast {
 
-    width:100%;
+    width: 100%;
 
-    margin:0 0 4px;
+    margin: 0 0 4px;
 
-    padding:10px;
+    padding: 10px;
 
-    text-align:center;
+    text-align: center;
 
-    border-radius:8px;
+    border-radius: 8px;
 
-    font-size:14px;
+    font-size: 14px;
 
-    overflow:hidden;
+    overflow: hidden;
 
-    max-height:200px;
+    max-height: 200px;
 
     transition:
         opacity 0.4s ease,
@@ -1087,19 +1087,19 @@ canvas{
 
 }
 
-.attendance-toast.fade-out{
+.attendance-toast.fade-out {
 
-    opacity:0;
+    opacity: 0;
 
-    visibility:hidden;
+    visibility: hidden;
 
-    max-height:0;
+    max-height: 0;
 
-    padding:0;
+    padding: 0;
 
-    margin:0;
+    margin: 0;
 
-    border:0;
+    border: 0;
 
 }
 
@@ -1108,11 +1108,11 @@ canvas{
    RESPONSIVE - 992px
 ========================================================= */
 
-@media(max-width:992px){
+@media(max-width:992px) {
 
-    .charts-top-row{
+    .charts-top-row {
 
-        flex-direction:column;
+        flex-direction: column;
 
     }
 
@@ -1122,23 +1122,23 @@ canvas{
        each card can have its own content height.
     */
 
-    .charts-top-row > .chart-card{
+    .charts-top-row>.chart-card {
 
-        width:100%;
+        width: 100%;
 
-        min-height:300px;
-
-    }
-
-    .charts-top-row .pie-chart-container{
-
-        min-height:250px;
+        min-height: 300px;
 
     }
 
-    .charts-top-row .chart-warning{
+    .charts-top-row .pie-chart-container {
 
-        min-height:250px;
+        min-height: 250px;
+
+    }
+
+    .charts-top-row .chart-warning {
+
+        min-height: 250px;
 
     }
 
@@ -1149,99 +1149,99 @@ canvas{
    RESPONSIVE - 768px
 ========================================================= */
 
-@media(max-width:768px){
+@media(max-width:768px) {
 
-    .reports-topbar{
+    .reports-topbar {
 
-        flex-direction:column;
+        flex-direction: column;
 
-        align-items:flex-start;
-
-    }
-
-    .report-table-header{
-
-        flex-direction:column;
-
-        align-items:flex-start;
+        align-items: flex-start;
 
     }
 
-    .table{
+    .report-table-header {
 
-        min-width:900px;
+        flex-direction: column;
+
+        align-items: flex-start;
 
     }
 
-    .table-actions{
+    .table {
 
-        width:100%;
+        min-width: 900px;
 
-        display:flex;
+    }
 
-        gap:10px;
+    .table-actions {
+
+        width: 100%;
+
+        display: flex;
+
+        gap: 10px;
 
     }
 
 
     /* EXPORT BUTTON */
 
-    .export-btn{
+    .export-btn {
 
-        width:auto;
+        width: auto;
 
-        min-width:140px;
+        min-width: 140px;
 
-        justify-content:center;
+        justify-content: center;
 
-        padding:10px 16px;
+        padding: 10px 16px;
 
-        font-size:12px;
+        font-size: 12px;
 
-        border-radius:10px;
-
-    }
-
-
-    .date-range-group{
-
-        grid-column:span 1;
+        border-radius: 10px;
 
     }
 
-    .filter-actions-row{
 
-        flex-wrap:wrap;
+    .date-range-group {
+
+        grid-column: span 1;
+
+    }
+
+    .filter-actions-row {
+
+        flex-wrap: wrap;
 
     }
 
 
     /* MAIN CONTENT */
 
-    .main-content{
+    .main-content {
 
-        margin-left:0;
+        margin-left: 0;
 
-        width:100%;
+        width: 100%;
 
-        padding:15px;
+        padding: 15px;
 
     }
 
 
     /* CHART ROW */
 
-    .charts-row{
+    .charts-row {
 
-        flex-direction:column;
+        flex-direction: column;
 
     }
 
-    .charts-row .chart-card{
+    .charts-row .chart-card {
 
-        width:100%;
+        width: 100%;
 
-        min-height:300px;
+        min-height: 300px;
 
     }
 
@@ -1250,19 +1250,19 @@ canvas{
        Row 2 also becomes vertical.
     */
 
-    .charts-top-row{
+    .charts-top-row {
 
-        flex-direction:column;
+        flex-direction: column;
 
-        gap:20px;
+        gap: 20px;
 
     }
 
-    .charts-top-row > .chart-card{
+    .charts-top-row>.chart-card {
 
-        width:100%;
+        width: 100%;
 
-        min-height:300px;
+        min-height: 300px;
 
     }
 
@@ -1273,46 +1273,110 @@ canvas{
    RESPONSIVE - 480px
 ========================================================= */
 
-@media(max-width:480px){
+@media(max-width:480px) {
 
-    .reports-topbar h5{
+    .reports-topbar h5 {
 
-        font-size:19px;
-
-    }
-
-    .chart-card{
-
-        padding:14px;
-
-        border-radius:14px;
+        font-size: 19px;
 
     }
 
-    .report-table-card{
+    .chart-card {
 
-        padding:14px;
+        padding: 14px;
 
-        border-radius:14px;
-
-    }
-
-    .topbar-actions{
-
-        width:100%;
+        border-radius: 14px;
 
     }
 
-    .topbar-actions .export-btn{
+    .report-table-card {
 
-        flex:1;
+        padding: 14px;
 
-    }
-
-    .table-actions .export-btn{
-
-        flex:1;
+        border-radius: 14px;
 
     }
 
+    .topbar-actions {
+
+        width: 100%;
+
+    }
+
+    .topbar-actions .export-btn {
+
+        flex: 1;
+
+    }
+
+    .table-actions .export-btn {
+
+        flex: 1;
+
+    }
+
+}
+
+/* ============ CHART SIZE REDUCTION (override) ============ */
+
+/* Monthly bar chart */
+.reports-page .chart-container {
+    position: relative;
+    height: 260px;
+    /* was too tall */
+    min-height: 0;
+    width: 100%;
+}
+
+/* Distribution + Batch-wise doughnut charts */
+.reports-page .pie-chart-container {
+    position: relative;
+    height: 220px;
+    min-height: 0;
+    width: 100%;
+}
+
+/* Reduce extra padding / empty gap inside chart cards */
+.reports-page .chart-card {
+    padding: 14px 18px;
+    min-height: 0;
+    height: auto;
+}
+
+.reports-page .chart-header {
+    margin-bottom: 8px;
+}
+
+/* Gap between chart rows */
+.reports-page .charts-row,
+.reports-page .charts-top-row {
+    margin-bottom: 16px;
+    gap: 16px;
+}
+
+/* Warning card (when batch chart is not available) */
+.reports-page .chart-warning {
+    min-height: 0;
+    padding: 24px 16px;
+}
+
+/* ============ PIE / DONUT CHART SIZE (override) ============ */
+.reports-page .pie-chart-container {
+    position: relative;
+    height: 200px;
+    max-height: 200px;
+    min-height: 0;
+    width: 100%;
+    overflow: hidden;
+}
+
+.reports-page .pie-chart-container canvas {
+    max-height: 200px !important;
+}
+
+/* Cards la extra height irundha remove panna */
+.reports-page .distribution-chart-card,
+.reports-page .charts-top-row .chart-card {
+    height: auto;
+    min-height: 0;
 }

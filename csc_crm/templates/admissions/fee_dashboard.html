@@ -73,22 +73,48 @@
                 </div>
             </div>
         </div>
+        
+    </div>
 
-        <!-- Collection Overview -->
-        <div class="summary-column">
-            <div class="dashboard-card collection-card summary-shadow">
+        <!-- ===================CHARTS====================== -->
+
+    <div class="charts-row">
+
+        <div class="dashboard-box chart-card">
+            <div class="section-header">
                 <div>
-                    <span class="card-title">Collection Overview</span>
-                    <h3>{{ collection_percentage }}%</h3>
-                    <small>Collection Rate</small>
+                    <h4><i class="fa-solid fa-chart-pie"></i> Collection Rate</h4>
+                    <p>Collected vs outstanding fees.</p>
                 </div>
-                <div class="progress-circle">
-                    <canvas id="collectionChart"></canvas>
+            </div>
+            <div class="chart-body">
+                <div class="chart-canvas-wrap">
+                    <canvas id="collectionRateChart"></canvas>
+                    <div class="ring-center">
+                        <strong>{{ collection_percentage }}%</strong>
+                        <span>Collected</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-box chart-card">
+            <div class="section-header">
+                <div>
+                    <h4><i class="fa-solid fa-chart-column"></i> Paid vs Pending by Batch</h4>
+                    <p>Batch-wise fee collection status.</p>
+                </div>
+            </div>
+            <div class="chart-body">
+                <div class="chart-canvas-wrap">
+                    <canvas id="batchFeeChart"></canvas>
                 </div>
             </div>
         </div>
 
     </div>
+
+    {{ chart_data|json_script:"feeChartData" }}
 
     <!-- ===================PAYMENT FORM====================== -->
 
@@ -310,7 +336,7 @@
 
         <div class="status-card dashboard-box">
 
-            <div class="section-header">
+            <div class="section-header" id="statusSectionHeader">
                 <div>
                     <h4>
                         <i class="fa-solid fa-user-graduate"></i>
@@ -318,13 +344,29 @@
                     </h4>
                     <p>Track payment status of all students.</p>
                 </div>
+                <form method="GET" class="batch-filter-form" id="batchFilterForm">
+                    <select name="batch" id="batchFilterSelect" class="form-select batch-filter-select">
+                    <option value="">All Batches</option>
+                    {% for b in batches %}
+                    <option value="{{ b.id }}" {% if selected_batch_id == b.id|stringformat:"s" %}selected{% endif %}>
+                    {{ b.batch_name }}{% if b.course %} - {{ b.course.course_name }}{% endif %}
+                    </option>
+                    {% endfor %}
+                    </select>
+                    {% if selected_batch_id %}
+                    <a href="{% url 'fee_dashboard' %}" class="clear-filter-btn" id="clearBatchFilter">
+                    <i class="fa-solid fa-xmark"></i> Clear
+                    </a>
+                    {% endif %}
+                </form>
             </div>
 
-            <div class="table-responsive">
+            <div class="table-responsive" id="statusTableWrapper">
                 <table class="table status-table align-middle">
                     <thead>
                         <tr>
                             <th>Student</th>
+                            <th>Batch</th>
                             <th>Total Fee</th>
                             <th>Paid</th>
                             <th>Pending</th>
@@ -347,6 +389,18 @@
                                         <small>STU{{ item.student.id }}</small>
                                     </div>
                                 </div>
+                            </td>
+
+                            <!-- Batch -->
+                            <td>
+                                {% if item.batch %}
+                                <span class="batch-badge">{{ item.batch.batch_name }}</span>
+                                {% if item.course %}
+                                <br><small class="batch-course">{{ item.course.course_name }}</small>
+                                {% endif %}
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
                             </td>
 
                             <!-- Total Fee -->
@@ -393,7 +447,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6">
+                            <td colspan="7">
                                 <div class="empty-state student-empty">
                                     <i class="fa-solid fa-user-slash"></i>
                                     <p>No Student Records Found</p>
@@ -414,5 +468,6 @@
 {% endblock content %}
 
 {% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="{% static 'js/admissions_js/fee_dashboard.js' %}"></script>
 {% endblock %}

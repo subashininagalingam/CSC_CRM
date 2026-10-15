@@ -105,13 +105,13 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     </a>
     {% endif %}
 
-    <a href="{% url 'student_list' %}"
-       class="{% if request.resolver_match.url_name == 'student_list' %}active{% endif %}">
+    <a href="{% url 'batch_list' %}"
+       class="{% if request.resolver_match.url_name == 'batch_list' %}active{% endif %}">
         Student List
     </a>
 
-    <a href="{% url 'search_students' %}"
-       class="{% if request.resolver_match.url_name == 'search_students' %}active{% endif %}">
+    <a href="{% url 'search_batch_list' %}"
+       class="{% if request.resolver_match.url_name == 'search_batch_list' %}active{% endif %}">
         Search & Filter
     </a>
 

@@ -17,8 +17,16 @@ Student List
 
     <!-- PAGE HEADER -->
     <div class="sl-header">
+        {% if selected_batch %}
+        <a href="{% url 'batch_list' %}" class="back-link">
+            <i class="fa-solid fa-arrow-left"></i> All Batches
+        </a>
+        <h6 class="sl-title">{{ selected_batch.batch_name }}</h6>
+        <p class="sl-subtitle">{{ selected_batch.course.course_name }} · students of this batch</p>
+        {% else %}
         <h6 class="sl-title">Student List</h6>
         <p class="sl-subtitle">Manage and view all registered students</p>
+        {% endif %}
     </div>
 
     <!-- STAT CARDS -->
@@ -31,15 +39,6 @@ Student List
                 <span class="stat-label">Total Students</span>
                 <span class="stat-value total-count">{{ total_students }}</span>
                 <span class="stat-sub">All Registered</span>
-            </div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-icon icon-green"><i class="fa-solid fa-user-check"></i></div>
-            <div class="stat-info">
-                <span class="stat-label">Active Students</span>
-                <span class="stat-value">{{ active_students }}</span>
-                <span class="stat-sub">Currently Active</span>
             </div>
         </div>
         
@@ -72,28 +71,23 @@ Student List
         </div>
         {% endif %}
 
-        {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" %}
-        <div class="stat-card">
-            <div class="stat-icon icon-purple"><i class="fa-solid fa-book"></i></div>
-            <div class="stat-info">
-                <span class="stat-label">Courses</span>
-                <span class="stat-value">{{ courses|length }}</span>
-                <span class="stat-sub">All Courses</span>
-            </div>
-        </div>
-        {% endif %}
-
     </div>
 
     <!-- FILTER FORM -->
     <div>
-    <form method="GET" class="top-bar" id="filterForm">
+        <form method="GET" class="top-bar" id="filterForm">
 
         <input type="text" name="search" pattern="^[A-Za-z ]+$" value="{{ request.GET.search }}"
             placeholder="Search name">
 
         <input type="text" name="id" pattern="^\d{1,5}$" value="{{ request.GET.id }}" placeholder="Search ID">
-         
+
+        {% if selected_batch %}
+
+        <input type="hidden" name="batch" value="{{ selected_batch.id }}">
+
+        {% else %}
+
         {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" %}
         <select name="course_name">
             <option value="">All Course</option>
@@ -106,22 +100,23 @@ Student List
         {% endif %}
 
         <select name="batch">
-                        <option value="">All Batch</option>
-                        {% for batch in batches %}
-                        <option value="{{ batch.id }}" {% if request.GET.batch == batch.id|stringformat:"s" %}selected{% endif %}>{{ batch.batch_name }} ({{ batch.course.course_name }})</option>
-                        {% endfor %}
-                    </select>
+            <option value="">All Batch</option>
+            {% for batch in batches %}
+            <option value="{{ batch.id }}" {% if request.GET.batch == batch.id|stringformat:"s" %}selected{% endif %}>{{ batch.batch_name }} ({{ batch.course.course_name }})</option>
+            {% endfor %}
+        </select>
+
+        {% endif %}
 
         <div class="filter">
-
-        <button type="button" class="clear-btn" id="resetBtn">
-        Reset
-       </button>
-        <button type="submit" id="filter">Search</button>
+            <button type="button" class="clear-btn" id="resetBtn">
+                Reset
+            </button>
+            <button type="submit" id="filter">Search</button>
         </div>
 
         <p id="search-error"></p>
-        
+
     </form>
     </div>
 
@@ -130,7 +125,7 @@ Student List
 
        {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" %}
         <div>
-        <a href="{% url 'student' %}">
+        <a href="{% url 'student' %}{% if selected_batch %}?batch={{ selected_batch.id }}{% endif %}">
             <button id="btn2" class="btn2">+ Add New Student</button>
         </a>
         </div>
@@ -187,9 +182,7 @@ Student List
             <th>Batch</th>
             <th>Phone</th>
             <th>Fee Status </th>
-            <th>Admission Status</th>
             <th>Joined</th>
-            <th>Profile</th>
             {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" %}
             <th>Action</th>
             {% endif %}
@@ -248,13 +241,6 @@ Student List
 
             </td>
 
-            <!-- STATUS -->
-            <td>
-                <span class="badge {{ admission.status|lower }}">
-                    {{ admission.status|title }}
-                </span>
-            </td>
-
             <td>
                 {% if e %}
                 <span>
@@ -265,9 +251,6 @@ Student List
                 {% endif %}
             </td>
 
-            <td>
-                <a href="{% url 'view_student' student.id %}" class="view-link">View</a>
-            </td>
 
             <!-- ACTION -->
              {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" %}
@@ -275,8 +258,9 @@ Student List
                 <button class="dots" onclick="toggleDropdown(this)">⋮</button>
 
                 <div class="dropdown-content">
-                    <a href="{% url 'edit_student' student.id %}">Edit</a>
-                    <a href="{% url 'delete_student' student.id %}" onclick="confirmDelete(event, this.href)">Delete</a>
+                    <a href="{% url 'view_student' student.id %}" class="view-link"><i class="fa-solid fa-eye"></i> View</a>
+                    <a href="{% url 'edit_student' student.id %}"><i class="fa-solid fa-edit"></i> Edit</a>
+                    <a href="{% url 'delete_student' student.id %}" onclick="confirmDelete(event, this.href)"><i class="fa-solid fa-trash"></i> Delete</a>
                 </div>
             </td>
             {% endif %}
@@ -306,7 +290,7 @@ Student List
     <div class="pagination-right">
 
         {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}" class="page-btn">
+        <a href="?{% if selected_batch %}batch={{ selected_batch.id }}&{% endif %}page={{ page_obj.previous_page_number }}" class="page-btn">
             <i class="fa-solid fa-chevron-left"></i>
         </a>
         {% else %}
@@ -318,7 +302,7 @@ Student List
         <span class="page-number">{{ page_obj.number }}</span>
 
         {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}" class="page-btn">
+        <a href="?{% if selected_batch %}batch={{ selected_batch.id }}&{% endif %}page={{ page_obj.next_page_number }}" class="page-btn">
             <i class="fa-solid fa-chevron-right"></i>
         </a>
         {% else %}

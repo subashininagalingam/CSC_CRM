@@ -531,6 +531,25 @@ body {
     box-shadow: 0 4px 10px rgba(255, 200, 44, 0.4);
 }
 
+.locked-field {
+    background: #F3F4F6 !important;
+    color: #6B7280;
+    cursor: not-allowed;
+}
+
+.locked-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #EEF0FE;
+    color: #4338CA;
+    border: 1px solid #E0E3FB;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    margin-bottom: 16px;
+}
+
 /* ================================= RESPONSIVE ================================= */
 
 @media (max-width: 1100px) {

@@ -540,9 +540,10 @@ function renderBatches(filtered) {
         ${batch.is_marked ? 'Update' : 'Mark'}
        </button>`
             }
+                ${IS_TRAINER ? '' : `
                     <button class="btn-edit" onclick="editBatch(${batch.id})">
                         <i class="fa-solid fa-pen"></i> Edit
-                    </button>
+                    </button>`}
                 </div>
 
             </div>
@@ -770,8 +771,12 @@ document.addEventListener("DOMContentLoaded", function () {
         endTimeInput.addEventListener("input", validateTimes);
     }
 
-    document.querySelector('.btn-new-batch').addEventListener('click', resetBatchModalToCreateMode);
+    const newBatchBtn = document.querySelector('.btn-new-batch');
+    if (newBatchBtn) {
+        newBatchBtn.addEventListener('click', resetBatchModalToCreateMode);
+    }
     document.getElementById('batchModal').addEventListener('hidden.bs.modal', resetBatchModalToCreateMode);
+
 });
 
 //================ AUTO-CALCULATE END DATE FROM COURSE DURATION ==================//

@@ -51,7 +51,12 @@ Student Registration
         </div>
         {% endif %}
 
-        <form id="studentForm" method="POST" action="{% url 'student' %}" enctype="multipart/form-data" novalidate>
+        <form id="studentForm" method="POST" action="{% url 'student' %}{% if locked_batch %}?batch={{ locked_batch.id }}{% endif %}"
+            {% if locked_batch %} 
+            data-locked-course="{{ locked_batch.course_id }}" 
+            data-locked-batch="{{ locked_batch.id }}"
+            {% endif %}
+            enctype="multipart/form-data" novalidate>
             {% csrf_token %}
 
             <!-- ========================== PERSONAL INFORMATION SECTION ========================== -->
@@ -138,13 +143,21 @@ Student Registration
                         <span id="guardian-phone-error" class="form-error"></span>
                     </div>
 
-                    <div class="form-group full-width">
+                    <div class="form-group">
+                        <label class="form-label">Educational Qualification</label>
+                        <div class="input-wrapper">
+                            {{ student_form.educational_qualification }}
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group full-width">
                         <label class="form-label">Address <span class="required">*</span></label>
                         <div class="input-wrapper">
                             {{ student_form.address }}
                         </div>
                     </div>
-                </div>
             </fieldset>
 
             <!-- ======================== COURSE ENROLLMENT SECTION ======================== -->
@@ -154,6 +167,14 @@ Student Registration
                     <i class="fas fa-book"></i>
                     Course Enrollment
                 </legend>
+
+                {% if locked_batch %}
+                <div class="locked-note">
+                    <i class="fas fa-lock"></i>
+                    Adding student to <strong>{{ locked_batch.batch_name }}</strong>.
+                    Course and Batch are locked.
+                    </div>
+                {% endif %}
 
                 <div class="form-row three-columns">
                     <div class="form-group">
@@ -202,18 +223,6 @@ Student Registration
                         <div class="input-wrapper">
                             <input type="text" id="fee" placeholder="Course Fee" readonly required>
                             <i class="fas fa-indian-rupee-sign"></i>
-                        </div>
-                    </div>
-
-                    <div class="form-group full-width">
-                        <label class="form-label">Admission Status</label>
-                        <div class="admission-status">
-                            {% for value, label in admission_form.fields.status.choices %}
-                            <label class="status-option">
-                                <input type="radio" name="status" value="{{ value }}" {% if admission_form.status.value == value %}checked{% endif %}>
-                                <span class="status {{ value }}">{{ label }}</span>
-                            </label>
-                            {% endfor %}
                         </div>
                     </div>
                 </div>

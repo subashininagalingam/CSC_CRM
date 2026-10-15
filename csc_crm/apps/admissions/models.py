@@ -7,9 +7,9 @@ from decimal import Decimal
 from cloudinary.models import CloudinaryField
 from django.core.exceptions import ValidationError
 
-name_validator = RegexValidator( regex=r'^[A-Za-z ]+$',message="Only alphabets and spaces are allowed.")
-phone_validator = RegexValidator(regex=r'^\+91[6-9]\d{9}$',message="Phone number must start with +91 and contain exactly 10 digits.")
-email_validator = RegexValidator(regex=r'^[\w\.-]+@[\w\.-]+\.\w+$',message="Enter a proper email (example: name@gmail.com)")
+name_validator = RegexValidator( regex=r'^[A-Za-z ]+$', message="Only alphabets and spaces are allowed.")
+phone_validator = RegexValidator( regex=r'^[6-9]\d{9}$', message="Enter a valid 10-digit mobile number starting with 6, 7, 8 or 9.")
+email_validator = RegexValidator(regex=r'^[\w\.-]+@[\w\.-]+\.\w+$', message="Enter a proper email (example: name@gmail.com)")
 
 
 #==============================Student Model=======================================
@@ -17,13 +17,14 @@ class Student(models.Model):
     first_name = models.CharField(max_length=20, blank=False, validators=[name_validator])
     last_name = models.CharField(max_length=20, blank=False, validators=[name_validator])
     dob = models.DateField()
-    phone_no = models.CharField(max_length=13, blank=False, validators=[phone_validator], unique=True)
+    phone_no = models.CharField(max_length=10, blank=False, validators=[phone_validator], unique=True)
     gender_choice = [('', 'Select Gender'),('M','Male'),('F','Female'),('O','Others')]
     gender = models.CharField(max_length=10, choices=gender_choice)
     email = models.EmailField(validators=[email_validator],unique=True)
     address = models.TextField()
+    educational_qualification = models.CharField(max_length=100, blank=False, validators=[name_validator])
     guardian_name = models.CharField(max_length=100, blank=False, validators=[name_validator])
-    guardian_phone_no = models.CharField(max_length=13, blank=False, validators=[phone_validator], unique=True)
+    guardian_phone_no = models.CharField(max_length=10, blank=False, validators=[phone_validator], unique=True)
     photo=CloudinaryField('student_photos/',null=True, blank=True)
     
     def __str__(self):
@@ -135,7 +136,7 @@ class Admission(models.Model):
         ('dropped', 'Dropped'),
     ]
 
-    status = models.CharField(max_length=20, choices=STATUS, default='enquiry')
+    status = models.CharField(max_length=20, choices=STATUS, default='enrolled')
     applied_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

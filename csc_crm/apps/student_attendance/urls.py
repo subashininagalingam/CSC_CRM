@@ -21,6 +21,7 @@ urlpatterns = [
 
     #================ ATTENDANCE HISTORY & EXPORT ==================#
     path('attendance-history/',attendance_history_page,name='attendance_history'),
+    path('attendance-history/detail/<int:batch_id>/<str:date>/',views.attendance_history_detail,name='attendance_history_detail'),
     path('attendance-export/', views.attendance_export, name='attendance_export'),
     path("student-attendance-summary/<int:student_id>/",views.student_attendance_summary,name="student_attendance_summary"),
 

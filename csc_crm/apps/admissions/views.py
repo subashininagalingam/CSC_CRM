@@ -24,7 +24,7 @@ from .filters import StudentFilter
 from .services import get_fee_summary
 from csc_crm.apps.student_attendance.models import Batch
 from csc_crm.apps.admissions.models import Payment
-from django.db.models import Prefetch, Sum
+from django.db.models import Prefetch, Sum, Count
 
 
 def get_role(request):
@@ -58,6 +58,16 @@ def student(request):
     enrollment_form = EnrollmentForm()
     courses = Course.objects.all()
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+    locked_batch = None
+    batch_param = request.GET.get('batch')
+
+    if batch_param and batch_param.isdigit():
+        locked_batch = (
+            Batch.objects.select_related('course')
+            .filter(id=batch_param)
+            .first()
+        )
 
     if request.method == "POST":
         student_form = StudentForm(request.POST, request.FILES)
@@ -105,7 +115,7 @@ def student(request):
                     admission = Admission.objects.create(
                         student=student_obj,
                         course_name=admission_form.cleaned_data['course_name'],
-                        status=admission_form.cleaned_data['status']
+                        status="enrolled"
                     )
 
                     enrollment = enrollment_form.save(commit=False)
@@ -159,6 +169,7 @@ def student(request):
         'admission_form': admission_form,
         'enrollment_form': enrollment_form,
         'courses': courses,
+        'locked_batch': locked_batch,
     })
 
 
@@ -204,7 +215,7 @@ def fee_dashboard(request):
         .prefetch_related(
             Prefetch(
                 'admissions',
-                queryset=Admission.objects.select_related('course_name')
+                queryset=Admission.objects.select_related('course_name', 'enrollment__batch')
             ),
             'payments'
         )
@@ -212,11 +223,20 @@ def fee_dashboard(request):
         .order_by('-id')
     )
 
+    selected_batch_id = request.GET.get("batch", "")
+    batches = Batch.objects.select_related('course').order_by('batch_name')
+
+    batch_totals = {}
+
     fee_students = []
     student_fee_status = []
 
     for student in students:
         admission = student.admissions.first()
+
+        enrollment = getattr(admission, 'enrollment', None) if admission else None
+        batch = enrollment.batch if enrollment and enrollment.batch else None
+        course = admission.course_name if admission and admission.course_name else None
 
         total_fee = (
             admission.course_name.course_fee
@@ -226,6 +246,14 @@ def fee_dashboard(request):
         paid = student.total_paid_db or 0
         pending = max(total_fee - paid, 0)
 
+        if batch:
+            bt = batch_totals.setdefault(
+                batch.id,
+                {"label": batch.batch_name, "paid": 0, "pending": 0}
+            )
+            bt["paid"] += float(paid)
+            bt["pending"] += float(pending)
+        
         if pending > 0:
             fee_students.append(student)
 
@@ -236,8 +264,13 @@ def fee_dashboard(request):
         else:
             status = "Partial"
 
+        if selected_batch_id and (not batch or str(batch.id) != selected_batch_id):
+            continue
+
         student_fee_status.append({
             "student": student,
+            "batch": batch,
+            "course": course,
             "total_fee": total_fee,
             "paid": paid,
             "pending": pending,
@@ -396,6 +429,14 @@ def fee_dashboard(request):
         if total_expected else 0
     )
 
+    chart_data = {
+        "collection": {
+            "collected": float(collected),
+            "outstanding": float(outstanding),
+        },
+        "batches": list(batch_totals.values()),
+    }
+
     return render(request, "admissions/fee_dashboard.html", {
         "students": fee_students,
         "payments": latest_payments,
@@ -404,6 +445,9 @@ def fee_dashboard(request):
         "student_fee_status": student_fee_status,
         "selected_student_id": selected_student_id,
         "collection_percentage": collection_percentage,
+        "batches": batches,
+        "selected_batch_id": selected_batch_id,
+        "chart_data": chart_data,
     })
 
 
@@ -499,6 +543,128 @@ def generate_receipt(request, pk):
 
     return response
 
+def _batch_fee_summary(batch):
+    students = (
+        Student.objects
+        .filter(admissions__enrollment__batch=batch)
+        .distinct()
+        .prefetch_related(
+            Prefetch(
+                'admissions',
+                queryset=Admission.objects.select_related('course_name')
+            ),
+            'payments',
+        )
+    )
+
+    collected = 0
+    outstanding = 0
+    pending_students = 0
+
+    for s in students:
+        admission = s.admissions.first()
+        total_fee = (
+            admission.course_name.course_fee
+            if admission and admission.course_name else 0
+        )
+        paid = sum(p.amount for p in s.payments.all())
+        pending = max(total_fee - paid, 0)
+
+        collected += paid
+        outstanding += pending
+        if pending > 0:
+            pending_students += 1
+
+    return {
+        "collected": collected,
+        "outstanding": outstanding,
+        "pending_students": pending_students,
+    }
+
+@login_required(login_url='staff_login')
+def _batch_list_response(request, *, overview_url, reset_url,
+                         subtitle, show_cards, show_add):
+    if not (is_admin_manager(request) or is_hr(request) or is_trainer(request)):
+        messages.error(request, "You do not have permission to access this page.")
+        return redirect('staff_dashboard')
+
+    my_staff = getattr(request.user, 'staff_profile', None)
+    my_role = get_role(request)
+
+    batches_qs = Batch.objects.select_related('course').order_by('batch_name')
+    students_qs = Student.objects.all()
+    active_qs = Admission.objects.filter(status="enrolled")
+
+    if my_role == 'Trainer':
+        batches_qs = batches_qs.filter(trainer=my_staff)
+        students_qs = students_qs.filter(
+            admissions__enrollment__batch__trainer=my_staff
+        ).distinct()
+        active_qs = active_qs.filter(enrollment__batch__trainer=my_staff)
+
+    q = request.GET.get('q', '').strip()
+    course_id = request.GET.get('course', '')
+
+    if q:
+        batches_qs = batches_qs.filter(batch_name__icontains=q)
+
+    if course_id.isdigit():
+        batches_qs = batches_qs.filter(course_id=course_id)
+
+    counts = {
+        r['batch_id']: r['c']
+        for r in Enrollment.objects.values('batch_id').annotate(c=Count('id'))
+    }
+
+    batch_rows = [
+        {"batch": b, "total_students": counts.get(b.id, 0)}
+        for b in batches_qs
+    ]
+
+    context = {
+        'batch_rows': batch_rows,
+        'courses': Course.objects.all(),
+        'q': q,
+        'selected_course': course_id,
+        'overview_url': overview_url,
+        'reset_url': reset_url,
+        'subtitle': subtitle,
+        'show_cards': show_cards,
+        'show_add': show_add,
+    }
+
+    if show_cards:
+        context.update({
+            'total_students': students_qs.count(),
+            'active_students': active_qs.count(),
+            'summary': get_fee_summary(),
+        })
+
+    return render(request, 'admissions/batch_list.html', context)
+
+
+@login_required(login_url='staff_login')
+def batch_list(request):
+    return _batch_list_response(
+        request,
+        overview_url='student_list',
+        reset_url='batch_list',
+        subtitle='Select a batch to view its students',
+        show_cards=True,
+        show_add=True,
+    )
+
+
+@login_required(login_url='staff_login')
+def search_batch_list(request):
+    return _batch_list_response(
+        request,
+        overview_url='search_students',
+        reset_url='search_batch_list',
+        subtitle='Select a batch to search and filter its students',
+        show_cards=False,
+        show_add=False,
+    )
 
 @login_required(login_url='staff_login')
 def student_list(request):
@@ -508,6 +674,16 @@ def student_list(request):
 
     my_staff = getattr(request.user, 'staff_profile', None)
     my_role = get_role(request)
+
+    selected_batch = None
+    batch_param = request.GET.get('batch')
+
+    if batch_param and batch_param.isdigit():
+        selected_batch = (
+            Batch.objects.select_related('course')
+            .filter(id=batch_param)
+            .first()
+        )
 
     students = Student.objects.prefetch_related(
         'payments',
@@ -533,8 +709,17 @@ def student_list(request):
             enrollment__batch__trainer=my_staff
         )
 
-    active_students = active_students_qs.count()
-    summary = get_fee_summary()
+    if selected_batch:
+        active_students = active_students_qs.filter(
+            enrollment__batch=selected_batch
+        ).count()
+        summary = _batch_fee_summary(selected_batch)
+        courses_ctx = Course.objects.filter(id=selected_batch.course_id)
+    else:
+        active_students = active_students_qs.count()
+        summary = get_fee_summary()
+        courses_ctx = Course.objects.all()
+
     format = request.GET.get('format')
 
     if format == 'excel':
@@ -642,7 +827,8 @@ def student_list(request):
     return render(request, 'admissions/student_list.html', {
         'page_obj': page_obj,
         'filter': student_filter,
-        'courses': Course.objects.all(),
+        'courses': courses_ctx,
+        'selected_batch': selected_batch,
         'batches': batches_qs,
         'total_students': filtered_students.count(),
         'active_students': active_students,
@@ -744,6 +930,16 @@ def search_students(request):
 
     my_staff = getattr(request.user, 'staff_profile', None)
     my_role = get_role(request)
+
+    selected_batch = None
+    batch_param = request.GET.get('batch')
+
+    if batch_param and batch_param.isdigit():
+        selected_batch = (
+            Batch.objects.select_related('course')
+            .filter(id=batch_param)
+            .first()
+        )
 
     students = Student.objects.prefetch_related(
         'admissions__course_name',
@@ -871,6 +1067,7 @@ def search_students(request):
         'batches': batches_qs,
         'per_page': per_page,
         'base_query': base_query,
+        'selected_batch': selected_batch,
     })
 
 
@@ -892,6 +1089,11 @@ def view_student(request, id):
         'admissions__course_name',
         'admissions__enrollment'
     ).get(id=id)
+
+    if my_role == 'Trainer':
+        return render(request, "admissions/view_student_trainer.html", {
+            'student': student_obj,
+        })
 
     if my_role == 'Trainer':
         trainer_batches = Batch.objects.filter(

@@ -293,7 +293,7 @@ form.addEventListener("submit", function (e) {
 
     // CHECK INPUTS
     inputs.forEach(input => {
-        if (input.value.trim() !== "") {
+        if (input.type !== "hidden" && input.value.trim() !== "") {
             hasValue = true;
         }
     });
@@ -356,8 +356,14 @@ form.addEventListener("submit", function (e) {
 // RESET
 document.getElementById("resetBtn").addEventListener("click", function () {
 
-    // CLEAR INPUTS
-    form.querySelectorAll("input").forEach(input => {
+    // batch page-la hidden "batch" input irukkum, adhai kedukka koodaadhu
+    const lockedBatchInput = form.querySelector('input[type="hidden"][name="batch"]');
+    const lockedBatch = lockedBatchInput ? lockedBatchInput.value : "";
+    const baseUrl = window.location.pathname +
+        (lockedBatch ? "?batch=" + encodeURIComponent(lockedBatch) : "");
+
+    // CLEAR INPUTS (hidden thavira)
+    form.querySelectorAll('input:not([type="hidden"])').forEach(input => {
         input.value = "";
         input.classList.remove("error-input");
     });
@@ -372,10 +378,10 @@ document.getElementById("resetBtn").addEventListener("click", function () {
     if (searchNameError) searchNameError.innerText = "";
     if (searchIdError) searchIdError.innerText = "";
 
-    // REMOVE URL PARAMS
-    window.history.replaceState({}, document.title, window.location.pathname);
+    // URL: batch irundha adhai vachirukkanum
+    window.history.replaceState({}, document.title, baseUrl);
 
-    fetch(window.location.pathname)
+    fetch(baseUrl)
         .then(response => response.text())
         .then(data => {
 
@@ -384,8 +390,10 @@ document.getElementById("resetBtn").addEventListener("click", function () {
 
             swapListingFromDoc(doc);
 
-            // CLEAR THE DOWNLOAD FORM'S HIDDEN FIELDS TOO
-            syncDownloadHiddenFields(new URLSearchParams());
+            // download form hidden fields-ah reset pannu, batch mattum vachuko
+            const keep = new URLSearchParams();
+            if (lockedBatch) keep.set("batch", lockedBatch);
+            syncDownloadHiddenFields(keep);
         });
 
 });

@@ -1,491 +1,343 @@
-//================ EXPORT FORMAT VALIDATION (BEFORE DOWNLOAD SUBMIT) ==================//
+/* ============ DOWNLOAD FORMAT VALIDATION ============ */
 function validateFormat() {
 
     const format = document.getElementById("format");
     const error = document.getElementById("error-msg");
 
     if (!format.value) {
-
-        error.innerText =
-            "Please select a format (Excel or PDF)";
+        error.innerText = "Please select a format (Excel or PDF)";
         error.style.color = "red";
-
         return false;
     }
 
     error.innerText = "";
 
-    // Make sure the latest checkbox selection is on the form right
-    // before it submits (covers rows hidden by client-side filters too).
-    syncSelectedIds();
-
-    setTimeout(() => {
-        format.value = "";
-    }, 100);
-
+    setTimeout(() => { format.value = ""; }, 100);
     return true;
 }
 
 
-/* ============ SELECTED ROWS -> DOWNLOAD FORM ============ */
+/* ============ HELPERS ============ */
+/* Reads a fetch response safely: JSON when valid, readable error otherwise */
+function parseResponse(res) {
+    return res.text().then(text => {
+        let data = null;
+        try { data = JSON.parse(text); } catch (e) { data = null; }
 
-//================ SYNC CHECKED ROW IDS INTO HIDDEN INPUT ==================//
-function syncSelectedIds() {
-
-    const selectedIdsInput = document.getElementById("selectedIdsInput");
-    const label = document.getElementById("selectedCountLabel");
-    const selectAll = document.getElementById("selectAll");
-
-    if (!selectedIdsInput) return;
-
-    // Only rows that are visible (not filtered out) count for select-all / download.
-    const visibleCheckboxes = Array.from(
-        document.querySelectorAll(".row-check")
-    ).filter(cb => cb.closest(".attendance-row").style.display !== "none");
-
-    const checkedBoxes = visibleCheckboxes.filter(cb => cb.checked);
-
-    const ids = checkedBoxes.map(cb => cb.value);
-
-    selectedIdsInput.value = ids.join(",");
-
-    if (label) {
-        label.innerText = `${ids.length} row${ids.length !== 1 ? "s" : ""} selected`;
-    }
-
-    if (selectAll) {
-        selectAll.checked =
-            visibleCheckboxes.length > 0 &&
-            checkedBoxes.length === visibleCheckboxes.length;
-    }
-}
-
-//================ ROW CHECKBOX + SELECT-ALL LISTENERS ==================//
-document.addEventListener("DOMContentLoaded", function () {
-
-    document.querySelectorAll(".row-check").forEach(cb => {
-        cb.addEventListener("change", syncSelectedIds);
-    });
-
-    const selectAll = document.getElementById("selectAll");
-
-    if (selectAll) {
-
-        selectAll.addEventListener("change", function () {
-
-            document.querySelectorAll(".row-check").forEach(cb => {
-                if (cb.closest(".attendance-row").style.display !== "none") {
-                    cb.checked = selectAll.checked;
-                }
-            });
-
-            syncSelectedIds();
-        });
-    }
-
-    // Page load aagum bothe "0 rows selected" nu default-a show aagum
-    syncSelectedIds();
-
-});
-
-/* ============ STUDENT SUMMARY MODAL ============ */
-
-//================ FETCH & RENDER STUDENT ATTENDANCE SUMMARY ==================//
-function openStudentSummary(studentId) {
-
-    const modal = document.getElementById("attendanceModal");
-
-    fetch(`/api/student-attendance-summary/${studentId}/`)
-        .then(res => res.json())
-        .then(data => {
-
-            document.getElementById("studentName").innerText =
-                data.student_name;
-
-            const photo = document.getElementById("studentPhoto");
-            const avatar = document.getElementById("studentAvatar");
-
-            if (data.photo_url) {
-
-                photo.src = data.photo_url;
-                photo.style.display = "block";
-
-                avatar.style.display = "none";
-            }
-            else {
-
-                photo.style.display = "none";
-                avatar.style.display = "flex";
-
-                const names = data.student_name.trim().split(" ");
-
-                let initials = "";
-
-                if (names.length >= 2) {
-                    initials = names[0][0] + names[names.length - 1][0];
-                }
-                else {
-                    initials = names[0][0];
-                }
-
-                avatar.innerText = initials.toUpperCase();
-            }
-
-            document.getElementById("studentInfo").innerText =
-                data.course + " • " + data.batch + "(" + data.timing + ")";
-
-            document.getElementById("presentCount").innerText =
-                data.present;
-
-            document.getElementById("absentCount").innerText =
-                data.absent;
-
-            document.getElementById("lateCount").innerText =
-                data.late;
-
-            document.getElementById("attendancePercent").innerText =
-                data.percentage;
-
-            let timeline = document.getElementById("timeline");
-            timeline.innerHTML = "";
-
-            data.timeline.forEach(item => {
-
-                timeline.innerHTML += `
-                <div class="timeline-item">
-                    <strong>${item.date}</strong> -
-                    ${item.status}
-                </div>
-            `;
-            });
-
-            modal.style.display = "flex";
-
-        })
-        .catch(err => {
-            console.error(err);
-            alert("Error loading attendance data");
-        });
-}
-
-//================ STUDENT SUMMARY MODAL - OPEN/CLOSE + NAME LINK HANDLER ==================//
-document.addEventListener("DOMContentLoaded", function () {
-
-    const modal = document.getElementById("attendanceModal");
-    const closeBtn = document.getElementById("closeModal");
-
-    closeBtn.onclick = function () {
-        modal.style.display = "none";
-    }
-
-    window.addEventListener("click", function (event) {
-        if (event.target == modal) {
-            modal.style.display = "none";
+        if (data === null) {
+            return {
+                ok: false,
+                data: { error: `Could not load data (HTTP ${res.status}). Check the URL in urls.py or log in again.` }
+            };
         }
+
+        if (!res.ok && !data.error) {
+            data.error = `Could not load data (HTTP ${res.status}).`;
+        }
+
+        return { ok: res.ok, data };
     });
-
-    // Name link still opens the summary modal
-    document.querySelectorAll(".student-detail-btn").forEach(btn => {
-
-        btn.addEventListener("click", function (e) {
-
-            e.preventDefault();
-
-            let studentId = this.dataset.id;
-
-            openStudentSummary(studentId);
-
-        });
-
-    });
-
-});
+}
 
 
-/* ============ ROW 3-DOT ACTION MENU ============ */
+const AH_COLORS = ['#2563eb', '#16a34a', '#dc2626', '#9333ea', '#ea580c', '#0891b2', '#ca8a04', '#be123c'];
 
-//================ ROW ACTION MENU - TOGGLE, SCROLL-CLOSE, OUTSIDE-CLICK-CLOSE ==================//
+function esc(value) {
+    const div = document.createElement("div");
+    div.textContent = value == null ? "" : String(value);
+    return div.innerHTML;
+}
+
+function initials(name) {
+    const parts = (name || "").trim().split(/\s+/);
+    const a = parts[0] ? parts[0][0] : "";
+    const b = parts.length > 1 ? parts[parts.length - 1][0] : "";
+    return (a + b).toUpperCase();
+}
+
+function avatar(name, index, cls) {
+    return `<div class="${cls || 'ah-av'}" style="background:${AH_COLORS[index % AH_COLORS.length]}">${esc(initials(name))}</div>`;
+}
+
+
+/* ============ FILTERS: AUTO-SUBMIT, DATE PICKER, BANNER ============ */
 document.addEventListener("DOMContentLoaded", function () {
 
-    // Toggle a row's dropdown, closing any other open ones first
-    document.querySelectorAll(".row-menu-btn").forEach(btn => {
+    const form = document.getElementById("filterForm");
 
-        btn.addEventListener("click", function (e) {
+    if (form) {
 
-            e.preventDefault();
-            e.stopPropagation();
+        form.querySelectorAll("select, input[type='date']").forEach(el => {
+            el.addEventListener("change", () => form.submit());
+        });
 
-            const menu = this.closest(".row-menu");
-            const dropdown = menu.querySelector(".row-menu-dropdown");
-            const wasOpen = menu.classList.contains("open");
+        const search = form.querySelector("input[name='search']");
+        let timer;
 
-            document.querySelectorAll(".row-menu.open").forEach(m => {
-                m.classList.remove("open");
+        if (search) {
+            search.addEventListener("input", () => {
+                clearTimeout(timer);
+                timer = setTimeout(() => form.submit(), 600);
             });
+        }
+    }
 
-            if (!wasOpen) {
-
-                const rect = this.getBoundingClientRect();
-
-                dropdown.style.top = (rect.bottom + 4) + "px";
-                dropdown.style.left = "auto";
-                dropdown.style.right = (window.innerWidth - rect.right) + "px";
-
-                menu.classList.add("open");
-            }
-
-        });
-
-    });
-
-    // close open dropdown on scroll (table scroll / page scroll)
-    document.addEventListener("scroll", function () {
-        document.querySelectorAll(".row-menu.open").forEach(m => {
-            m.classList.remove("open");
-        });
-    }, true);
-
-    // "View" -> reuse the student summary modal
-    document.querySelectorAll(".row-view-btn").forEach(btn => {
-        // hook up navigation/view logic here
-    });
-
-    // "Edit" -> hook up to your edit route/modal here
-    document.querySelectorAll(".row-edit-btn").forEach(btn => {
-        // hook up edit logic here
-    });
-
-    // Close any open dropdown when clicking outside of it
-    document.addEventListener("click", function () {
-        document.querySelectorAll(".row-menu.open").forEach(m => {
-            m.classList.remove("open");
+    document.querySelectorAll("input[type='date']").forEach(input => {
+        input.addEventListener("click", function () {
+            if (this.showPicker) this.showPicker();
         });
     });
 
+    // Just-saved banner close
+    const toastClose = document.getElementById("ahToastClose");
+    if (toastClose) {
+        toastClose.addEventListener("click", () => {
+            document.getElementById("ahToast").remove();
+        });
+    }
+
+    // Just-saved row opens automatically
+    const fresh = document.querySelector(".ah-row.ah-fresh");
+    if (fresh) toggleRow(fresh);
 });
 
 
-/* ============ AVATAR COLORS ============ */
+/* ============ ROW EXPAND (STUDENTS / CLASS LOG / AUDIT TRAIL) ============ */
+const detailCache = {};
 
-//================ AVATAR COLOR ASSIGNMENT (CYCLED PALETTE) ==================//
-function getAvatarColor(index) {
+function toggleRow(row) {
 
-    const colors = [
-        '#2563eb',
-        '#16a34a',
-        '#dc2626',
-        '#9333ea',
-        '#ea580c',
-        '#0891b2',
-        '#ca8a04',
-        '#be123c'
+    const xp = document.getElementById("xp-" + row.dataset.key);
+    if (!xp) return;
+
+    if (!xp.hidden) {
+        xp.hidden = true;
+        row.classList.remove("open");
+        return;
+    }
+
+    xp.hidden = false;
+    row.classList.add("open");
+
+    if (xp.dataset.loaded) return;
+
+    xp.innerHTML = '<div class="ah-empty">Loading...</div>';
+
+    fetch(`${window.AH.detailUrl}${row.dataset.batch}/${row.dataset.date}/`)
+        .then(parseResponse)
+        .then(({ ok, data }) => {
+
+            if (!ok) {
+                xp.innerHTML = `<div class="ah-empty">${esc(data.error || "Unable to load details")}</div>`;
+                return;
+            }
+
+            detailCache[row.dataset.key] = data;
+            xp.dataset.loaded = "1";
+            renderDetail(row.dataset.key, "st");
+        })
+        .catch(() => {
+            xp.innerHTML = '<div class="ah-empty">Unable to load details. Please try again.</div>';
+        });
+}
+
+function renderDetail(key, tab) {
+
+    const xp = document.getElementById("xp-" + key);
+    const data = detailCache[key];
+    if (!xp || !data) return;
+
+    const tabs = [
+        ["st", `Students (${data.students.length})`],
+        ["cl", "Class Log"],
+        ["au", "Audit Trail"]
     ];
 
-    return colors[index % colors.length];
-}
+    let html = '<div class="ah-tabs">' + tabs.map(t =>
+        `<button type="button" data-key="${esc(key)}" data-tab="${t[0]}" class="${tab === t[0] ? 'on' : ''}">${t[1]}</button>`
+    ).join("") + "</div>";
 
-function applyAvatarColors() {
+    if (tab === "st") {
 
-    document.querySelectorAll('.student-avatar').forEach((el, index) => {
-        el.style.backgroundColor = getAvatarColor(index);
-    });
+        html += '<div class="ah-sgrid">' + data.students.map((s, i) => {
+            const remark = s.remarks ? " · " + esc(s.remarks) : "";
+            return `<div class="ah-sc">
+                ${avatar(s.name, i)}
+                <span class="nm"><a class="ah-link" data-sid="${s.student_pk}">${esc(s.name)}</a>
+                    <small>${esc(s.student_id)}${remark}</small></span>
+                <span class="ah-pill ah-p${esc(s.status)}">${esc(s.status)}</span>
+            </div>`;
+        }).join("") + "</div>";
 
-}
+    } else if (tab === "cl") {
 
-//================ APPLY AVATAR COLORS ON PAGE LOAD ==================//
-document.addEventListener("DOMContentLoaded", function () {
-    applyAvatarColors();
-});
-
-
-/* ============ DATE FIELDS ============ */
-
-//================ DATE PICKER TRIGGER + FUTURE-DATE VALIDATION ==================//
-document.addEventListener("DOMContentLoaded", function () {
-
-    const today = new Date().toISOString().split('T')[0];
-
-    document.querySelectorAll('input[type="date"], input[type="time"]')
-        .forEach(input => {
-
-            input.addEventListener("click", function () {
-                if (this.showPicker) {
-                    this.showPicker();
-                }
-            });
-
-        });
-
-    const fromDate = document.querySelector('input[name="from_date"]');
-    const toDate = document.querySelector('input[name="to_date"]');
-    const error = document.getElementById("date-error");
-
-    fromDate.max = today;
-    toDate.max = today;
-
-    function validateDate() {
-
-        if (
-            (fromDate.value && fromDate.value > today) ||
-            (toDate.value && toDate.value > today)
-        ) {
-            if (error) error.innerText = "Future dates are not allowed";
+        if (data.class_log) {
+            const c = data.class_log;
+            html += `<div class="ah-cl">
+                <div><small>Topic covered</small><b>${esc(c.topic)}</b></div>
+                <div><small>Next topic</small><b>${esc(c.next_topic)}</b></div>
+                <div><small>Duration</small><b>${esc(c.duration)}</b></div>
+                <div><small>Trainer notes</small>${esc(c.notes)}</div>
+            </div>`;
         } else {
-            if (error) error.innerText = "";
+            html += '<div class="ah-empty">No class log was saved for this day.</div>';
         }
 
+    } else {
+
+        html += '<div class="ah-tl">' + (data.audit.length ? data.audit.map(a =>
+            `<div class="e ${a.type}"><b>${esc(a.title)}</b> by ${esc(a.by)}
+                <small>${esc(a.when)} · ${esc(a.note)}</small></div>`
+        ).join("") : '<div class="ah-empty">No audit entries.</div>') + "</div>";
     }
 
-    fromDate.addEventListener("input", validateDate);
-    toDate.addEventListener("input", validateDate);
+    if (data.can_edit) {
+        html += `<div class="ah-actions"><a href="${esc(data.edit_url)}">Edit attendance</a></div>`;
+    } else if (data.is_today === false) {
+        html += '<div class="ah-actions"><span class="ah-lock">&#128274; Past attendance is locked. Only today\'s attendance can be edited.</span></div>';
+    }
 
-    fromDate.addEventListener("change", validateDate);
-    toDate.addEventListener("change", validateDate);
+    xp.innerHTML = html;
+}
 
+/* ============ GLOBAL CLICK HANDLER ============ */
+document.addEventListener("click", function (e) {
+
+    // student name -> overall attendance drawer
+    const link = e.target.closest(".ah-link");
+    if (link) {
+        openDrawer(link.dataset.sid);
+        return;
+    }
+
+    // inner tabs of an expanded row
+    const tab = e.target.closest(".ah-tabs button");
+    if (tab) {
+        renderDetail(tab.dataset.key, tab.dataset.tab);
+        return;
+    }
+
+    // row expand / collapse
+    const row = e.target.closest(".ah-row");
+    if (row) toggleRow(row);
 });
 
 
+/* ============ STUDENT OVERALL ATTENDANCE DRAWER ============ */
+let drawerData = null;
+let drawerFilter = "";
+let drawerShowAll = false;
 
-//================ RESET FILTERS BUTTON (CLEAR FORM + TABLE + SELECTIONS) ==================//
+function openDrawer(studentId) {
 
-document.getElementById("resetBtn").addEventListener("click", function () {
+    const overlay = document.getElementById("drawerOverlay");
+    const drawer = document.getElementById("studentDrawer");
+    const body = document.getElementById("drawerBody");
 
-    window.location.href = window.location.pathname;
+    overlay.hidden = false;
+    drawer.hidden = false;
+    body.innerHTML = '<div class="ah-empty">Loading...</div>';
 
-    document.querySelectorAll("#filterForm input").forEach(input => {
-        input.value = "";
-    });
+    fetch(`${window.AH.studentUrl}${studentId}/`)
+        .then(parseResponse)
+        .then(({ ok, data }) => {
 
-    document.querySelectorAll("#filterForm select").forEach(select => {
-        select.selectedIndex = 0;
-    });
+            if (!ok) {
+                body.innerHTML = `<div class="ah-empty">${esc(data.error || "Unable to load attendance")}</div>`;
+                return;
+            }
 
-    document.getElementById("search-error").innerText = "";
-
-    document.querySelectorAll('.download-form input[type="hidden"]')
-        .forEach(input => {
-            input.value = "";
+            drawerData = data;
+            drawerFilter = "";
+            drawerShowAll = false;
+            renderDrawer();
+        })
+        .catch(() => {
+            body.innerHTML = '<div class="ah-empty">Unable to load attendance. Please try again.</div>';
         });
-
-    document.querySelectorAll(".attendance-row")
-        .forEach(row => {
-            row.style.display = "";
-        });
-
-    document.querySelectorAll(".row-check").forEach(cb => {
-        cb.checked = false;
-    });
-
-    if (selectAllCheckbox()) selectAllCheckbox().checked = false;
-
-    syncSelectedIds();
-
-});
-
-function selectAllCheckbox() {
-    return document.getElementById("selectAll");
 }
 
-
-/* ============ CLIENT-SIDE FILTERS ============ */
-
-//================ APPLY FILTERS (SEARCH/STATUS/BATCH/COURSE/DATE) TO TABLE ROWS ==================//
-function applyFilters() {
-
-    const search =
-        document.querySelector('input[name="search"]').value.toLowerCase();
-
-    const fromDate =
-        document.querySelector('input[name="from_date"]').value;
-
-    const toDate =
-        document.querySelector('input[name="to_date"]').value;
-
-    const status =
-        document.querySelector('select[name="status"]').value.toLowerCase();
-
-    const batch =
-        document.querySelector('select[name="batch"]').value;
-
-    const course =
-        document.querySelector('select[name="course_name"]').value.toLowerCase();
-
-    document.querySelector('.download-form input[name="search"]').value =
-        document.querySelector('input[name="search"]').value;
-
-    document.querySelector('.download-form input[name="from_date"]').value =
-        document.querySelector('input[name="from_date"]').value;
-
-    document.querySelector('.download-form input[name="to_date"]').value =
-        document.querySelector('input[name="to_date"]').value;
-
-    document.querySelector('.download-form input[name="status"]').value =
-        document.querySelector('select[name="status"]').value;
-
-    document.querySelector('.download-form input[name="batch"]').value =
-        document.querySelector('select[name="batch"]').value;
-
-    document.querySelector('.download-form input[name="course_name"]').value =
-        document.querySelector('select[name="course_name"]').value;
-
-    document
-        .querySelectorAll(".attendance-row")
-        .forEach(row => {
-
-            const rowDate = row.dataset.date;
-
-            const show =
-
-                (search === "" ||
-                    row.dataset.name.includes(search) ||
-                    row.dataset.id.includes(search))
-
-                &&
-
-                (status === "" ||
-                    row.dataset.status === status)
-
-                &&
-
-                (batch === "" ||
-                    row.dataset.batch === batch)
-
-                &&
-
-                (course === "" ||
-                    row.dataset.course === course)
-
-                &&
-
-                (fromDate === "" ||
-                    rowDate >= fromDate)
-
-                &&
-
-                (toDate === "" ||
-                    rowDate <= toDate);
-
-            row.style.display =
-                show ? "" : "none";
-
-        });
-
-    syncSelectedIds();
+function closeDrawer() {
+    document.getElementById("drawerOverlay").hidden = true;
+    document.getElementById("studentDrawer").hidden = true;
 }
 
-//================ FILTER INPUT LISTENERS (KEYUP/CHANGE) ==================//
-document.addEventListener(
-    "DOMContentLoaded",
-    function () {
+function renderDrawer() {
 
-        document
-            .querySelectorAll('#filterForm input, #filterForm select')
-            .forEach(el => {
+    const d = drawerData;
+    const body = document.getElementById("drawerBody");
+    if (!d) return;
 
-                el.addEventListener("keyup", applyFilters);
-                el.addEventListener("change", applyFilters);
+    const riskClass = d.risk === "At Risk" ? "Absent" : d.risk === "Needs Attention" ? "Late" : "Present";
+    const pctColor = d.percentage < 75 ? "var(--ah-red)" : "var(--ah-green)";
 
-            });
+    const photo = d.photo_url
+        ? `<img class="big" src="${esc(d.photo_url)}" alt="">`
+        : `<div class="big" style="background:#4f46e5">${esc(initials(d.student_name))}</div>`;
 
+    let html = `<div class="ah-dp">${photo}
+        <div><h3>${esc(d.student_name)} <span class="ah-pill ah-p${riskClass}">${esc(d.risk)}</span></h3>
+        <p>${esc(d.student_id)} · ${esc(d.course)} · ${esc(d.batch)} · Trainer: ${esc(d.trainer)}</p></div></div>`;
+
+    html += `<div class="ah-ms">
+        <div><b>${d.total}</b><small>Days</small></div>
+        <div><b style="color:var(--ah-green)">${d.present}</b><small>Present</small></div>
+        <div><b style="color:var(--ah-amber)">${d.late}</b><small>Late</small></div>
+        <div><b style="color:var(--ah-red)">${d.absent}</b><small>Absent</small></div>
+        <div><b style="color:${pctColor}">${d.percentage}%</b><small>Overall</small></div>
+    </div>`;
+
+    html += "<h4>Month-wise</h4>" + d.months.map(m => {
+        const t = m.present + m.late + m.absent || 1;
+        const pct = Math.round(((m.present + m.late) / t) * 100);
+        return `<div class="ah-mo"><span>${esc(m.label)}</span>
+            <div class="sk"><i class="gP" style="width:${m.present / t * 100}%"></i><i class="gL" style="width:${m.late / t * 100}%"></i><i class="gA" style="width:${m.absent / t * 100}%"></i></div>
+            <b>${pct}%</b></div>`;
+    }).join("");
+
+    const list = d.timeline.filter(r => !drawerFilter || r.status === drawerFilter);
+    const shown = drawerShowAll ? list : list.slice(0, 10);
+
+    html += '<h4>All records with remarks</h4><div class="ah-mc">' +
+        [["", "All"], ["Present", "Present"], ["Late", "Late"], ["Absent", "Absent"]].map(f =>
+            `<button type="button" data-filter="${f[0]}" class="${drawerFilter === f[0] ? 'on' : ''}">${f[1]}</button>`
+        ).join("") + "</div>";
+
+    html += shown.map(r => `<div class="ah-rl">
+        <div class="d">${esc(r.weekday)}, ${esc(r.date)}</div>
+        <span class="ah-pill ah-p${esc(r.status)}">${esc(r.status)}</span>
+        <div class="rm">${esc(r.remarks) || "-"}</div>
+    </div>`).join("");
+
+    if (list.length > 10) {
+        html += `<button type="button" class="ah-more" id="drawerMore">${drawerShowAll ? "Show less" : "Show all " + list.length + " records"}</button>`;
     }
-);
+
+    body.innerHTML = html;
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    document.getElementById("drawerClose").addEventListener("click", closeDrawer);
+    document.getElementById("drawerOverlay").addEventListener("click", closeDrawer);
+
+    document.addEventListener("keydown", e => {
+        if (e.key === "Escape") closeDrawer();
+    });
+
+    document.getElementById("drawerBody").addEventListener("click", function (e) {
+
+        const chip = e.target.closest(".ah-mc button");
+        if (chip) {
+            drawerFilter = chip.dataset.filter;
+            drawerShowAll = false;
+            renderDrawer();
+            return;
+        }
+
+        if (e.target.id === "drawerMore") {
+            drawerShowAll = !drawerShowAll;
+            renderDrawer();
+        }
+    });
+});

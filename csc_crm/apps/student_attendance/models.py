@@ -171,6 +171,19 @@ class Attendance(models.Model):
 
     remarks = models.TextField(blank=True,null=True)
 
+    # ---- Audit trail fields (new) ----
+    created_by = models.ForeignKey(
+        Staff, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='attendance_created'
+    )
+
+    updated_by = models.ForeignKey(
+        Staff, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='attendance_updated'
+    )
+
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+
     #=================== VALIDATION - BATCH MATCH, FUTURE DATE, TRAINER MATCH ======================#
     def clean(self):
         # Batch validation
@@ -194,6 +207,9 @@ class Attendance(models.Model):
 
     #====================== SAVE OVERRIDE - RUNS FULL VALIDATION BEFORE SAVE =====================#
     def save(self, *args, **kwargs):
+        
+        if self.status == 'Present':
+            self.remarks = ''
 
         self.full_clean()
 

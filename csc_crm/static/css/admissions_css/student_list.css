@@ -631,3 +631,39 @@ a {
         border-radius: 10px;
     }
 }
+
+
+/* ========================= BATCH PAGES ========================= */
+
+.back-link {
+    display: inline-block;
+    margin-bottom: 6px;
+    color: #1f3b8f;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.link-btn {
+    display: inline-block;
+    padding: 8px 15px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.overview-btn {
+    display: inline-block;
+    background: rgb(30, 42, 120);
+    color: #fff;
+    padding: 7px 16px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    font-weight: 600;
+    transition: .2s;
+}
+
+.overview-btn:hover {
+    background: rgb(255, 202, 43);
+    color: rgb(30, 42, 120);
+    box-shadow: 0 4px 10px rgb(255, 202, 43);
+}

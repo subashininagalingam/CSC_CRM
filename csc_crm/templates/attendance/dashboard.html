@@ -255,17 +255,6 @@ Student Attendance - Dashboard
                         View Details <i class="fa-solid fa-arrow-right"></i>
                     </a>
                 
-                    {% if request.user.staff_profile.role.role_name == "Trainer" %}
-                    <div class="batch-card-buttons">
-                        <a href="/api/batch-preview/{{ b.id }}/" class="dash-batch-btn dash-batch-btn-view">
-                            <i class="fa-regular fa-eye"></i> View
-                        </a>
-                        
-                        <a href="/api/mark-attendance/{{ b.id }}/" class="dash-batch-btn dash-batch-btn-mark">
-                            <i class="fa-solid fa-clipboard-check"></i> Mark
-                        </a>
-                    </div>
-                    {% endif %}
                 </div>
             
             </div>

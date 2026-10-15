@@ -132,7 +132,7 @@ form.addEventListener("submit", function (e) {
 
     let hasValue = false;
 
-    form.querySelectorAll("input, select").forEach(field => {
+    form.querySelectorAll('input:not([type="hidden"]), select').forEach(field => {
 
         if (field.value.trim() !== "") {
             hasValue = true;
@@ -176,8 +176,14 @@ form.addEventListener("submit", function (e) {
 // RESET WITHOUT RELOAD
 document.getElementById("resetBtn").addEventListener("click", function () {
 
-    // CLEAR INPUTS
-    form.querySelectorAll("input").forEach(input => {
+    // batch page-la hidden "batch" input irukkum, adhai kedukka koodaadhu
+    const lockedBatchInput = form.querySelector('input[type="hidden"][name="batch"]');
+    const lockedBatch = lockedBatchInput ? lockedBatchInput.value : "";
+    const baseUrl = window.location.pathname +
+        (lockedBatch ? "?batch=" + encodeURIComponent(lockedBatch) : "");
+
+    // CLEAR INPUTS (hidden thavira)
+    form.querySelectorAll('input:not([type="hidden"])').forEach(input => {
         input.value = "";
         input.classList.remove("error-input");
     });
@@ -193,17 +199,15 @@ document.getElementById("resetBtn").addEventListener("click", function () {
         if (el) el.innerText = "";
     });
 
-    // REMOVE URL PARAMS
-    window.history.replaceState({}, document.title, window.location.pathname);
+    // URL: batch irundha adhai vachirukkanum
+    window.history.replaceState({}, document.title, baseUrl);
 
-    // FETCH ORIGINAL PAGE
-    fetch(window.location.pathname)
+    // FETCH BASE PAGE
+    fetch(baseUrl)
         .then(response => response.text())
         .then(data => {
 
-            let parser = new DOMParser();
-
-            let doc = parser.parseFromString(data, "text/html");
+            const doc = new DOMParser().parseFromString(data, "text/html");
 
             // TABLE RESET
             document.querySelector(".table-wrapper").innerHTML =
@@ -213,6 +217,13 @@ document.getElementById("resetBtn").addEventListener("click", function () {
             document.querySelector(".result-info").innerHTML =
                 doc.querySelector(".result-info").innerHTML;
 
+            // PAGINATION RESET
+            const curPg = document.querySelector(".pagination-container");
+            const newPg = doc.querySelector(".pagination-container");
+            if (curPg && newPg) curPg.innerHTML = newPg.innerHTML;
+
+            // selection UI refresh
+            updateSelectionUI();
         });
 
 });

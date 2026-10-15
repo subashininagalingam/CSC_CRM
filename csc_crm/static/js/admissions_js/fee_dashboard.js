@@ -402,3 +402,155 @@ document.addEventListener("DOMContentLoaded", function () {
     console.log("Fee Dashboard Loaded Successfully.");
 
 });
+
+document.addEventListener("DOMContentLoaded", function () {
+    const select = document.getElementById("batchFilterSelect");
+    if (!select) return;
+
+    async function loadBatch(batchId) {
+        const url = new URL(window.location.href);
+
+        if (batchId) {
+            url.searchParams.set("batch", batchId);
+        } else {
+            url.searchParams.delete("batch");
+        }
+        url.searchParams.delete("student_id");
+
+        const wrapper = document.getElementById("statusTableWrapper");
+        wrapper.style.opacity = "0.5";
+
+        try {
+            const res = await fetch(url.toString(), {
+                headers: { "X-Requested-With": "XMLHttpRequest" }
+            });
+            const html = await res.text();
+            const doc = new DOMParser().parseFromString(html, "text/html");
+
+            // Table replace
+            const newWrapper = doc.getElementById("statusTableWrapper");
+            wrapper.innerHTML = newWrapper.innerHTML;
+
+            // Header (Clear button) replace
+            const newHeader = doc.getElementById("statusSectionHeader");
+            const oldHeader = document.getElementById("statusSectionHeader");
+            const newForm = newHeader.querySelector(".batch-filter-form");
+            const oldForm = oldHeader.querySelector(".batch-filter-form");
+            const newClear = newForm.querySelector(".clear-filter-btn");
+            let oldClear = oldForm.querySelector(".clear-filter-btn");
+
+            if (newClear && !oldClear) {
+                oldForm.appendChild(newClear);
+                oldClear = newClear;
+            } else if (!newClear && oldClear) {
+                oldClear.remove();
+            }
+
+            // URL update (refresh panna kooda filter irukkum), scroll maaradhu
+            window.history.replaceState({}, "", url.toString());
+        } catch (e) {
+            console.error("Filter failed", e);
+        } finally {
+            wrapper.style.opacity = "1";
+        }
+    }
+
+    select.addEventListener("change", function () {
+        loadBatch(this.value);
+    });
+
+    // Clear button (dynamic-a add aagura button-kum work aaga)
+    document.getElementById("statusSectionHeader").addEventListener("click", function (e) {
+        const clearBtn = e.target.closest(".clear-filter-btn");
+        if (!clearBtn) return;
+        e.preventDefault();
+        select.value = "";
+        loadBatch("");
+    });
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    const dataEl = document.getElementById("feeChartData");
+    if (!dataEl || typeof Chart === "undefined") return;
+
+    const data = JSON.parse(dataEl.textContent);
+    const inr = n => "₹" + Number(n).toLocaleString("en-IN");
+
+    Chart.defaults.font.family = "'Poppins', sans-serif";
+
+    // Collection Rate
+    const ringEl = document.getElementById("collectionRateChart");
+    if (ringEl) {
+        const c = data.collection;
+        const empty = c.collected + c.outstanding === 0;
+
+        new Chart(ringEl, {
+            type: "doughnut",
+            data: {
+                labels: ["Collected", "Outstanding"],
+                datasets: [{
+                    data: empty ? [0, 1] : [c.collected, c.outstanding],
+                    backgroundColor: ["#FFC800", "#D9DBEF"],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: "76%",
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ctx.label + ": " + inr(ctx.raw)
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Paid vs Pending by Batch
+    const batchEl = document.getElementById("batchFeeChart");
+    if (batchEl) {
+        new Chart(batchEl, {
+            type: "bar",
+            data: {
+                labels: data.batches.map(b => b.label),
+                datasets: [
+                    {
+                        label: "Paid",
+                        data: data.batches.map(b => b.paid),
+                        backgroundColor: "#16A34A",
+                        borderRadius: 4
+                    },
+                    {
+                        label: "Pending",
+                        data: data.batches.map(b => b.pending),
+                        backgroundColor: "#EF4444",
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { stacked: true, grid: { display: false } },
+                    y: {
+                        stacked: true,
+                        ticks: { callback: v => "₹" + Number(v).toLocaleString("en-IN") }
+                    }
+                },
+                plugins: {
+                    legend: { position: "bottom" },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ctx.dataset.label + ": " + inr(ctx.raw)
+                        }
+                    }
+                }
+            }
+        });
+    }
+});

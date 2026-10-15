@@ -481,3 +481,16 @@ a {
 .filter-grid select.error-input {
     border-color: red;
 }
+
+/* ===== Back link (batch mode) ===== */
+.back-link {
+    display: inline-block;
+    margin-bottom: 6px;
+    color: rgb(30, 42, 120);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.back-link:hover {
+    color: rgb(255, 160, 0);
+}

@@ -16,8 +16,16 @@
 
     <div class="page-head">
         <div>
+            {% if selected_batch %}
+            <a href="{% url 'search_batch_list' %}" class="back-link">
+                <i class="fa-solid fa-arrow-left"></i> All Batches
+            </a>
+            <h3 class="page-title-add">{{ selected_batch.batch_name }}</h3>
+            <p class="page-sub-add">{{ selected_batch.course.course_name }} · search and filter students of this batch</p>
+            {% else %}
             <h3 class="page-title-add">Advanced Search &amp; Filter</h3>
             <p class="page-sub-add">Find and filter students using advanced search options</p>
+            {% endif %}
         </div>
         <button type="button" class="hide-filters-btn" id="toggleFiltersBtn">
             <i class="fa-solid fa-chevron-up"></i> Hide Filters
@@ -45,6 +53,10 @@
                     <input type="text" name="phone_no" maxlength="10" pattern="^\d{10}$" value="{{ request.GET.phone_no }}" placeholder="Enter phone number">
                 </div>
 
+                {% if selected_batch %}
+                <input type="hidden" name="batch" value="{{ selected_batch.id }}">
+                {% else %}
+
 
                 {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR" %}
                 <div class="field">
@@ -67,6 +79,7 @@
                         {% endfor %}
                     </select>
                 </div>
+                {% endif %}
 
 
                 {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" %}

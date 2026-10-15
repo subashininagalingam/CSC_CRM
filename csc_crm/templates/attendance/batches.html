@@ -32,9 +32,9 @@ Student Attendance - Batches
                     <p>Manage training batches and daily attendance</p>
                 </div>
             </div>
-            {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "Trainer" %}
+            {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" %}
             <button class="btn-new-batch" data-bs-toggle="modal" data-bs-target="#batchModal">
-                <i class="fa-solid fa-plus"></i> New Batch
+            <i class="fa-solid fa-plus"></i> New Batch
             </button>
             {% endif %}
         </div>
@@ -288,6 +288,10 @@ Student Attendance - Batches
 
 {% endblock %}
 
+
 {% block extra_js %}
+<script>
+    const IS_TRAINER = {% if request.user.staff_profile.role.role_name == "Trainer" %}true{% else %}false{% endif %};
+</script>
 <script src="{% static 'js/attendance_js/batches.js' %}"></script>
 {% endblock %}

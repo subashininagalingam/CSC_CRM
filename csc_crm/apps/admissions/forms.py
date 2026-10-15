@@ -40,6 +40,7 @@ class StudentForm(forms.ModelForm):
             'dob': forms.DateInput(attrs={'type': 'date', 'required': True}),
             'guardian_name': forms.TextInput(attrs={'placeholder': 'Enter guardian name', 'required': True}),
             'guardian_phone_no': forms.TextInput(attrs={'placeholder': 'Enter guardian phone', 'required': True}),
+            'educational_qualification': forms.TextInput(attrs={'placeholder': 'Enter educational qualification', 'required': True}),
             'address': forms.Textarea(attrs={'placeholder': 'Enter address', 'rows': 2, 'cols': 30, 'style': 'font-size:14px; padding:5px;', 'required': True}),
             'photo': forms.FileInput(attrs={'accept': '.jpg,.jpeg,.png'}),
             'id_proof': forms.FileInput(attrs={ 'accept': '.pdf,doc,.docx'}),
@@ -119,7 +120,7 @@ class CourseForm(forms.ModelForm):
 class AdmissionForm(forms.ModelForm):
     class Meta:
         model = Admission
-        fields = ['course_name', 'status']
+        fields = ['course_name']
         widgets = {
             'status': forms.RadioSelect()
         }

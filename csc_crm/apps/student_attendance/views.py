@@ -1,10 +1,14 @@
 import json
 import csv
+from collections import Counter, OrderedDict
+from datetime import datetime, timedelta
 from django.conf import settings
 from django.contrib import messages
 from django.core.mail import send_mail
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import (
+    Q, Count, Min, Max, F, Exists, OuterRef, ExpressionWrapper, DateTimeField
+)
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.utils import timezone
@@ -25,7 +29,6 @@ from .models import *
 from .serializers import *
 from django.core.paginator import Paginator
 from .services import (get_absent_tracker_data, get_low_attendance_data)
-from datetime import datetime
 from django.template.loader import render_to_string
 from .attendance_utils import (
     get_attendance_status,
@@ -51,8 +54,6 @@ from django.contrib.auth.decorators import login_required
 from csc_crm.apps.staff.models import TrainerSchedule, Staff
 from .forms import TrainerScheduleForm
 
-
-
 #===================================== BATCH CRUD API ====================================#
 class BatchViewSet(viewsets.ModelViewSet):
 
@@ -61,9 +62,50 @@ class BatchViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter]
     search_fields = ['batch_name', 'timing', 'trainer__trainer_name', 'course__course_name']
 
+    def _staff_and_role(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return None, None
+        staff = getattr(user, 'staff_profile', None)
+        role = staff.role.role_name if staff and staff.role else None
+        return staff, role
+
+    # Trainer -> only own batches
+    def get_queryset(self):
+        qs = super().get_queryset()
+        staff, role = self._staff_and_role()
+        if role == 'Trainer':
+            return qs.filter(trainer=staff)
+        return qs
+
+    # Trainer -> cannot create / edit / delete a batch
+    def _block_trainer(self):
+        _, role = self._staff_and_role()
+        if role == 'Trainer':
+            return Response(
+                {'detail': 'Trainers are not allowed to modify batches.'},
+                status=403
+            )
+        return None
+
     def create(self, request, *args, **kwargs):
-        print(request.data)
+        blocked = self._block_trainer()
+        if blocked:
+            return blocked
         return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):   # PATCH-um idhula dha varum
+        blocked = self._block_trainer()
+        if blocked:
+            return blocked
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        blocked = self._block_trainer()
+        if blocked:
+            return blocked
+        return super().destroy(request, *args, **kwargs)
+
 
 #========================== MARK ATTENDANCE - BATCH DROPDOWN HELPERS =======================#
 def get_batches_by_course(request):
@@ -188,7 +230,7 @@ def update_schedule_status(request, schedule_id):
         'new_status': schedule.status,
         'new_status_display': schedule.get_status_display(),
     })
-    
+
 #================ SCHEDULE CSV EXPORT (SELECTED ROWS, ROLE-SCOPED) ==================#
 @login_required(login_url='staff_login')
 def export_schedule(request):
@@ -500,34 +542,34 @@ def batch_preview(request, batch_id):
 #===================================== MARK ATTENDANCE PAGE ======================================#
 @login_required(login_url='staff_login')
 def mark_attendance_page(request, batch_id):
- 
+
     my_staff = getattr(request.user, 'staff_profile', None)
     my_role = my_staff.role.role_name if my_staff and my_staff.role else None
- 
+
     batch = get_object_or_404(Batch, id=batch_id)
- 
+
     if my_role == 'Trainer' and batch.trainer_id != my_staff.id:
         messages.error(request, "You are not assigned to this batch.")
         return redirect('staff_dashboard')
- 
+
     enrollments = Enrollment.objects.filter(batch=batch, admission__course_name=batch.course, admission__status='enrolled')
- 
+
     attendance_records = Attendance.objects.filter(batch=batch, attendance_date=timezone.now().date())
- 
+
     syllabus_log = SyllabusLog.objects.filter(batch=batch, date=timezone.now().date()).first()
- 
+
     duration = syllabus_log.duration if syllabus_log else 0
- 
+
     attendance_map = {
         att.enrollment_id: att.status
         for att in attendance_records
     }
- 
+
     remarks_map = {
         att.enrollment_id: att.remarks
         for att in attendance_records
     }
- 
+
     context = {
         'batch': batch,
         'enrollments': enrollments,
@@ -537,7 +579,7 @@ def mark_attendance_page(request, batch_id):
         "duration_hours": duration // 60,
         "duration_minutes": duration % 60,
     }
- 
+
     return render(request, 'attendance/mark_attendance.html', context)
 
 
@@ -597,25 +639,235 @@ def bulk_attendance(request):
 
     for item in attendance_list:
 
-        Attendance.objects.update_or_create(enrollment_id=item['enrollment'], batch_id=batch_id, attendance_date=attendance_date,
-                                            defaults={
-                                                'status': item['status'],
-                                                'remarks': item.get('remarks', ''),
-                                                'trainer': batch_obj.trainer
-                                                })
-        SyllabusLog.objects.update_or_create(batch=batch_obj, date=attendance_date,
-                                             defaults={
-                                                'trainer': batch_obj.trainer,
-                                                'topic_covered': syllabus_data.get('topic_covered'),
-                                                'duration': syllabus_data.get('duration'),
-                                                'next_topic': syllabus_data.get('next_topic', ''),
-                                                'trainer_notes': syllabus_data.get('trainer_notes', '')
-                                                })
+        existing = Attendance.objects.filter(
+            enrollment_id=item['enrollment'],
+            batch_id=batch_id,
+            attendance_date=attendance_date
+        ).first()
+
+        new_status = item['status']
+        new_remarks = item.get('remarks', '')
+
+        if existing:
+            # Re-save only when something really changed, so "Edited" stays accurate
+            if existing.status != new_status or (existing.remarks or '') != (new_remarks or ''):
+                existing.status = new_status
+                existing.remarks = new_remarks
+                existing.updated_by = my_staff
+                existing.save()
+        else:
+            Attendance.objects.create(
+                enrollment_id=item['enrollment'],
+                batch_id=batch_id,
+                attendance_date=attendance_date,
+                status=new_status,
+                remarks=new_remarks,
+                trainer=batch_obj.trainer,
+                created_by=my_staff,
+                updated_by=my_staff,
+            )
+
+    # Syllabus log is saved ONCE per save (it used to run inside the student loop)
+    SyllabusLog.objects.update_or_create(
+        batch=batch_obj, date=attendance_date,
+        defaults={
+            'trainer': batch_obj.trainer,
+            'topic_covered': syllabus_data.get('topic_covered'),
+            'duration': syllabus_data.get('duration'),
+            'next_topic': syllabus_data.get('next_topic', ''),
+            'trainer_notes': syllabus_data.get('trainer_notes', '')
+        }
+    )
 
     return Response({
         'status': True,
         'message': 'Attendance and syllabus log saved successfully'
     })
+
+
+#================================================================================================#
+#                        ATTENDANCE HISTORY (REGISTER) - HELPERS                                 #
+#================================================================================================#
+EDIT_GRACE = timedelta(minutes=2)   # updated_at - first timestamp > 2 min  => "Edited"
+PAGE_SIZE = 10
+
+
+def _staff_name(staff):
+    if not staff:
+        return "-"
+    return f"{staff.first_name} {staff.last_name}".strip() or "-"
+
+
+def _local(dt):
+    if dt is None:
+        return None
+    return timezone.localtime(dt) if timezone.is_aware(dt) else dt
+
+
+def _fmt_time(dt):
+    dt = _local(dt)
+    return dt.strftime("%I:%M %p").lstrip("0") if dt else "-"
+
+
+def _fmt_stamp(dt):
+    dt = _local(dt)
+    return dt.strftime("%d %b %Y · %I:%M %p") if dt else "-"
+
+
+def _parse_date(value):
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        return None
+
+
+#============================== FILTER PARAMS ==============================#
+def _history_params(request):
+    today = timezone.now().date()
+
+    raw_from = request.GET.get('from_date')
+    raw_to = request.GET.get('to_date')
+
+    from_date = _parse_date(raw_from)
+    to_date = _parse_date(raw_to)
+
+    # No dates given -> last 7 days
+    if not raw_from and not raw_to:
+        from_date = today - timedelta(days=6)
+        to_date = today
+
+    range_error = bool(from_date and to_date and from_date > to_date)
+
+    return {
+        'today': today,
+        'from_date': from_date,
+        'to_date': to_date,
+        'range_error': range_error,
+        'search': (request.GET.get('search') or '').strip(),
+        'course_name': (request.GET.get('course_name') or '').strip(),
+        'trainer': (request.GET.get('trainer') or '').strip(),
+        'record_type': (request.GET.get('record_type') or '').strip(),
+    }
+
+
+#===================== FILTERED ATTENDANCE QUERYSET (SHARED) =====================#
+# Used by BOTH the history page (grouped batch-day rows) and the export.
+def _history_queryset(request, my_staff, my_role):
+
+    f = _history_params(request)
+    qs = Attendance.objects.all()
+
+    if my_role == 'Trainer':
+        qs = qs.filter(batch__trainer=my_staff)
+
+    if not f['range_error']:
+        if f['from_date']:
+            qs = qs.filter(attendance_date__gte=f['from_date'])
+        if f['to_date']:
+            qs = qs.filter(attendance_date__lte=f['to_date'])
+    else:
+        qs = qs.none()
+
+    if f['course_name']:
+        qs = qs.filter(batch__course__course_name=f['course_name'])
+
+    if f['trainer'].isdigit():
+        qs = qs.filter(batch__trainer_id=int(f['trainer']))
+
+    if f['search']:
+        topic_match = Exists(
+            SyllabusLog.objects.filter(
+                batch_id=OuterRef('batch_id'),
+                date=OuterRef('attendance_date'),
+                topic_covered__icontains=f['search'],
+            )
+        )
+        qs = qs.annotate(topic_match=topic_match).filter(
+            Q(batch__batch_name__icontains=f['search']) |
+            Q(batch__course__course_name__icontains=f['search']) |
+            Q(batch__trainer__first_name__icontains=f['search']) |
+            Q(batch__trainer__last_name__icontains=f['search']) |
+            Q(topic_match=True)
+        )
+
+    return qs, f
+
+
+#======================== BUILD ROW DICTS FOR THE TEMPLATE ========================#
+def _build_history_rows(raw_rows):
+
+    if not raw_rows:
+        return []
+
+    batch_ids = {r['batch_id'] for r in raw_rows}
+    dates = {r['attendance_date'] for r in raw_rows}
+
+    batches = {
+        b.id: b for b in
+        Batch.objects.filter(id__in=batch_ids).select_related('course', 'trainer')
+    }
+
+    logs = {
+        (l.batch_id, l.date): l for l in
+        SyllabusLog.objects.filter(batch_id__in=batch_ids, date__in=dates)
+    }
+
+    # who marked it (first record of each batch-day)
+    pair_q = Q()
+    for r in raw_rows:
+        pair_q |= Q(batch_id=r['batch_id'], attendance_date=r['attendance_date'])
+
+    markers = {}
+    for a in (Attendance.objects.filter(pair_q)
+              .order_by('timestamp')
+              .values('batch_id', 'attendance_date', 'created_by__first_name',
+                      'created_by__last_name', 'timestamp')):
+        markers.setdefault((a['batch_id'], a['attendance_date']), a)
+
+    rows = []
+
+    for r in raw_rows:
+        batch = batches.get(r['batch_id'])
+        if not batch:
+            continue
+
+        key = (r['batch_id'], r['attendance_date'])
+        marker = markers.get(key, {})
+
+        first_name = marker.get('created_by__first_name')
+        last_name = marker.get('created_by__last_name')
+        marked_by = (f"{first_name or ''} {last_name or ''}".strip()
+                     or _staff_name(batch.trainer))
+
+        edited = bool(
+            r['last_edit'] and r['first_marked'] and
+            (r['last_edit'] - r['first_marked']) > EDIT_GRACE
+        )
+
+        log = logs.get(key)
+
+        rows.append({
+            'key': f"{r['batch_id']}_{r['attendance_date'].isoformat()}",
+            'batch_id': r['batch_id'],
+            'date': r['attendance_date'],
+            'date_iso': r['attendance_date'].isoformat(),
+            'course': batch.course.course_name,
+            'batch_name': batch.batch_name,
+            'timing': batch.timing,
+            'trainer': _staff_name(batch.trainer),
+            'topic': log.topic_covered if log else '-',
+            'present': r['present'],
+            'late': r['late'],
+            'absent': r['absent'],
+            'total': r['total'],
+            'marked_by': marked_by,
+            'marked_time': _fmt_time(r['first_marked']),
+            'edited': edited,
+            'fresh': False,
+        })
+
+    return rows
+
 
 #======================================= ATTENDANCE HISTORY PAGE =====================================#
 @login_required(login_url='staff_login')
@@ -624,79 +876,209 @@ def attendance_history_page(request):
     my_staff = getattr(request.user, 'staff_profile', None)
     my_role = my_staff.role.role_name if my_staff and my_staff.role else None
 
-    records = Attendance.objects.select_related('enrollment', 'batch').order_by('-attendance_date')
+    qs, f = _history_queryset(request, my_staff, my_role)
 
-    if my_role == 'Trainer':
-        records = records.filter(batch__trainer=my_staff)
+    # One row per batch per day (NOT one row per student)
+    rows_qs = (
+        qs.values('batch_id', 'attendance_date')
+        .annotate(
+            present=Count('id', filter=Q(status='Present')),
+            late=Count('id', filter=Q(status='Late')),
+            absent=Count('id', filter=Q(status='Absent')),
+            total=Count('id'),
+            first_marked=Min('timestamp'),
+            last_edit=Max('updated_at'),
+        )
+        .order_by('-attendance_date', 'batch_id')
+    )
 
-    courses = Course.objects.all()
+    edited_cond = Q(
+        last_edit__gt=ExpressionWrapper(
+            F('first_marked') + EDIT_GRACE, output_field=DateTimeField()
+        )
+    )
+    edited_count = rows_qs.filter(edited_cond).count()
 
-    attendance_filter = AttendanceFilter(request.GET, queryset=records)
+    if f['record_type'] == 'edited':
+        rows_qs = rows_qs.filter(edited_cond)
+    elif f['record_type'] == 'original':
+        rows_qs = rows_qs.exclude(edited_cond)
 
-    if my_role == 'Trainer':
-        attendance_filter.form.fields['batch'].queryset = Batch.objects.filter(trainer=my_staff)
-
-    filtered_records = attendance_filter.qs
-
-    try:
-        per_page = int(request.GET.get('per_page', 10))
-        if per_page not in (10, 25, 50):
-            per_page = 10
-    except (TypeError, ValueError):
-        per_page = 10
-
-    paginator = Paginator(filtered_records, per_page)
+    paginator = Paginator(rows_qs, PAGE_SIZE)
     page_obj = paginator.get_page(request.GET.get('page'))
 
-    total_records = paginator.count
-    present = filtered_records.filter(status__in=["Present", "Late"]).count()
+    rows = _build_history_rows(list(page_obj.object_list))
 
-    counts = count_by_status(filtered_records)
-    total_present = counts["present"]
-    total_absent = counts["absent"]
-    total_late = counts["late"]
+    # ---- Just saved (redirect from mark attendance): pin that row on top ----
+    saved_row = None
+    saved = request.GET.get('saved', '')
 
-    avg_attendance = round(
-        ((total_present + total_late) / total_records) * 100,
-        2
-    ) if total_records else 0
+    if saved.isdigit() and page_obj.number == 1:
+        saved_id = int(saved)
+        today = f['today']
 
-    querydict = request.GET.copy()
-    querydict.pop('page', None)
-    base_query = querydict.urlencode()
-
-    context = {
-        "filter": attendance_filter,
-        "records": page_obj,
-        "page_obj": page_obj,
-        "per_page": per_page,
-        "base_query": base_query,
-        "courses": courses,
-        "present": present,
-        "total_records": total_records,
-        "total_present": total_present,
-        "total_absent": total_absent,
-        "total_late": total_late,
-        "avg_attendance": avg_attendance,
-    }
-
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        table_html = render_to_string(
-            'attendance/_attendance_table_rows.html',
-            context,
-            request=request
+        saved_row = next(
+            (r for r in rows if r['batch_id'] == saved_id and r['date'] == today), None
         )
-        pagination_html = render_to_string(
-            'attendance/_attendance_pagination.html',
-            context,
-            request=request
-        )
-        return JsonResponse({
-            'table_html': table_html,
-            'pagination_html': pagination_html,
+
+        if saved_row:
+            rows.remove(saved_row)
+        else:
+            raw = rows_qs.filter(batch_id=saved_id, attendance_date=today).first()
+            built = _build_history_rows([raw]) if raw else []
+            saved_row = built[0] if built else None
+
+        if saved_row:
+            saved_row['fresh'] = True
+            saved_row['marked_time'] = 'Just now'
+            rows.insert(0, saved_row)
+
+    # ---- Query-string helpers (pagination / quick range links) ----
+    def _qs(**overrides):
+        q = request.GET.copy()
+        q.pop('page', None)
+        q.pop('saved', None)
+        for k, v in overrides.items():
+            if v is None:
+                q.pop(k, None)
+            else:
+                q[k] = v
+        return q.urlencode()
+
+    today = f['today']
+
+    quick_ranges = []
+    for label, days in (('Today', 0), ('Last 7 days', 6), ('Last 30 days', 29)):
+        start = today - timedelta(days=days)
+        quick_ranges.append({
+            'label': label,
+            'url': '?' + _qs(from_date=start.isoformat(), to_date=today.isoformat()),
+            'active': f['from_date'] == start and f['to_date'] == today,
         })
 
+    # ---- Pagination: First | Prev | 2 numbers | Next | Last ----
+    n = paginator.num_pages
+    c = page_obj.number
+    start = max(1, min(c, n - 1))
+    page_numbers = list(range(start, min(n, start + 1) + 1))
+
+    base_query = _qs()
+
+    trainers = []
+    if my_role != 'Trainer':
+        trainers = Staff.objects.filter(role__role_name='Trainer')
+
+    context = {
+        'rows': rows,
+        'page_obj': page_obj,
+        'paginator': paginator,
+        'page_numbers': page_numbers,
+        'base_query': base_query,
+        'quick_ranges': quick_ranges,
+        'saved_row': saved_row,
+        'total_records': paginator.count,
+        'student_entries': qs.count(),
+        'edited_count': edited_count,
+        'courses': Course.objects.all(),
+        'trainers': trainers,
+        'my_role': my_role,
+        'f': {
+            'search': f['search'],
+            'from_date': f['from_date'].isoformat() if f['from_date'] else '',
+            'to_date': f['to_date'].isoformat() if f['to_date'] else '',
+            'course_name': f['course_name'],
+            'trainer': f['trainer'],
+            'record_type': f['record_type'],
+            'range_error': f['range_error'],
+        },
+    }
+
     return render(request, 'attendance/attendance_history.html', context)
+
+
+#=========================== HISTORY ROW DETAIL (STUDENTS / CLASS LOG / AUDIT) ===========================#
+@login_required(login_url='staff_login')
+def attendance_history_detail(request, batch_id, date):
+
+    my_staff = getattr(request.user, 'staff_profile', None)
+    my_role = my_staff.role.role_name if my_staff and my_staff.role else None
+
+    batch = get_object_or_404(Batch.objects.select_related('course', 'trainer'), id=batch_id)
+
+    if my_role == 'Trainer' and batch.trainer_id != my_staff.id:
+        return JsonResponse({'error': 'You are not assigned to this batch.'}, status=403)
+
+    day = _parse_date(date)
+    if not day:
+        return JsonResponse({'error': 'Invalid date.'}, status=400)
+
+    is_today = (day == timezone.now().date())
+
+    records = list(
+        Attendance.objects.filter(batch=batch, attendance_date=day)
+        .select_related('enrollment__admission__student', 'created_by', 'updated_by')
+    )
+
+    order = {'Absent': 0, 'Late': 1, 'Present': 2}
+
+    students = []
+    for r in records:
+        student = r.enrollment.admission.student
+        students.append({
+            'student_pk': student.id,
+            'student_id': f"STU{student.id}",
+            'name': f"{student.first_name} {student.last_name}".strip(),
+            'status': r.status,
+            'remarks': r.remarks or '',
+        })
+    students.sort(key=lambda s: (order.get(s['status'], 3), s['name'].lower()))
+
+    counts = Counter(s['status'] for s in students)
+
+    # ---- Class log (SyllabusLog) ----
+    log = SyllabusLog.objects.filter(batch=batch, date=day).first()
+    class_log = None
+    if log:
+        class_log = {
+            'topic': log.topic_covered,
+            'next_topic': log.next_topic or '-',
+            'duration': f"{log.duration // 60}h {log.duration % 60}m",
+            'notes': log.trainer_notes or '-',
+        }
+
+    # ---- Audit trail ----
+    audit = []
+    if records:
+        first = min(records, key=lambda r: r.timestamp)
+        audit.append({
+            'type': 'mark',
+            'title': 'Attendance marked',
+            'by': _staff_name(first.created_by or batch.trainer),
+            'when': _fmt_stamp(first.timestamp),
+            'note': f"{counts['Present']} present, {counts['Late']} late, {counts['Absent']} absent",
+        })
+
+        edited = [r for r in records if r.updated_at and (r.updated_at - r.timestamp) > EDIT_GRACE]
+        if edited:
+            last = max(edited, key=lambda r: r.updated_at)
+            audit.append({
+                'type': 'edit',
+                'title': 'Attendance edited',
+                'by': _staff_name(last.updated_by),
+                'when': _fmt_stamp(last.updated_at),
+                'note': f"{len(edited)} student record(s) changed",
+            })
+
+    return JsonResponse({
+        'students': students,
+        'class_log': class_log,
+        'audit': audit,
+        'edit_url': f"/api/mark-attendance/{batch.id}/",
+        # Edit is allowed ONLY for today's attendance (mark page works on today's date)
+        'is_today': is_today,
+        'can_edit': is_today and my_role in ('Admin', 'Manager', 'Trainer'),
+    })
+
 
 #=============================== ATTENDANCE EXPORT (EXCEL / PDF) ==================================#
 @login_required(login_url='staff_login')
@@ -705,28 +1087,12 @@ def attendance_export(request):
     my_staff = getattr(request.user, 'staff_profile', None)
     my_role = my_staff.role.role_name if my_staff and my_staff.role else None
 
-    records = Attendance.objects.select_related(
-        'enrollment', 'batch', 'trainer'
-    ).order_by('-attendance_date')
+    # Same filters as the history page (date range, search, course, trainer)
+    qs, _f = _history_queryset(request, my_staff, my_role)
 
-    if my_role == 'Trainer':
-        records = records.filter(batch__trainer=my_staff)
-
-    attendance_filter = AttendanceFilter(request.GET, queryset=records)
-    qs = attendance_filter.qs
-
-    # ---- Restrict to selected rows if any were checked ----
-    selected_ids = request.GET.get("selected_ids", "")
-
-    if selected_ids:
-
-        id_list = [
-            int(i) for i in selected_ids.split(",")
-            if i.strip().isdigit()
-        ]
-
-        if id_list:
-            qs = qs.filter(id__in=id_list)
+    qs = qs.select_related(
+        'enrollment__admission__student', 'batch__course', 'batch__trainer', 'trainer'
+    ).order_by('-attendance_date', 'batch_id')
 
     export_format = request.GET.get("format")
     export_rows = build_export_rows(qs)
@@ -811,49 +1177,77 @@ def attendance_export(request):
 
     return HttpResponse("Invalid format", status=400)
 
-#=============================== STUDENT ATTENDANCE SUMMARY (API) ===============================#
+
+#=============================== STUDENT OVERALL ATTENDANCE (DRAWER API) ===============================#
+@login_required(login_url='staff_login')
 def student_attendance_summary(request, student_id):
 
-    records = Attendance.objects.filter(enrollment__admission__student_id=student_id).order_by("-attendance_date")
+    my_staff = getattr(request.user, 'staff_profile', None)
+    my_role = my_staff.role.role_name if my_staff and my_staff.role else None
 
-    counts = count_by_status(records)
-    present = counts["present"]
-    absent = counts["absent"]
-    late = counts["late"]
+    records = (
+        Attendance.objects.filter(enrollment__admission__student_id=student_id)
+        .select_related('enrollment__admission__student', 'batch__course', 'batch__trainer', 'created_by')
+        .order_by('-attendance_date')
+    )
 
-    total = records.count()
+    # Trainer -> only students of own batches
+    if my_role == 'Trainer':
+        records = records.filter(batch__trainer=my_staff)
 
-    percentage = round(((present + late) / total) * 100, 2) if total else 0
+    first = records.first()
 
-    student = records.first().enrollment.student if records.exists() else None
+    if not first:
+        return JsonResponse({'error': 'No attendance records found.'}, status=404)
 
+    student = first.enrollment.admission.student
+
+    counts = Counter()
+    months = OrderedDict()
     timeline = []
 
-    first_record = records.first()
-
     for r in records:
+        counts[r.status] += 1
+
+        label = r.attendance_date.strftime('%b %Y')
+        m = months.setdefault(label, {'label': label, 'present': 0, 'late': 0, 'absent': 0})
+        m[r.status.lower()] += 1
+
         timeline.append({
-            "date": r.attendance_date.strftime("%d-%m-%Y"),
-            "status": r.status
+            'date': r.attendance_date.strftime('%d %b %Y'),
+            'weekday': r.attendance_date.strftime('%a'),
+            'status': r.status,
+            'remarks': r.remarks or '',
+            'marked_by': _staff_name(r.created_by or r.batch.trainer),
         })
 
-    context = {
-        "student_id": f"STU{student.id}",
-        "course": first_record.enrollment.course.course_name if first_record else "",
-        "batch": first_record.batch.batch_name if first_record else "",
-        "timing": first_record.batch.timing if first_record else "",
-        "photo_url": student.photo.url if student and student.photo else None,
-        "present": present,
-        "absent": absent,
-        "late": late,
-        "percentage": percentage,
-        "timeline": timeline
-    }
+    total = sum(counts.values())
+    present, late, absent = counts['Present'], counts['Late'], counts['Absent']
+    percentage = round(((present + late) / total) * 100, 1) if total else 0
 
-    return JsonResponse({"student_name": (
-            f"{student.first_name} {student.last_name}"
-            if student else ""
-        ), **context
+    if percentage < 75:
+        risk = 'At Risk'
+    elif percentage < 85:
+        risk = 'Needs Attention'
+    else:
+        risk = 'Good Standing'
+
+    return JsonResponse({
+        'student_name': f"{student.first_name} {student.last_name}".strip(),
+        'student_id': f"STU{student.id}",
+        'photo_url': student.photo.url if student.photo else None,
+        'course': first.batch.course.course_name,
+        'batch': first.batch.batch_name,
+        'timing': first.batch.timing,
+        'trainer': _staff_name(first.batch.trainer),
+        'present': present,
+        'late': late,
+        'absent': absent,
+        'total': total,
+        'percentage': percentage,
+        'risk': risk,
+        'months': list(months.values()),
+        'timeline': timeline,
     })
 
 
@@ -947,7 +1341,7 @@ def mark_notification_sent(request, enrollment_id):
     tracker, created = AbsentTracker.objects.get_or_create(
         enrollment_id=enrollment_id
     )
-    
+
     tracker.notification_sent = True
     tracker.notification_status = "Dispatched"
     tracker.last_notified_at = timezone.now()
@@ -1656,8 +2050,8 @@ def reports(request):
     show_batch_chart = True
     if is_filtered and (course_filter or batch_filter):
         show_batch_chart = total_attendance > 0
-        
-            
+
+
     warning_message = ""
     if not show_batch_chart:
         if batch_filter:

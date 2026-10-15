@@ -31,6 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const firstNameInput = document.getElementById("id_first_name");
     const lastNameInput = document.getElementById("id_last_name");
     const guardianNameInput = document.getElementById("id_guardian_name");
+    const educationalQualificationInput = document.getElementById("id_educational_qualification");
 
     const emailInput = document.getElementById("id_email");
 
@@ -101,6 +102,7 @@ document.addEventListener("DOMContentLoaded", () => {
         !admissionDateInput ||
         !genderInput ||
         !addressInput ||
+        !educationalQualificationInput ||
         !courseInput ||
         !batchInput) {
 
@@ -117,13 +119,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (phoneInput) {
-        phoneInput.placeholder = "+91 XXXXXXXXXX";
-        phoneInput.setAttribute("maxlength", "13");
+    phoneInput.placeholder = "10 digit mobile number";
+    phoneInput.setAttribute("maxlength", "10");
+    phoneInput.setAttribute("inputmode", "numeric");
     }
 
     if (guardianPhoneInput) {
-        guardianPhoneInput.placeholder = "+91 XXXXXXXXXX";
-        guardianPhoneInput.setAttribute("maxlength", "13");
+    guardianPhoneInput.placeholder = "10 digit mobile number";
+    guardianPhoneInput.setAttribute("maxlength", "10");
+    guardianPhoneInput.setAttribute("inputmode", "numeric");
     }
 
 
@@ -133,11 +137,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const nameRegex = /^[A-Za-z ]+$/;
 
-    const basicEmailPattern =
-        /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    const basicEmailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
-    const indianPhonePattern =
-        /^\+91[6-9]\d{9}$/;
+    const indianPhonePattern = /^[6-9]\d{9}$/;
 
 
     const allowedDomainEndings = [
@@ -302,32 +304,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function sanitizeIndianPhone(input) {
 
-        if (!input) return;
+    if (!input) return;
 
-        let value = input.value;
-
-        // Only numbers and +
-        value = value.replace(/[^0-9+]/g, "");
-
-        // + only at beginning
-        if (value.startsWith("+")) {
-
-            value =
-                "+" +
-                value
-                    .substring(1)
-                    .replace(/\+/g, "");
-
-        } else {
-
-            value =
-                value.replace(/\+/g, "");
-        }
-
-        // Maximum +91 + 10 digits
-        value = value.substring(0, 13);
-
-        input.value = value;
+    // Only digits, max 10
+    input.value = input.value
+        .replace(/\D/g, "")
+        .substring(0, 10);
     }
 
 
@@ -337,54 +319,44 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function attachPhoneKeyboardValidation(input) {
 
-        if (!input) return;
+    if (!input) return;
 
-        input.addEventListener("keydown", function (e) {
+    input.addEventListener("keydown", function (e) {
 
-            const allowedKeys = [
+        const allowedKeys = [
+            "Backspace", "Delete",
+            "ArrowLeft", "ArrowRight",
+            "ArrowUp", "ArrowDown",
+            "Tab", "Home", "End"
+        ];
 
-                "Backspace",
-                "Delete",
-                "ArrowLeft",
-                "ArrowRight",
-                "ArrowUp",
-                "ArrowDown",
-                "Tab",
-                "Home",
-                "End"
-            ];
+        if (allowedKeys.includes(e.key)) return;
 
-            if (allowedKeys.includes(e.key)) {
+        // Ctrl/Cmd shortcuts (copy, paste, select all)
+        if (e.ctrlKey || e.metaKey) return;
+
+        if (/^[0-9]$/.test(e.key)) {
+
+            // First digit must be 6-9
+            if (this.selectionStart === 0 && !/[6-9]/.test(e.key)) {
+                e.preventDefault();
                 return;
             }
 
-            // Numbers
-            if (/^[0-9]$/.test(e.key)) {
-
-                // Don't allow more than 13 characters
-                if (
-                    this.value.length >= 13 &&
-                    this.selectionStart === this.selectionEnd
-                ) {
-                    e.preventDefault();
-                }
-
-                return;
-            }
-
-            // + only at first position
+            // Max 10 digits
             if (
-                e.key === "+" &&
-                this.selectionStart === 0 &&
-                !this.value.includes("+")
+                this.value.length >= 10 &&
+                this.selectionStart === this.selectionEnd
             ) {
-                return;
+                e.preventDefault();
             }
 
-            e.preventDefault();
-        });
-    }
+            return;
+        }
 
+        e.preventDefault();
+    });
+    }
 
     // ============================================================
     // PHONE PASTE VALIDATION
@@ -405,28 +377,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 (e.clipboardData || window.clipboardData)
                     .getData("text");
 
-            pasted =
-                pasted.replace(/[^0-9+]/g, "");
+            pasted = pasted.replace(/\D/g, "");
 
-            if (pasted.includes("+")) {
 
-                if (pasted.startsWith("+")) {
-
-                    pasted =
-                        "+" +
-                        pasted
-                            .substring(1)
-                            .replace(/\+/g, "");
-
-                } else {
-
-                    pasted =
-                        pasted.replace(/\+/g, "");
-                }
+            if (pasted.length > 10 && pasted.startsWith("91")) {
+                pasted = pasted.substring(2);
+            }
+            if (pasted.length > 10 && pasted.startsWith("0")) {
+                 pasted = pasted.substring(1);
             }
 
-            pasted =
-                pasted.substring(0, 13);
+            pasted = pasted.substring(0, 10);
 
             const start =
                 this.selectionStart;
@@ -504,68 +465,106 @@ document.addEventListener("DOMContentLoaded", () => {
     // COURSE -> BATCH AJAX
     // ============================================================
 
-    if (courseInput && batchInput) {
+    async function loadBatches(courseId, selectedBatchId) {
 
-        courseInput.addEventListener(
-            "change",
-            async () => {
+        if (!batchInput) return;
 
-                batchInput.innerHTML =
-                    '<option value="">Loading...</option>';
+        batchInput.innerHTML = '<option value="">Loading...</option>';
 
-                if (!courseInput.value) {
+        if (!courseId) {
+            batchInput.innerHTML = '<option value="">Select Batch</option>';
+            return;
+        }
 
-                    batchInput.innerHTML =
-                        '<option value="">Select Batch</option>';
+        try {
+            const response = await fetch(
+                `/api/get-batches/?course_id=${encodeURIComponent(courseId)}`
+            );
 
-                    return;
-                }
-
-                try {
-
-                    const response =
-                        await fetch(
-                            `/api/get-batches/?course_id=${encodeURIComponent(
-                                courseInput.value
-                            )}`
-                        );
-
-                    if (!response.ok) {
-                        throw new Error(
-                            "Unable to load batches"
-                        );
-                    }
-
-                    const batches =
-                        await response.json();
-
-                    batchInput.innerHTML =
-                        '<option value="">Select Batch</option>';
-
-                    batches.forEach(batch => {
-
-                        const option =
-                            document.createElement("option");
-
-                        option.value =
-                            batch.id;
-
-                        option.textContent =
-                            batch.batch_name;
-
-                        batchInput.appendChild(option);
-                    });
-
-                } catch (err) {
-
-                    console.error(err);
-
-                    batchInput.innerHTML =
-                        '<option value="">Unable to load batches</option>';
-                }
+            if (!response.ok) {
+                throw new Error("Unable to load batches");
             }
-        );
+
+            const batches = await response.json();
+
+            batchInput.innerHTML = '<option value="">Select Batch</option>';
+
+            batches.forEach(batch => {
+                const option = document.createElement("option");
+                option.value = batch.id;
+                option.textContent = batch.batch_name;
+                batchInput.appendChild(option);
+            });
+
+            if (selectedBatchId) {
+                batchInput.value = String(selectedBatchId);
+            }
+
+        } catch (err) {
+            console.error(err);
+            batchInput.innerHTML =
+                '<option value="">Unable to load batches</option>';
+        }
     }
+
+    if (courseInput && batchInput) {
+        courseInput.addEventListener("change", () => {
+            loadBatches(courseInput.value);
+        });
+    }
+
+
+    // ============================================================
+    // LOCKED COURSE + BATCH
+    // (opened from a batch's student list -> Add New Student)
+    // ============================================================
+
+    const lockedCourseId = form.dataset.lockedCourse;
+    const lockedBatchId = form.dataset.lockedBatch;
+
+    function lockSelect(select) {
+
+        if (!select || select.dataset.locked) return;
+
+        // disabled selects are NOT submitted, so keep a hidden copy
+        const hidden = document.createElement("input");
+        hidden.type = "hidden";
+        hidden.name = select.name;
+        hidden.value = select.value;
+
+        select.insertAdjacentElement("afterend", hidden);
+
+        select.disabled = true;
+        select.dataset.locked = "1";
+        select.classList.add("locked-field");
+    }
+
+    async function applyLockedSelection() {
+
+        if (!lockedCourseId || !lockedBatchId) return;
+
+        courseInput.value = lockedCourseId;
+        updateCourseDetails();
+
+        await loadBatches(lockedCourseId, lockedBatchId);
+
+        lockSelect(courseInput);
+        lockSelect(batchInput);
+    }
+
+    applyLockedSelection();
+
+    // "Clear Form" resets everything, so put the locked values back
+    form.addEventListener("reset", () => {
+
+        if (!lockedCourseId || !lockedBatchId) return;
+
+        setTimeout(() => {
+            courseInput.value = lockedCourseId;
+            batchInput.value = lockedBatchId;
+            updateCourseDetails();
+        }, 0);
+    });
 
 
     // ============================================================
@@ -652,6 +651,11 @@ document.addEventListener("DOMContentLoaded", () => {
     bindLetterOnly(
         guardianNameInput,
         "Guardian Name"
+    );
+
+    bindLetterOnly(
+        educationalQualificationInput,
+        "Educational Qualification"
     );
 
 
@@ -872,7 +876,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             showError(
                 phoneInput,
-                "Phone number should start with +91 and contain a valid 10-digit Indian mobile number."
+                "Enter a valid 10-digit mobile number starting with 6, 7, 8 or 9."
             );
 
             return false;
@@ -909,15 +913,11 @@ document.addEventListener("DOMContentLoaded", () => {
             const data =
                 await response.json();
 
-            if (data.exists) {
-
-                showError(
-                    phoneInput,
-                    "Phone number already exists."
-                );
+            if (data.exists || data.guardian_exists) {
+                showError(phoneInput,"Phone number already exists.");
 
                 return false;
-            }
+        }
 
             clearError(phoneInput);
 
@@ -1012,7 +1012,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             showError(
                 guardianPhoneInput,
-                "Guardian phone number should start with +91 and contain a valid 10-digit Indian mobile number."
+                "Enter a valid 10-digit mobile number starting with 6, 7, 8 or 9."
             );
 
             return false;
@@ -1066,15 +1066,11 @@ document.addEventListener("DOMContentLoaded", () => {
             const data =
                 await response.json();
 
-            if (data.guardian_exists) {
-
-                showError(
-                    guardianPhoneInput,
-                    "Guardian phone number already exists."
-                );
+            if (data.guardian_exists || data.exists) {
+                showError(guardianPhoneInput, "Guardian phone number already exists.");
 
                 return false;
-            }
+           }
 
             clearError(
                 guardianPhoneInput
