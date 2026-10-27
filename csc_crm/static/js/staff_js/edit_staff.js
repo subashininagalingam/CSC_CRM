@@ -608,34 +608,14 @@ document.addEventListener("DOMContentLoaded", function () {
     // PHONE
     // ========================================================
 
-    const indianPhone =
-        /^\+91[6-9]\d{9}$/;
+    // 10-digit Indian mobile (6/7/8/9 start), no +91 - rule lives in phone_validation.js
 
     function sanitizePhone(input) {
 
         if (!input) return;
 
-        let val =
-            input.value.replace(
-                /[^0-9+]/g,
-                ""
-            );
-
-        if (val.startsWith("+")) {
-
-            val =
-                "+" +
-                val.substring(1)
-                    .replace(/\+/g, "");
-
-        } else {
-
-            val =
-                val.replace(/\+/g, "");
-        }
-
         input.value =
-            val.substring(0, 13);
+            CSCPhone.sanitize(input.value);
     }
 
     function validatePhone() {
@@ -645,23 +625,15 @@ document.addEventListener("DOMContentLoaded", function () {
         const val =
             value(phone);
 
-        if (!val) {
+        const phoneMessage =
+            CSCPhone.error(val);
+
+        if (phoneMessage) {
 
             error(
                 phone,
                 errors.phone,
-                "Phone number is required."
-            );
-
-            return false;
-        }
-
-        if (!indianPhone.test(val)) {
-
-            error(
-                phone,
-                errors.phone,
-                "Phone number should start with +91 and contain a valid 10-digit Indian mobile number."
+                phoneMessage
             );
 
             return false;
@@ -870,12 +842,15 @@ document.addEventListener("DOMContentLoaded", function () {
             return true;
         }
 
-        if (!indianPhone.test(val)) {
+        const emergencyMessage =
+            CSCPhone.error(val);
+
+        if (emergencyMessage) {
 
             error(
                 emergencyPhone,
                 errors.emergencyPhone,
-                "Phone number should start with +91 and contain a valid 10-digit Indian mobile number."
+                emergencyMessage
             );
 
             return false;

@@ -1,19 +1,3 @@
-// ====================== BLOCK EMPLOYEE ID EDITING ======================
-
-document.addEventListener('DOMContentLoaded', () => {
-    const employeeIdInput = document.querySelector('[name="employee_id"]');
-    if (!employeeIdInput) return;
-
-    const originalEmployeeId = employeeIdInput.value;
-    employeeIdInput.readOnly = true;
-
-    employeeIdInput.addEventListener('keydown', (e) => e.preventDefault());
-    employeeIdInput.addEventListener('paste', (e) => e.preventDefault());
-    employeeIdInput.addEventListener('drop', (e) => e.preventDefault());
-    employeeIdInput.addEventListener('input', () => { employeeIdInput.value = originalEmployeeId; });
-    employeeIdInput.addEventListener('change', () => { employeeIdInput.value = originalEmployeeId; });
-});
-
 // ===================== GLOBAL ERROR HELPERS (shared by everything below) =============================
 
 function showFieldError(input, errorElement, message) {
@@ -105,23 +89,68 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ---- PHONE: strict +91 + 10 digit Indian mobile ----
-    function validatePhoneFormat() {
-        const phone = phoneInput.value.trim();
+    // ---- EMPLOYEE ID: entered manually, must be unique ----
+    const employeeIdInput = document.getElementById('employeeIdInput');
+    const employeeIdError = document.getElementById('employeeIdError');
 
-        if (phone === '') {
-            showFieldError(phoneInput, phoneError, 'Phone number is required.');
+    function validateEmployeeIdFormat() {
+        if (!employeeIdInput) return true;
+
+        const value = employeeIdInput.value.trim();
+
+        if (value === '') {
+            showFieldError(employeeIdInput, employeeIdError, 'Employee ID is required.');
             return false;
         }
 
-        const indianPhonePattern = /^\+91[6-9]\d{9}$/;
+        if (/\s/.test(value)) {
+            showFieldError(employeeIdInput, employeeIdError, 'Employee ID cannot contain spaces.');
+            return false;
+        }
 
-        if (!indianPhonePattern.test(phone)) {
-            showFieldError(
-                phoneInput,
-                phoneError,
-                'Phone number should start with +91 and contain a valid 10-digit Indian mobile number.'
-            );
+        clearFieldError(employeeIdInput, employeeIdError);
+        return true;
+    }
+
+    async function checkDuplicateEmployeeId() {
+        if (!employeeIdInput) return true;
+        if (!validateEmployeeIdFormat()) return false;
+
+        const value = employeeIdInput.value.trim();
+
+        try {
+            const response = await fetch(`/staff/check-employee-id/?employee_id=${encodeURIComponent(value)}`);
+            const data = await response.json();
+
+            if (data.exists) {
+                showFieldError(employeeIdInput, employeeIdError, 'This employee ID already exists!');
+                return false;
+            }
+
+            clearFieldError(employeeIdInput, employeeIdError);
+            return true;
+        } catch (error) {
+            console.log('Employee ID check error:', error);
+            showFieldError(employeeIdInput, employeeIdError, 'Unable to check employee ID right now.');
+            return false;
+        }
+    }
+
+    if (employeeIdInput) {
+        employeeIdInput.addEventListener('input', () => {
+            // no spaces while typing
+            employeeIdInput.value = employeeIdInput.value.replace(/\s/g, '');
+            validateEmployeeIdFormat();
+        });
+        employeeIdInput.addEventListener('blur', async () => { await checkDuplicateEmployeeId(); });
+    }
+
+    // ---- PHONE: 10-digit Indian mobile (6/7/8/9 start), no +91 ----
+    function validatePhoneFormat() {
+        const message = CSCPhone.error(phoneInput.value);
+
+        if (message) {
+            showFieldError(phoneInput, phoneError, message);
             return false;
         }
 
@@ -157,16 +186,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Run validation immediately on every keystroke — sanitize then validate
     phoneInput.addEventListener('input', () => {
-        let value = phoneInput.value.replace(/[^0-9+]/g, '');
-
-        if (value.startsWith('+')) {
-            value = '+' + value.substring(1).replace(/\+/g, '');
-        } else {
-            value = value.replace(/\+/g, '');
-        }
-
-        value = value.substring(0, 13);
-        phoneInput.value = value;
+        // digits only, max 10 (so "+91" can never be typed or pasted in)
+        phoneInput.value = CSCPhone.sanitize(phoneInput.value);
 
         validatePhoneFormat();
     });
@@ -199,6 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.innerText = 'Checking...';
         }
 
+        const isEmployeeIdValid = await checkDuplicateEmployeeId();
         const isEmailValid = await checkDuplicateEmail();
         const isPhoneValid = await checkDuplicatePhone();
 
@@ -215,6 +237,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (typeof window.__validateSkillsField === 'function') {
             if (!window.__validateSkillsField()) extraValid = false;
+        }
+
+        if (!isEmployeeIdValid) {
+            employeeIdInput.focus();
+            isChecking = false;
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerText = submitBtn.dataset.originalText || 'Add Staff';
+            }
+            return;
         }
 
         if (!isEmailValid) {
@@ -359,8 +391,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
-    // +91 + valid 10 digit Indian mobile number
-    const phonePattern = /^\+91[6-9]\d{9}$/;
+    // 10-digit Indian mobile number (6/7/8/9 start), no +91 - see phone_validation.js
 
 
     // ==================================================
@@ -399,19 +430,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const value = input.value.trim();
 
-        // Empty value
-        if (value === '') {
-            showError('Phone number is required.');
-            return false;
-        }
+        const message = CSCPhone.error(value);
 
-        // Invalid phone
-        if (!phonePattern.test(value)) {
-
-            showError(
-                'Phone number should start with +91 and contain a valid 10-digit Indian mobile number.'
-            );
-
+        if (message) {
+            showError(message);
             return false;
         }
 
@@ -445,30 +467,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     input.addEventListener('input', function () {
 
-        let value = this.value;
-
-        // Allow only numbers and +
-        value = value.replace(/[^0-9+]/g, '');
-
-        // + only at beginning
-        if (value.includes('+')) {
-
-            if (!value.startsWith('+')) {
-
-                value = value.replace(/\+/g, '');
-
-            } else {
-
-                value =
-                    '+' +
-                    value.substring(1).replace(/\+/g, '');
-            }
-        }
-
-        // Maximum +91 + 10 digits
-        value = value.substring(0, 13);
-
-        this.value = value;
+        // digits only, max 10 (no +91)
+        this.value = CSCPhone.sanitize(this.value);
 
         validateEmergencyPhone();
     });
@@ -503,21 +503,12 @@ document.addEventListener('DOMContentLoaded', function () {
             'End'
         ];
 
-        if (allowedKeys.includes(e.key)) {
+        if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey) {
             return;
         }
 
         // Numbers allowed
         if (/^[0-9]$/.test(e.key)) {
-            return;
-        }
-
-        // + allowed only as first character
-        if (
-            e.key === '+' &&
-            this.selectionStart === 0 &&
-            !this.value.includes('+')
-        ) {
             return;
         }
 
@@ -538,34 +529,17 @@ document.addEventListener('DOMContentLoaded', function () {
             (e.clipboardData || window.clipboardData)
                 .getData('text');
 
-        // Remove invalid characters
-        pasted = pasted.replace(/[^0-9+]/g, '');
-
-        // + only at beginning
-        if (pasted.includes('+')) {
-
-            if (pasted.startsWith('+')) {
-
-                pasted =
-                    '+' +
-                    pasted.substring(1).replace(/\+/g, '');
-
-            } else {
-
-                pasted = pasted.replace(/\+/g, '');
-            }
-        }
-
-        // Maximum 13 characters
-        pasted = pasted.substring(0, 13);
+        // digits only (so a pasted "+91..." loses the symbols)
+        pasted = pasted.replace(/\D/g, '');
 
         const start = this.selectionStart;
         const end = this.selectionEnd;
 
-        this.value =
+        this.value = CSCPhone.sanitize(
             this.value.substring(0, start) +
             pasted +
-            this.value.substring(end);
+            this.value.substring(end)
+        );
 
         validateEmergencyPhone();
     });

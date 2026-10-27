@@ -3,44 +3,6 @@
 // ============================================================
 
 
-function openPopup(name, date, time, duration, outcome, notes, follow) {
-
-    const elements = {
-        p_name: name,
-        p_date: date,
-        p_outcome: outcome,
-        p_notes: notes,
-        p_follow: follow
-    };
-
-    Object.entries(elements).forEach(([id, value]) => {
-
-        const element = document.getElementById(id);
-
-        if (element) {
-            element.innerText = value || "";
-        }
-
-    });
-
-    const popup = document.getElementById("popup");
-
-    if (popup) {
-        popup.style.display = "block";
-    }
-}
-
-
-function closePopup() {
-
-    const popup = document.getElementById("popup");
-
-    if (popup) {
-        popup.style.display = "none";
-    }
-}
-
-
 // ============================================================
 // ONLY LETTERS
 // ============================================================
@@ -351,27 +313,19 @@ document.addEventListener("DOMContentLoaded", function () {
     // INDIAN MOBILE NUMBER
     // ========================================================
     //
-    // Required format:
+    // The "+91" is a fixed prefix shown next to the box, so the user
+    // only types the 10-digit number.
     //
-    // +91XXXXXXXXXX
+    // Rules: exactly 10 digits, first digit 6 / 7 / 8 / 9
     //
-    // XXXXXXXXXX = exactly 10 digits
-    //
-    // First digit must be:
-    // 6 / 7 / 8 / 9
-    //
-    // Examples:
-    // +919876543210  VALID
-    // +916987654321  VALID
-    // +915987654321  INVALID
-    // 9876543210      INVALID
-    // +91987654321    INVALID
-    // +9198765432100  INVALID
+    //   9876543210   VALID
+    //   6987654321   VALID
+    //   5987654321   INVALID (starts with 5)
+    //   987654321    INVALID (9 digits)
     //
     // ========================================================
 
-    const indianMobileRegex =
-        /^\+91[6-9]\d{9}$/;
+    const indianMobileRegex = /^[6-9]\d{9}$/;
 
 
     // ========================================================
@@ -504,32 +458,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function cleanPhoneValue(value) {
 
-        // Keep only digits and +
-        value =
-            value.replace(/[^\d+]/g, "");
+        // Digits only
+        value = value.replace(/\D/g, "");
 
-
-        // + is allowed only at beginning
-        if (value.includes("+")) {
-
-            value =
-                "+" +
-                value.replace(/\+/g, "");
-
-        }
-
-
-        // Maximum 13 characters
-        // +91 + 10 digits
-        if (value.length > 13) {
-
-            value =
-                value.substring(0, 13);
-
-        }
-
-
-        return value;
+        // Maximum 10 digits
+        return value.substring(0, 10);
     }
 
 
@@ -537,91 +470,38 @@ document.addEventListener("DOMContentLoaded", function () {
     // PHONE VALIDATION
     // ========================================================
 
+    function phoneMessage(value) {
+
+        if (!value) {
+            return "Phone number is required.";
+        }
+
+        if (!/^[6-9]/.test(value)) {
+            return "Mobile number must start with 6, 7, 8, or 9.";
+        }
+
+        if (value.length !== 10) {
+            return "Enter a valid 10-digit mobile number.";
+        }
+
+        return "";
+    }
+
     function validatePhone() {
 
         if (!phoneInput) {
             return true;
         }
 
+        const message = phoneMessage(phoneInput.value.trim());
 
-        const value =
-            phoneInput.value.trim();
-
-
-        // Phone is required
-        if (!value) {
-
-            if (phoneError) {
-                phoneError.innerText =
-                    "Phone number is required.";
-            }
-
-            phoneInput.classList.add(
-                "error-input"
-            );
-
-            return false;
-        }
-
-
-        // Must start with +91
-        if (!value.startsWith("+91")) {
-
-            if (phoneError) {
-                phoneError.innerText =
-                    "Indian mobile number must start with +91.";
-            }
-
-            phoneInput.classList.add(
-                "error-input"
-            );
-
-            return false;
-        }
-
-
-        // Must be exactly +91 + 10 digits
-        if (value.length !== 13) {
-
-            if (phoneError) {
-                phoneError.innerText =
-                    "Enter a valid 10-digit Indian mobile number after +91.";
-            }
-
-            phoneInput.classList.add(
-                "error-input"
-            );
-
-            return false;
-        }
-
-
-        // First mobile digit must be 6-9
-        if (!indianMobileRegex.test(value)) {
-
-            if (phoneError) {
-                phoneError.innerText =
-                    "Enter a valid Indian mobile number starting with 6, 7, 8, or 9.";
-            }
-
-            phoneInput.classList.add(
-                "error-input"
-            );
-
-            return false;
-        }
-
-
-        // Valid
         if (phoneError) {
-            phoneError.innerText = "";
+            phoneError.innerText = message;
         }
 
-        phoneInput.classList.remove(
-            "error-input"
-        );
+        phoneInput.classList.toggle("error-input", message !== "");
 
-        return true;
+        return message === "" && indianMobileRegex.test(phoneInput.value.trim());
     }
 
 
@@ -631,64 +511,26 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (phoneInput) {
 
+        phoneInput.setAttribute("maxlength", "10");
+        phoneInput.setAttribute("inputmode", "numeric");
+
+        // Edit page may still hold a stored "+91XXXXXXXXXX"
+        phoneInput.value = cleanPhoneValue(phoneInput.value);
+
         phoneInput.addEventListener(
             "input",
             function () {
 
-                this.value =
-                    cleanPhoneValue(
-                        this.value
-                    );
+                this.value = cleanPhoneValue(this.value);
 
-
-                const value =
-                    this.value;
-
-
-                if (!value) {
-
-                    if (phoneError) {
-                        phoneError.innerText =
-                            "Phone number is required.";
-                    }
-
+                if (phoneError) {
+                    phoneError.innerText = phoneMessage(this.value);
                 }
 
-                else if (!value.startsWith("+91")) {
-
-                    if (phoneError) {
-                        phoneError.innerText =
-                            "Indian mobile number must start with +91.";
-                    }
-
-                }
-
-                else if (value.length < 13) {
-
-                    if (phoneError) {
-                        phoneError.innerText =
-                            "Enter 10 digits after +91.";
-                    }
-
-                }
-
-                else if (!indianMobileRegex.test(value)) {
-
-                    if (phoneError) {
-                        phoneError.innerText =
-                            "Indian mobile number must start with 6, 7, 8, or 9.";
-                    }
-
-                }
-
-                else {
-
-                    if (phoneError) {
-                        phoneError.innerText = "";
-                    }
-
-                }
-
+                this.classList.toggle(
+                    "error-input",
+                    phoneMessage(this.value) !== ""
+                );
 
                 window.toggleSubmitButton();
 
@@ -696,126 +538,63 @@ document.addEventListener("DOMContentLoaded", function () {
         );
 
 
-        // ====================================================
-        // PHONE KEYBOARD RESTRICTION
-        // ====================================================
-
+        // Digits only from the keyboard
         phoneInput.addEventListener(
             "keydown",
             function (e) {
 
                 const allowedKeys = [
-                    "Backspace",
-                    "Delete",
-                    "ArrowLeft",
-                    "ArrowRight",
-                    "ArrowUp",
-                    "ArrowDown",
-                    "Tab",
-                    "Home",
-                    "End"
+                    "Backspace", "Delete", "ArrowLeft", "ArrowRight",
+                    "ArrowUp", "ArrowDown", "Tab", "Home", "End"
                 ];
-
 
                 if (allowedKeys.includes(e.key)) {
                     return;
                 }
 
-
-                // Prevent Enter
                 if (e.key === "Enter") {
-
                     e.preventDefault();
-
                     return;
                 }
 
-
-                // Ctrl / Cmd shortcuts
                 if (
-                    e.ctrlKey ||
-                    e.metaKey
+                    (e.ctrlKey || e.metaKey) &&
+                    ["a", "c", "v", "x"].includes(e.key.toLowerCase())
                 ) {
-
-                    if (
-                        ["a", "c", "v", "x"].includes(
-                            e.key.toLowerCase()
-                        )
-                    ) {
-                        return;
-                    }
-
+                    return;
                 }
 
-
-                // Digits
                 if (/^\d$/.test(e.key)) {
 
-                    if (this.value.length >= 13) {
+                    const hasSelection =
+                        this.selectionStart !== this.selectionEnd;
 
+                    if (this.value.length >= 10 && !hasSelection) {
                         e.preventDefault();
-
                     }
 
                     return;
                 }
 
-
-                // + only at first character
-                if (
-                    e.key === "+" &&
-                    this.value.length === 0
-                ) {
-                    return;
-                }
-
-
-                // Block everything else
                 e.preventDefault();
 
             }
         );
 
 
-        // ====================================================
-        // PHONE PASTE
-        // ====================================================
-
+        // Paste: keep digits only (drops +91 / 91 / 0 prefix)
         phoneInput.addEventListener(
             "paste",
             function (e) {
 
                 e.preventDefault();
 
-
                 const pastedText =
-                    (
-                        e.clipboardData ||
-                        window.clipboardData
-                    ).getData("text");
+                    (e.clipboardData || window.clipboardData).getData("text");
 
+                this.value = cleanPhoneValue(pastedText);
 
-                const cleaned =
-                    cleanPhoneValue(
-                        pastedText
-                    );
-
-
-                this.value =
-                    cleaned.substring(
-                        0,
-                        13
-                    );
-
-
-                this.dispatchEvent(
-                    new Event(
-                        "input",
-                        {
-                            bubbles: true
-                        }
-                    )
-                );
+                this.dispatchEvent(new Event("input", { bubbles: true }));
 
             }
         );

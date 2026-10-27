@@ -1,4 +1,6 @@
+import re
 from django import forms
+from django.db.models import Q
 from .models import *
 
 
@@ -19,7 +21,11 @@ class LeadCaptureForm(forms.ModelForm):
             }),
             'phone_no': forms.TextInput(attrs={
                 'id': 'phone_no',
-                'placeholder': 'Enter phone number',
+                'placeholder': 'Enter 10-digit mobile number',
+                'maxlength': '10',
+                'inputmode': 'numeric',
+                'autocomplete': 'off',
+                'class': 'phone-input',
             }),
             'lead_name': forms.TextInput(attrs={
                 'placeholder': 'Enter lead name',
@@ -34,32 +40,78 @@ class LeadCaptureForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        # Only active staff in these roles (BDE, Telecalling, Sales Executive,
+        # Sales Lead). Matching is case-insensitive and covers the role-name
+        # spellings used in the Staff model / admin.
+        assignable_roles = [
+            'BDE',
+            'Telecalling', 'Telecall', 'Telecaller',
+            'Sales Exec', 'Sales Executive',
+            'Sales Exec Lead', 'Sales Lead',
+        ]
+        role_filter = Q()
+        for role_name in assignable_roles:
+            role_filter |= Q(role__role_name__iexact=role_name)
+
         self.fields['assigned_to'].queryset = Staff.objects.filter(
-            role__role_name__in=['BDE', 'Telecall', 'Sales Exec'],
+            role_filter,
             status='active'
         )
 
+        # Show only the 10 digits in the input (the +91 is a fixed prefix in the UI)
+        phone = self.initial.get('phone_no') or getattr(self.instance, 'phone_no', '')
+        if phone and not self.is_bound:
+            self.initial['phone_no'] = phone[-10:]
+
     def clean_phone_no(self):
-        phone = self.cleaned_data.get('phone_no')
+        phone = (self.cleaned_data.get('phone_no') or '').strip().replace(' ', '')
 
-        if phone:
-            if (
-                not phone.startswith('+91')
-                or not phone[3:].isdigit()
-                or len(phone[3:]) != 10
-            ):
-                raise forms.ValidationError(
-                    'Phone number should start with +91 and contain a valid 10-digit Indian mobile number.'
-                )
+        # Tolerate the legacy "+91" prefix, but the number itself must be
+        # exactly 10 digits starting with 6, 7, 8 or 9.
+        
+        if not re.fullmatch(r'[6-9]\d{9}', phone):
+            raise forms.ValidationError(
+                'Enter a valid 10-digit Indian mobile number starting with 6, 7, 8 or 9.'
+            )
 
-        return phone
+        # Stored in the existing "93XXXXXXXX" format
+        return f'{phone}'
 
 
 # Call-log form
 class CallLogForm(forms.ModelForm):
     class Meta:
         model = CallLog
-        fields = '__all__'
+        fields = [
+            'lead', 'lead_name', 'call_type', 'call_date', 'call_time',
+            'duration', 'duration_seconds', 'call_outcome', 'notes',
+            'next_followup_date',
+        ]
+
+    def clean(self):
+        cleaned = super().clean()
+
+        # Link the call to a lead: use the selected one, otherwise try an exact name match
+        name = (cleaned.get('lead_name') or '').strip()
+        if not cleaned.get('lead') and name:
+            matches = list(LeadCapture.objects.filter(lead_name__iexact=name)[:2])
+            if len(matches) == 1:
+                cleaned['lead'] = matches[0]
+
+        if cleaned.get('lead'):
+            cleaned['lead_name'] = cleaned['lead'].lead_name
+
+        # A call that did not connect has no talk time
+        if cleaned.get('call_type') == 'did_not_connect':
+            cleaned['duration'] = 0
+            cleaned['duration_seconds'] = 0
+        else:
+            cleaned['duration'] = cleaned.get('duration') or 0
+            cleaned['duration_seconds'] = cleaned.get('duration_seconds') or 0
+            if cleaned['duration_seconds'] > 59:
+                self.add_error('duration_seconds', 'Seconds must be between 0 and 59.')
+
+        return cleaned
 
 
 # Lead Capture Target Form (Marketing)

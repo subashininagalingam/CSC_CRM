@@ -209,46 +209,162 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 
-    /*=========================================
-            STUDENT VALIDATION (real-time)
-    =========================================*/
+/*=========================================
+    STUDENT SEARCH 
+=========================================*/
 
-    const studentSelect = document.querySelector('select[name="student"]');
-    let studentError = document.getElementById("student-error");
+const studentCombo = document.getElementById("studentCombo");
+const studentSearch = document.getElementById("studentSearch");
+const studentIdInput = document.getElementById("studentId");
+const studentBox = document.getElementById("student_suggestions");
 
-    if (studentSelect && !studentError) {
+let studentError = document.getElementById("student-error");
 
-        studentError = document.createElement("small");
-        studentError.id = "student-error";
-        studentError.className = "error";
-        studentSelect.insertAdjacentElement("afterend", studentError);
+if (studentCombo && !studentError) {
+    studentError = document.createElement("small");
+    studentError.id = "student-error";
+    studentError.className = "error";
+    studentCombo.insertAdjacentElement("afterend", studentError);
+}
+
+let studentSearchTimer = null;
+
+function hideStudentBox() {
+    studentBox.innerHTML = "";
+    studentBox.style.display = "none";
+}
+
+function renderStudentSuggestions(students) {
+
+    if (!students || students.length === 0) {
+        studentBox.innerHTML = '<div class="student-suggestion-empty">No matching students found</div>';
+        studentBox.style.display = "block";
+        return;
+    }
+
+    studentBox.innerHTML = "";
+
+    students.forEach(s => {
+        const item = document.createElement("div");
+        item.className = "student-suggestion-item";
+        item.dataset.id = s.id;
+        item.dataset.label = "STU" + s.id + " - " + s.name;
+
+        const nameEl = document.createElement("span");
+        nameEl.className = "student-suggestion-name";
+        nameEl.textContent = s.name;
+
+        const metaEl = document.createElement("span");
+        metaEl.className = "student-suggestion-meta";
+        metaEl.textContent = "STU" + s.id + (s.batch ? " • " + s.batch : "");
+
+        item.appendChild(nameEl);
+        item.appendChild(metaEl);
+        studentBox.appendChild(item);
+    });
+
+    studentBox.style.display = "block";
+}
+
+function selectStudent(id, label) {
+    studentIdInput.value = id;
+    studentSearch.value = label;
+    hideStudentBox();
+    validateStudent();
+}
+
+function validateStudent() {
+
+    if (!studentSearch || !studentError) return true;
+
+    if (!studentIdInput.value) {
+
+        const msg = studentSearch.value.trim()
+            ? "Please pick a student from the list"
+            : "Please select a student";
+
+        showError(studentSearch, studentError, msg);
+        return false;
 
     }
 
-    function validateStudent() {
+    clearError(studentSearch, studentError);
+    return true;
 
-        if (!studentSelect || !studentError) return true;
+}
 
-        if (!studentSelect.value) {
+if (studentSearch && studentBox) {
 
-            showError(studentSelect, studentError, "Please select a student");
-            return false;
+    studentSearch.addEventListener("input", function () {
 
-        } else {
+        studentIdInput.value = "";   // typed text changed -> selection no longer valid
 
-            clearError(studentSelect, studentError);
-            return true;
+        clearTimeout(studentSearchTimer);
 
+        const query = this.value.trim();
+
+        if (query.length < 2) {
+            hideStudentBox();
+            return;
         }
 
+        studentSearchTimer = setTimeout(() => {
+
+            fetch(searchStudentUrl + "?q=" + encodeURIComponent(query))
+                .then(res => res.json())
+                .then(data => renderStudentSuggestions(data.students))
+                .catch(() => hideStudentBox());
+
+        }, 300);
+
+        clearError(studentSearch, studentError);
+
+    });
+
+    // mousedown so it fires before the input's blur
+    studentBox.addEventListener("mousedown", function (e) {
+
+        const item = e.target.closest(".student-suggestion-item");
+        if (!item) return;
+
+        e.preventDefault();
+        selectStudent(item.dataset.id, item.dataset.label);
+
+    });
+
+    studentSearch.addEventListener("keydown", function (e) {
+
+        if (e.key === "Escape") hideStudentBox();
+
+        // Enter while the list is open must not submit the form
+        if (e.key === "Enter" && studentBox.style.display === "block") {
+            e.preventDefault();
+            const first = studentBox.querySelector(".student-suggestion-item");
+            if (first) selectStudent(first.dataset.id, first.dataset.label);
+        }
+
+    });
+
+    document.addEventListener("click", function (e) {
+
+        if (!studentCombo.contains(e.target)) {
+            hideStudentBox();
+            if (studentSearch.value.trim() || studentError.innerText) validateStudent();
+        }
+
+    });
+
+    // "Clear Form" button
+    if (paymentForm) {
+        paymentForm.addEventListener("reset", function () {
+            studentIdInput.value = "";
+            studentSearch.value = "";
+            clearError(studentSearch, studentError);
+            hideStudentBox();
+        });
     }
 
-    if (studentSelect) {
-
-        studentSelect.addEventListener("change", validateStudent);
-
-    }
-
+}
 
     /*=========================================
             REMARKS VALIDATION
@@ -366,7 +482,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const urlParams = new URLSearchParams(window.location.search);
     const preselectedStudentId = urlParams.get("student_id");
 
-    if (preselectedStudentId && paymentCard && studentSelect) {
+    if (preselectedStudentId && paymentCard && studentSearch) {
 
         // scroll the "Add Payment" form into view
         paymentCard.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -378,14 +494,12 @@ document.addEventListener("DOMContentLoaded", function () {
         }, 2200);
 
         // show which student the form is now filling a payment for
-        const selectedOption = studentSelect.options[studentSelect.selectedIndex];
-
-        if (selectedOption && selectedOption.value) {
+        if (studentIdInput.value && studentSearch.value) {
 
             const banner = document.createElement("div");
             banner.className = "student-selected-banner";
             banner.innerHTML = '<i class="fa-solid fa-circle-info"></i> Adding payment for <strong>' +
-                selectedOption.textContent.trim() + "</strong>";
+                studentSearch.value + "</strong>";
 
             const cardBody = paymentCard.querySelector(".card-body");
             if (cardBody) cardBody.insertBefore(banner, cardBody.firstChild);

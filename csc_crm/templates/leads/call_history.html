@@ -49,16 +49,7 @@
 
     <div class="card {{ log.call_outcome|slugify }}">
 
-        <a href="javascript:void(0);"
-           class="card-link"
-           onclick="openPopup(
-           '{{ log.lead_name }}',
-           '{{ log.call_date }}',
-           '{{ log.call_time }}',
-           '{{ log.duration }}',
-           '{{ log.call_outcome }}',
-           '{{ log.notes }}',
-           '{{ log.next_followup_date }}')">
+        <a href="{% url 'leads:contact_calls' log.id %}" class="card-link">
 
           
         <div class="card-header">
@@ -85,7 +76,7 @@
        </div>
         
         <span class="time">
-                {{ log.call_date }} • {{ log.duration }}m
+                {{ log.call_date }} • {% if log.is_connected %}{{ log.duration_display }}{% else %}Did not connect{% endif %}
         </span>
        </div>
         
@@ -107,43 +98,4 @@
     {% endfor %}
 
 </div>
-<!-- Popup -->
-<div id="popup" class="popup">
-    <div class="popup-content">
-        <span class="close" onclick="closePopup()">&times;</span>
-
-        <h3 id="p_name"></h3>
-        <p>Date: <span id="p_date"></span></p>
-        <p>Time: <span id="p_time"></span></p>
-        <p>Duration: <span id="p_duration"></span></p>
-        <p>Outcome: <span id="p_outcome"></span></p>
-        <p>Notes: <span id="p_notes"></span></p>
-        <p>Followup: <span id="p_follow"></span></p>
-    </div>
-</div>
-
-<script>
-function openPopup(name, date, time, duration, outcome, notes, follow) {
-
-    document.getElementById("p_name").innerText = name;
-    document.getElementById("p_date").innerText = date;
-    document.getElementById("p_time").innerText = time;
-    document.getElementById("p_duration").innerText = duration + " min";
-    document.getElementById("p_outcome").innerText = outcome;
-    document.getElementById("p_notes").innerText = notes || "-";
-    document.getElementById("p_follow").innerText = follow || "-";
-
-    document.getElementById("popup").style.display = "block";
-}
-
-function closePopup() {
-    document.getElementById("popup").style.display = "none";
-}
-
-window.onclick = function(e){
-    if(e.target == document.getElementById("popup")){
-        closePopup();
-    }
-}
-</script>
 {% endblock %}

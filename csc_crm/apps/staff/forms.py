@@ -1,7 +1,9 @@
 from django import forms
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from .models import *
 from datetime import date
+from .validators import clean_indian_mobile
 
 class StaffForm(forms.ModelForm):
     """Form Adding/Editing Staff members"""
@@ -33,10 +35,17 @@ class StaffForm(forms.ModelForm):
             'gender', 'blood_group', 'address', 'reporting_manager',
             'emergency_contact_name', 'emergency_contact_phone', 'skills',
         ]
+        error_messages = {
+            'employee_id': {'required': 'Employee ID is required.'},
+            'phone': {'required': 'Phone number is required.'},
+        }
         widgets = {
             'employee_id' : forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Enter Employee ID'
+                'placeholder': 'Enter Employee ID (e.g. EMP001)',
+                'maxlength': '20',
+                'autocomplete': 'off',
+                'id': 'employeeIdInput',
             }),
             'first_name' : forms.TextInput(attrs={
                 'class': 'form-control',
@@ -56,7 +65,9 @@ class StaffForm(forms.ModelForm):
             'phone': forms.TextInput(attrs={
                 'class' : 'form-control',
                 'type': 'tel',
-                'placeholder': '+91 XXXXX XXXXX',
+                'placeholder': '10-digit mobile number',
+                'maxlength': '10',
+                'inputmode': 'numeric',
                 'id': 'phoneInput',
             }),
             'role': forms.Select(attrs={
@@ -125,7 +136,9 @@ class StaffForm(forms.ModelForm):
             'emergency_contact_phone': forms.TextInput(attrs={
                 'class': 'form-control',
                 'type': 'tel',
-                'placeholder': '+91 XXXXX XXXXX',
+                'placeholder': '10-digit mobile number',
+                'maxlength': '10',
+                'inputmode': 'numeric',
                 'id': 'emergencyContactPhoneInput',
             }),
             'skills': forms.HiddenInput(attrs={'id': 'skillsInput'}),
@@ -148,18 +161,40 @@ class StaffForm(forms.ModelForm):
         )
 
     def clean_employee_id(self):
-        employee_id = self.cleaned_data.get('employee_id')
+        """
+        Employee ID is now typed in manually (Requirement 03).
 
-        # Check if employee ID already exists in DB (Excluding current instance)
+        * required, surrounding spaces removed
+        * must be unique (comparison ignores upper/lower case, so
+          "emp001" and "EMP001" cannot both exist)
+        * must not clash with an existing login username, because the
+          Employee ID is also the login username
+        """
+        employee_id = (self.cleaned_data.get('employee_id') or '').strip()
+
+        if not employee_id:
+            raise ValidationError('Employee ID is required.')
+
+        if ' ' in employee_id:
+            raise ValidationError('Employee ID cannot contain spaces.')
+
+        staff_qs = Staff.objects.filter(employee_id__iexact=employee_id)
         if self.instance.pk:
-            if Staff.objects.filter(employee_id=employee_id).exclude(pk=self.instance.pk).exists():
-                raise ValidationError('This employee ID already exists!')
-        else:
-            if Staff.objects.filter(employee_id=employee_id).exists():
-                raise ValidationError('This employee ID already exists!')
-        
+            staff_qs = staff_qs.exclude(pk=self.instance.pk)
+
+        if staff_qs.exists():
+            raise ValidationError('This employee ID already exists!')
+
+        # the Employee ID is the login username - make sure it is free
+        user_qs = User.objects.filter(username__iexact=employee_id)
+        if self.instance.pk and self.instance.user_id:
+            user_qs = user_qs.exclude(pk=self.instance.user_id)
+
+        if user_qs.exists():
+            raise ValidationError('This employee ID already exists!')
+
         return employee_id
-    
+
     def clean_email(self):
         email = self.cleaned_data.get('email')
 
@@ -173,14 +208,8 @@ class StaffForm(forms.ModelForm):
         return email
     
     def clean_phone(self):
-        phone = self.cleaned_data.get('phone')
-
-        # if not phone.isdigit():
-        #     raise ValidationError("Phone number must contain only digits.")
-        
-        if len(phone) !=13:
-            raise ValidationError("Phone number must be exactly 10 digits.")
-        return phone
+        # 10 digits, starts with 6/7/8/9, no +91 prefix (Requirement 07)
+        return clean_indian_mobile(self.cleaned_data.get('phone'))
 
     def clean_emergency_contact_name(self):
         import re
@@ -201,10 +230,11 @@ class StaffForm(forms.ModelForm):
         return name
 
     def clean_emergency_contact_phone(self):
-        phone = self.cleaned_data.get('emergency_contact_phone')
-        if phone and len(phone) != 13:
-            raise ValidationError("Emergency contact phone must be a valid +91 number.")
-        return phone
+        # Optional at model level; when given it must follow the same rule
+        return clean_indian_mobile(
+            self.cleaned_data.get('emergency_contact_phone'),
+            required=False
+        )
 
     def clean_skills(self):
         """skills = comma-separated names (letters only), e.g: Python, Django
@@ -520,12 +550,7 @@ class LeadForm(forms.ModelForm):
         }
 
     def clean_phone(self):
-        phone = self.cleaned_data.get("phone")
-
-        if phone and (not phone.isdigit() or len(phone) != 10):
-            raise ValidationError("Phone must be 10 digits")
-
-        return phone
+        return clean_indian_mobile(self.cleaned_data.get("phone"))
 
 
 # ===== LEAD ACTIVITY =====
@@ -621,6 +646,9 @@ class staffProfileForm(forms.ModelForm):
             'first_name', 'last_name', 'email', 'phone',
             'profile_photo',
         ]
+        error_messages = {
+            'phone': {'required': 'Phone number is required.'},
+        }
         widgets = {
             'first_name': forms.TextInput(attrs={
                 'class': 'prof-input',
@@ -636,7 +664,9 @@ class staffProfileForm(forms.ModelForm):
             }),
             'phone': forms.TextInput(attrs={
                 'class': 'prof-input',
-                'placeholder': '10-digit phone number',
+                'placeholder': '10-digit mobile number',
+                'maxlength': '10',
+                'inputmode': 'numeric',
             }),
             'profile_photo': forms.FileInput(attrs={
                 'class': 'prof-file-input',
@@ -646,10 +676,7 @@ class staffProfileForm(forms.ModelForm):
         }
 
     def clean_phone(self):
-        phone = self.cleaned_data.get('phone')
-        if phone and (not phone.isdigit() or len(phone) != 10):
-            raise forms.ValidationError('Phone number must be exactly 10 digits.')
-        return phone
+        return clean_indian_mobile(self.cleaned_data.get('phone'))
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
@@ -657,19 +684,3 @@ class staffProfileForm(forms.ModelForm):
             if Staff.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
                 raise forms.ValidationError('This email is already in use.')
         return email
-
-        
-def clean_phone(self):
-        phone = self.cleaned_data.get('phone')
-        if phone:
-            if not phone.startswith('+91') or not phone[3:].isdigit() or len(phone[3:]) != 10:
-                raise forms.ValidationError('Phone number should start with +91 and contain a valid 10-digit Indian mobile number.')
-        return phone
-
-def clean_email(self):
-    email = self.cleaned_data.get('email')
-    if self.instance.pk:
-        if Staff.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
-            raise forms.ValidationError('This email is already in use.')
-    return email
-

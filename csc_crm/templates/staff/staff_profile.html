@@ -267,8 +267,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (phoneInput) {
         phoneInput.addEventListener('input', function() {
+            // digits only, max 10 (no +91)
+            phoneInput.value = CSCPhone.sanitize(phoneInput.value);
             const value = phoneInput.value;
-            const phoneRegex = /^\+91\d{10}$/;
             let errorDiv = document.getElementById('phone-error');
 
             if (!errorDiv) {
@@ -279,8 +280,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 phoneInput.parentNode.appendChild(errorDiv);
             }
 
-            if (value && !phoneRegex.test(value)) {
-                errorDiv.textContent = 'Phone number should start with +91 and contain a valid 10-digit Indian mobile number.';
+            if (value && CSCPhone.error(value)) {
+                errorDiv.textContent = CSCPhone.error(value);
             } else {
                 errorDiv.textContent = '';
             }

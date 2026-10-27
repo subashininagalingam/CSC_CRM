@@ -290,7 +290,7 @@
     margin: 0;
   }
   .cr-show-select {
-    display: flex;
+    display: none;
     align-items: center;
     gap: 6px;
     font-size: 12px;

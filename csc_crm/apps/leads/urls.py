@@ -16,6 +16,7 @@ urlpatterns = [
     path('followup/<int:id>/complete/',mark_followup_completed,name='mark_followup_completed'),
     path('call_logs/', call_log_view, name='call_logs'),
     path('call_logs/search-lead/', search_lead_by_name, name='search_lead_by_name'),
+    path('call_logs/contact/<int:log_id>/', contact_calls, name='contact_calls'),
     path('delete/<int:id>/', delete_call_log, name='delete_call'),
     path('check-lead/', check_lead_exists, name='check_lead_exists'),
     path('call-history/',call_history,name='call_history'),

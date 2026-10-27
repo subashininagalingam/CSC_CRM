@@ -94,7 +94,7 @@ class Command(BaseCommand):
                 "first_name": "Senthil",
                 "last_name": "V",
                 "email": email,
-                "phone": "+916380885757",
+                "phone": "6380885757",
                 "role": admin_role,
                 "department": mgmt_dept,
                 "status": "active",
@@ -107,7 +107,7 @@ class Command(BaseCommand):
         staff.first_name = "Senthil"
         staff.last_name = "V"
         staff.email = email
-        staff.phone = "+916380885757"
+        staff.phone = "6380885757"
         staff.role = admin_role
         staff.department = mgmt_dept
         staff.status = "active"

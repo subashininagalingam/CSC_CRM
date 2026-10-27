@@ -311,8 +311,7 @@ View Student
                     <div class="quick-actions">
                         <h4>Quick Actions</h4>
                         <div class="qa-buttons">
-                            <a href="{% url 'edit_student' student.id %}" class="qa-btn qa-edit"><i class="fa-solid fa-pen"></i> Edit Student</a>
-                            <a href="#" class="qa-btn qa-status"><i class="fa-solid fa-rotate"></i> Update Status</a>
+                            <a href="{% url 'edit_student' student.id %}" class="qa-btn qa-status"><i class="fa-solid fa-rotate"></i> Update Status</a>
                             <a href="{% url 'delete_student' student.id %}" class="qa-btn qa-delete" onclick="confirmDelete(event, this.href)"><i class="fa-solid fa-trash" ></i> Delete Student</a>
                             
                         </div>

@@ -4,6 +4,16 @@ from django.utils import timezone
 from django.conf import settings
 import uuid
 from cloudinary.models import CloudinaryField
+from .validators import validate_indian_mobile
+
+
+def current_year():
+    """Callable default - evaluated on every save (not once when the server starts)."""
+    return timezone.localdate().year
+
+
+def current_month():
+    return timezone.localdate().month
 
 
 class Department(models.Model):
@@ -80,7 +90,7 @@ class Staff(models.Model):
     first_name = models.CharField(max_length=20)
     last_name = models.CharField(max_length=20)
     email = models.EmailField(unique=True, db_index=True)
-    phone = models.CharField(max_length=13, unique=True)
+    phone = models.CharField(max_length=10, unique=True, validators=[validate_indian_mobile])
 
     # Role & Department
     role = models.ForeignKey(StaffRole, on_delete=models.PROTECT, related_name='staff_members')
@@ -106,7 +116,7 @@ class Staff(models.Model):
     # Contact & Emergency
     
     emergency_contact_name = models.CharField(max_length=100, blank=True, null=True)
-    emergency_contact_phone = models.CharField(max_length=15, blank=True, null=True)
+    emergency_contact_phone = models.CharField(max_length=10, blank=True, null=True, validators=[validate_indian_mobile])
 
     #password
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='staff_profile', null=True, blank=True)
@@ -398,8 +408,8 @@ class WeeklyPerformance(models.Model):
         related_name="weekly_performances"
     )
 
-    year = models.PositiveIntegerField(default=timezone.now().year)
-    month = models.PositiveSmallIntegerField(default=timezone.now().month)
+    year = models.PositiveIntegerField(default=current_year)
+    month = models.PositiveSmallIntegerField(default=current_month)
 
     week = models.PositiveSmallIntegerField(
         choices=WEEK_CHOICES
@@ -514,9 +524,6 @@ class Attendance(models.Model):
 
         super().save(*args, **kwargs)
 
-
-
-
     def __str__(self):
 
 
@@ -527,12 +534,8 @@ class Attendance(models.Model):
 
         return f"{self.date}"
 
-
-
-
     class Meta:
 
         db_table = "staff_attendance"
 
 # ================================ DOCUMENT ================================
-

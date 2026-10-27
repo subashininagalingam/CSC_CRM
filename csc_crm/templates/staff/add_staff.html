@@ -38,12 +38,16 @@
 
                 <div class="form-row three-columns">
                     <div class="form-group">
-                        <label for="employee_id" class="form-label">Employee ID (Auto Generate)</label>
+                        <label for="employeeIdInput" class="form-label">Employee ID <span class="required">*</span></label>
                         <div class="input-wrapper">
                             {{ form.employee_id }}
                             <i class="fa-regular fa-address-card"></i>
                         </div>
-                        <span class="form-error" id="employeeIdError"></span>
+                        {% if form.employee_id.errors %}
+                            <span class="form-error" id="employeeIdError">{{ form.employee_id.errors.0 }}</span>
+                        {% else %}
+                            <span class="form-error" id="employeeIdError"></span>
+                        {% endif %}
                     </div>
                     <div class="form-group">
                         <label for="email" class="form-label">Email <span class="required">*</span></label>

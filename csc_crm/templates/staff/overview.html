@@ -306,7 +306,7 @@
             </span>
 
             <span class="over-att-days">
-                ({{ present_days }} / {{ total_working_days }} Days)
+                ({{ present_days }} present + {{ late_days }} late / {{ total_working_days }} working days &middot; {{ attendance_period }})
             </span>
         </div>
     </div>
@@ -485,10 +485,10 @@
         <line x1="50" y1="120" x2="650" y2="120" class="over-grid-line"/>
 
         <!-- VERTICAL GRID LINES -->
-        <line x1="180" y1="120" x2="180" y2="320" class="over-grid-line"/>
-        <line x1="310" y1="120" x2="310" y2="320" class="over-grid-line"/>
-        <line x1="440" y1="120" x2="440" y2="320" class="over-grid-line"/>
-        <line x1="620" y1="120" x2="620" y2="320" class="over-grid-line"/>
+        <line x1="200" y1="120" x2="200" y2="320" class="over-grid-line"/>
+        <line x1="350" y1="120" x2="350" y2="320" class="over-grid-line"/>
+        <line x1="500" y1="120" x2="500" y2="320" class="over-grid-line"/>
+        <line x1="650" y1="120" x2="650" y2="320" class="over-grid-line"/>
 
         <!-- Y AXIS -->
         <line x1="50" y1="100" x2="50" y2="335" class="over-axis-line"/>
@@ -522,10 +522,10 @@
 
         <!-- BOTTOM WEEK TEXT -->
         <text x="42" y="355" class="over-week-text">W1</text>
-        <text x="172" y="355" class="over-week-text">W2</text>
-        <text x="302" y="355" class="over-week-text">W3</text>
-        <text x="432" y="355" class="over-week-text">W4</text>
-        <text x="612" y="355" class="over-week-text">W5</text>
+        <text x="192" y="355" class="over-week-text">W2</text>
+        <text x="342" y="355" class="over-week-text">W3</text>
+        <text x="492" y="355" class="over-week-text">W4</text>
+        <text x="642" y="355" class="over-week-text">W5</text>
 
     </svg>
 
@@ -585,7 +585,7 @@
 
 <div class="over-box-head">
     <h2>Recent Leads</h2>
-    <a href="{% url 'leads:lead_pipeline_view' %}" class="over-viewall-btn">View All</a>
+    <a href="{% url 'staff_assigned_leads' staff.id %}" class="over-viewall-btn">View All</a>
 </div>
 
 <table>

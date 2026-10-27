@@ -1,563 +1,216 @@
 /* ==========================================
-        FEE DASHBOARD JS
+        EDIT STUDENT JS
 ========================================== */
 
 document.addEventListener("DOMContentLoaded", function () {
 
-    const paymentForm = document.querySelector(".payment-card form");
+    const form = document.getElementById("studentForm");
 
     /*=========================================
             ERROR HELPERS
-            (same red-border + message pattern
-            used on register / edit student pages)
     =========================================*/
 
     function showError(input, errorEl, message) {
-
         if (input) input.classList.add("error-input");
         if (errorEl) errorEl.innerText = message;
-
     }
 
     function clearError(input, errorEl) {
-
         if (input) input.classList.remove("error-input");
         if (errorEl) errorEl.innerText = "";
-
     }
 
     /*=========================================
-            AMOUNT VALIDATION (real-time)
+            VALIDATORS
     =========================================*/
 
-    const amountInput = document.getElementById("amount");
-    const amountError = document.getElementById("amount-error");
+    function validateName(input, error, message) {
 
-    function validateAmount() {
+        input.value = input.value.replace(/[^A-Za-z ]/g, "");
 
-        if (!amountInput || !amountError) return true;
-
-        const raw = amountInput.value.trim();
-        const value = parseFloat(raw);
-
-        if (raw === "" || isNaN(value) || value <= 0) {
-
-            showError(amountInput, amountError, "Amount must be greater than 0");
+        if (input.value.trim() === "") {
+            showError(input, error, message);
             return false;
-
-        } else {
-
-            clearError(amountInput, amountError);
-            return true;
-
         }
 
+        clearError(input, error);
+        return true;
     }
 
-    if (amountInput && amountError) {
+    function validatePhone(input, error) {
 
-        // block "-", "+", "e" keys so negative / exponent values can't be typed
-        amountInput.addEventListener("keydown", function (e) {
+        const phone = input.value.replace(/\D/g, "");
+        input.value = phone;
 
-            if (["-", "+", "e", "E"].includes(e.key)) {
-                e.preventDefault();
-            }
-
-        });
-
-        amountInput.addEventListener("input", function () {
-
-            // strip any negative sign that slipped in via paste
-            if (this.value.includes("-")) {
-                this.value = this.value.replace(/-/g, "");
-            }
-
-            validateAmount();
-
-        });
-
-        amountInput.addEventListener("blur", validateAmount);
-
-    }
-
-
-    /*=========================================
-            PAYMENT MODE (real-time)
-    =========================================*/
-
-    const paymentMode = document.getElementById("paymentMode");
-    const referenceInput = document.getElementById("reference");
-
-    // create an error slot for payment mode if one isn't already in the HTML
-    let paymentModeError = document.getElementById("paymentMode-error");
-
-    if (paymentMode && !paymentModeError) {
-
-        paymentModeError = document.createElement("small");
-        paymentModeError.id = "paymentMode-error";
-        paymentModeError.className = "text-danger";
-        paymentMode.insertAdjacentElement("afterend", paymentModeError);
-
-    }
-
-    function validatePaymentMode() {
-
-        if (!paymentMode || !paymentModeError) return true;
-
-        if (!paymentMode.value) {
-
-            showError(paymentMode, paymentModeError, "Please select a payment mode");
+        if (phone.length !== 10) {
+            showError(input, error, "Phone number must contain exactly 10 digits.");
             return false;
-
-        } else {
-
-            clearError(paymentMode, paymentModeError);
-            return true;
-
         }
 
-    }
-
-    function toggleReference() {
-
-        if (!paymentMode || !referenceInput) return;
-
-        if (paymentMode.value === "UPI" || paymentMode.value === "CARD") {
-
-            referenceInput.required = true;
-            referenceInput.placeholder = "Enter Transaction ID";
-
-        } else {
-
-            referenceInput.required = false;
-            referenceInput.value = "";
-            referenceInput.placeholder = "Not Required for Cash";
-            clearError(referenceInput, referenceError);
-
-        }
-
-    }
-
-    if (paymentMode && referenceInput) {
-
-        paymentMode.addEventListener("change", function () {
-
-            toggleReference();
-            validatePaymentMode();
-            validateReference();
-
-        });
-
-    }
-
-
-    /*=========================================
-            REFERENCE VALIDATION (real-time)
-    =========================================*/
-
-    // create an error slot for reference if one isn't already in the HTML
-    let referenceError = document.getElementById("reference-error");
-
-    if (referenceInput && !referenceError) {
-
-        referenceError = document.createElement("small");
-        referenceError.id = "reference-error";
-        referenceError.className = "text-danger";
-        referenceInput.insertAdjacentElement("afterend", referenceError);
-
-    }
-
-    // toggleReference() references referenceError, so run it only after
-    // referenceError has been created above
-    if (paymentMode && referenceInput) {
-        toggleReference();
-    }
-
-    function validateReference() {
-
-        if (!referenceInput || !referenceError) return true;
-
-        if (referenceInput.required && referenceInput.value.trim() === "") {
-
-            showError(
-                referenceInput,
-                referenceError,
-                "Reference ID is required for " + paymentMode.value + " payments"
-            );
+        if (!/^[6-9]/.test(phone)) {
+            showError(input, error, "Phone number must start with 6, 7, 8 or 9.");
             return false;
-
-        } else {
-
-            clearError(referenceInput, referenceError);
-            return true;
-
         }
 
+        clearError(input, error);
+        return true;
     }
 
-    if (referenceInput) {
+    function validateEmail(input, error) {
 
-        referenceInput.addEventListener("input", function () {
+        const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-            this.value = this.value.replace(/[^A-Za-z0-9]/g, "");
-            validateReference();
-
-        });
-
-        referenceInput.addEventListener("blur", validateReference);
-
-    }
-
-
-    /*=========================================
-            STUDENT VALIDATION (real-time)
-    =========================================*/
-
-    const studentSelect = document.querySelector('select[name="student"]');
-    let studentError = document.getElementById("student-error");
-
-    if (studentSelect && !studentError) {
-
-        studentError = document.createElement("small");
-        studentError.id = "student-error";
-        studentError.className = "text-danger";
-        studentSelect.insertAdjacentElement("afterend", studentError);
-
-    }
-
-    function validateStudent() {
-
-        if (!studentSelect || !studentError) return true;
-
-        if (!studentSelect.value) {
-
-            showError(studentSelect, studentError, "Please select a student");
+        if (!pattern.test(input.value.trim())) {
+            showError(input, error, "Enter a valid email address.");
             return false;
-
-        } else {
-
-            clearError(studentSelect, studentError);
-            return true;
-
         }
 
+        clearError(input, error);
+        return true;
     }
 
-    if (studentSelect) {
+    function validateDOB(input, error) {
 
-        studentSelect.addEventListener("change", validateStudent);
+        if (!input.value) {
+            showError(input, error, "Date of birth is required.");
+            return false;
+        }
 
+        const dob = new Date(input.value);
+        const today = new Date();
+
+        if (dob >= today) {
+            showError(input, error, "Future date is not allowed.");
+            return false;
+        }
+
+        let age = today.getFullYear() - dob.getFullYear();
+        const month = today.getMonth() - dob.getMonth();
+
+        if (month < 0 || (month === 0 && today.getDate() < dob.getDate())) {
+            age--;
+        }
+
+        if (age < 18) {
+            showError(input, error, "Student must be at least 18 years old.");
+            return false;
+        }
+
+        clearError(input, error);
+        return true;
     }
 
+    function validateRequired(input, error, message) {
+
+        if (!input.value.trim()) {
+            showError(input, error, message);
+            return false;
+        }
+
+        clearError(input, error);
+        return true;
+    }
+
+    function validateAddress(input, error) {
+
+        if (input.value.trim().length < 10) {
+            showError(input, error, "Enter complete address.");
+            return false;
+        }
+
+        clearError(input, error);
+        return true;
+    }
 
     /*=========================================
-            REMARKS VALIDATION
+            FIELD REFERENCES
     =========================================*/
 
-    const remarksInput = document.getElementById("remarks");
+    const f = {
+        firstName:  [document.getElementById("first_name"),  document.getElementById("firstNameError")],
+        lastName:   [document.getElementById("last_name"),   document.getElementById("lastNameError")],
+        email:      [document.getElementById("email"),       document.getElementById("emailError")],
+        phone:      [document.getElementById("phone_no"),    document.getElementById("phoneError")],
+        dob:        [document.getElementById("dob"),         document.getElementById("dobError")],
+        gender:     [document.getElementById("gender"),      document.getElementById("genderError")],
+        guardian:   [document.getElementById("guardian_name"), document.getElementById("guardianNameError")],
+        guardianPh: [document.getElementById("guardian_phone_no"), document.getElementById("guardianPhoneError")],
+        education:  [document.getElementById("educational_qualification"), document.getElementById("educationalQualificationError")],
+        address:    [document.getElementById("address"),     document.getElementById("addressError")],
+        course:     [document.getElementById("id_course"),   document.getElementById("courseError")],
+        batch:      [document.getElementById("id_batch"),    document.getElementById("batchError")],
+        startDate:  [document.getElementById("start_date"),  document.getElementById("startDateError")]
+    };
 
-    if (remarksInput) {
+    const checks = {
+        firstName:  () => validateName(...f.firstName, "First name is required."),
+        lastName:   () => validateName(...f.lastName, "Last name is required."),
+        email:      () => validateEmail(...f.email),
+        phone:      () => validatePhone(...f.phone),
+        dob:        () => validateDOB(...f.dob),
+        gender:     () => validateRequired(...f.gender, "Please select gender."),
+        guardian:   () => validateName(...f.guardian, "Guardian name is required."),
+        guardianPh: () => validatePhone(...f.guardianPh),
+        education:  () => validateRequired(...f.education, "Educational qualification is required."),
+        address:    () => validateAddress(...f.address),
+        course:     () => validateRequired(...f.course, "Please select a course."),
+        batch:      () => validateRequired(...f.batch, "Please select a batch."),
+        startDate:  () => validateRequired(...f.startDate, "Admission date is required.")
+    };
 
-        remarksInput.addEventListener("input", function () {
+    // real-time validation
+    Object.keys(checks).forEach(key => {
+        const input = f[key][0];
+        if (!input) return;
+        const eventName = input.tagName === "SELECT" || input.type === "date" ? "change" : "input";
+        input.addEventListener(eventName, checks[key]);
+    });
 
-            this.value = this.value.replace(/[^A-Za-z ]/g, "");
+    /*=========================================
+            COURSE DETAILS (duration / fee)
+    =========================================*/
 
-        });
+    const courseSelect = document.getElementById("id_course");
+    const durationInput = document.getElementById("duration");
+    const feeInput = document.getElementById("fee");
 
+    function updateCourseDetails() {
+
+        if (!courseSelect || !durationInput || !feeInput) return;
+
+        const option = courseSelect.options[courseSelect.selectedIndex];
+
+        durationInput.value = option.dataset.duration || "";
+        feeInput.value = option.dataset.fee || "";
     }
 
+    if (courseSelect) {
+        courseSelect.addEventListener("change", updateCourseDetails);
+        updateCourseDetails();
+    }
 
     /*=========================================
             FORM SUBMIT — block save if invalid
     =========================================*/
 
-    if (paymentForm) {
+    if (form) {
 
-        paymentForm.addEventListener("submit", function (e) {
+        form.addEventListener("submit", function (e) {
 
-            const validAmount = validateAmount();
-            const validMode = validatePaymentMode();
-            const validReference = validateReference();
-            const validStudent = validateStudent();
+            // run every check (no short-circuit) so all errors show at once
+            const results = Object.keys(checks).map(key => f[key][0] ? checks[key]() : true);
 
-            if (!validAmount || !validMode || !validReference || !validStudent) {
+            if (results.includes(false)) {
 
                 e.preventDefault();
 
-                // same "jump to first error" behaviour as register / edit student
-                const firstError = paymentForm.querySelector(".error-input");
+                const firstError = form.querySelector(".error-input");
                 if (firstError) {
                     firstError.scrollIntoView({ behavior: "smooth", block: "center" });
                     firstError.focus();
                 }
-
             }
-
         });
-
     }
 
-
-    /*=========================================
-            BUTTON RIPPLE EFFECT
-    =========================================*/
-
-    document.querySelectorAll(".save-payment-btn").forEach(button => {
-
-        button.addEventListener("click", function () {
-
-            this.style.transform = "scale(0.97)";
-
-            setTimeout(() => {
-
-                this.style.transform = "scale(1)";
-
-            }, 150);
-
-        });
-
-    });
-
-
-    /*=========================================
-            CARD HOVER EFFECT
-    =========================================*/
-
-    document.querySelectorAll(".dashboard-card").forEach(card => {
-
-        card.addEventListener("mouseenter", () => {
-
-            card.style.transform = "translateY(-8px)";
-
-        });
-
-        card.addEventListener("mouseleave", () => {
-
-            card.style.transform = "translateY(0px)";
-
-        });
-
-    });
-
-
-    /*=========================================
-            TABLE ROW HOVER
-    =========================================*/
-
-    document.querySelectorAll(".payment-table tbody tr, .status-table tbody tr").forEach(row => {
-
-        row.addEventListener("mouseenter", () => {
-
-            row.style.transition = ".3s";
-
-        });
-
-    });
-
-
-    /*=========================================
-            FUTURE CHART PLACEHOLDER
-    =========================================*/
-
-    console.log("Fee Dashboard Loaded Successfully.");
-
 });
-//Name Valdiation
-
-function validateName(input,error,message){
-
-let value=input.value.trim();
-
-value=value.replace(/[^A-Za-z ]/g,"");
-
-input.value=value;
-
-if(value===""){
-
-showError(input,error,message);
-
-return false;
-
-}
-
-clearError(input,error);
-
-return true;
-
-}
-
-//phone validation
-
-function validatePhone(input,error){
-
-let phone=input.value.replace(/\D/g,'');
-
-input.value=phone;
-
-if(phone.length!=10){
-
-showError(input,error,"Phone number must contain exactly 10 digits.");
-
-return false;
-
-}
-
-if(!/^[6-9]/.test(phone)){
-
-showError(input,error,"Phone number must start with 6, 7, 8 or 9.");
-
-return false;
-
-}
-
-clearError(input,error);
-
-return true;
-
-}
- // Email Validation
-
- function validateEmail(input,error){
-
-let email=input.value.trim();
-
-const pattern=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-if(!pattern.test(email)){
-
-showError(input,error,"Enter a valid email address.");
-
-return false;
-
-}
-
-clearError(input,error);
-
-return true;
-
-}
-
-// DOB Validation
-function validateDOB(input,error){
-
-const dob=new Date(input.value);
-
-const today=new Date();
-
-if(dob>=today){
-
-showError(input,error,"Future date is not allowed.");
-
-return false;
-
-}
-
-let age=today.getFullYear()-dob.getFullYear();
-
-const month=today.getMonth()-dob.getMonth();
-
-if(month<0 || (month===0 && today.getDate()<dob.getDate())){
-
-age--;
-
-}
-
-if(age<18){
-
-showError(input,error,"Student must be at least 18 years old.");
-
-return false;
-
-}
-
-clearError(input,error);
-
-return true;
-
-}
-
-// Admission Date Validation
-
-const today=new Date().toISOString().split("T")[0];
-
-startDate.value=today;
-
-startDate.min=today;
-
-startDate.max=today;
-
-
-// Address Validation
-
-if(address.value.trim().length<10){
-
-showError(address,addressError,"Enter complete address.");
-
-}
-// Course Validation
-
-if(course.value==""){
-
-showError(course,courseError,"Please select a course.");
-
-}
-
-// Batch Valdiation
-
-if(course.value==""){
-
-showError(course,courseError,"Please select a course.");
-
-}
-
-//Gender Validation
-
-if(gender.value==""){
-
-showError(gender,genderError,"Please select gender.");
-
-}
-
-// First Name Validation
-firstName.addEventListener("input",()=>{
-
-validateName(firstName,firstNameError,"First Name is required.");
-
-});
-
-const courseSelect = document.getElementById("id_course");
-const durationInput = document.getElementById("duration");
-const feeInput = document.getElementById("fee");
-
-function updateCourseDetails() {
-
-    if (!courseSelect) return;
-
-    const option = courseSelect.options[courseSelect.selectedIndex];
-
-    durationInput.value = option.dataset.duration || "";
-    feeInput.value = option.dataset.fee || "";
-}
-
-// Change Course
-courseSelect.addEventListener("change", updateCourseDetails);
-
-// Load Existing Data
-updateCourseDetails();
-
-function loadCourseDetails() {
-
-    const selected = courseSelect.options[courseSelect.selectedIndex];
-
-    durationInput.value = selected.dataset.duration || "";
-    feeInput.value = selected.dataset.fee || "";
-
-}
-
-if (courseSelect) {
-
-    courseSelect.addEventListener("change", loadCourseDetails);
-
-    loadCourseDetails();
-
-}

@@ -1209,3 +1209,221 @@ body {
         font-size: 11px;
     }
 }
+
+.student-combo { position: relative; }
+
+.student-suggestions {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    max-height: 240px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #D9DBEF;
+    border-radius: 8px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .12);
+    z-index: 100;
+}
+
+.student-suggestion-item {
+    display: flex;
+    flex-direction: column;
+    padding: 9px 14px;
+    cursor: pointer;
+}
+
+.student-suggestion-item:hover { background: #FFF6CC; }
+
+.student-suggestion-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.student-suggestion-meta {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.student-suggestion-empty {
+    padding: 10px 14px;
+    font-size: 14px;
+    color: #EF4444;
+    text-align: center;
+}
+
+.history-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.view-all-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid #FFC800;
+    background: #FFF6CC;
+    color: #1f2937;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: .3s;
+}
+
+.view-all-btn:hover {
+    background: #FFC800;
+    color: #000;
+}
+
+/* ===== PAYMENT HISTORY PAGE ===== */
+
+.ph-summary {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.ph-stat {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(30, 42, 120, .08);
+}
+
+.ph-stat span {
+    display: block;
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.2;
+}
+
+.ph-stat h3 {
+    margin: 4px 0 0;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #1e2a78;
+}
+
+.ph-stat-icon {
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    font-size: 20px;
+}
+
+.ph-blue  { background: #E0E7FF; color: #2563EB; }
+.ph-green { background: #DCFCE7; color: #16A34A; }
+
+/* card inner spacing, so header / toolbar / table share the same left-right edge */
+.history-card.dashboard-box {
+    padding: 24px;
+}
+
+.history-card .section-header {
+    padding-bottom: 20px;
+    margin-bottom: 0;
+    border-bottom: 1px solid #EEF0F7;
+}
+
+/* toolbar */
+.ph-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 20px 0;
+    margin: 0;
+}
+
+.ph-search {
+    position: relative;
+    flex: 1;
+    min-width: 240px;
+    max-width: 400px;
+}
+
+.ph-search i {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9CA3AF;
+    font-size: 14px;
+    pointer-events: none;
+}
+
+.ph-search input {
+    width: 100%;
+    height: 44px;
+    padding: 0 14px 0 40px;
+    border: 1px solid #D9DBEF;
+    border-radius: 10px;
+    background: #F9FAFF;
+    font-size: 14px;
+    outline: none;
+    transition: .25s;
+}
+
+.ph-search input:focus {
+    background: #fff;
+    border-color: #FFC800;
+    box-shadow: 0 0 0 3px rgba(255, 200, 0, .2);
+}
+
+.ph-clear-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 44px;
+    padding: 0 18px;
+    border-radius: 10px;
+    border: 1px solid #FCA5A5;
+    background: #FEF2F2;
+    color: #DC2626;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: .25s;
+}
+
+.ph-clear-btn:hover { background: #FEE2E2; }
+
+.ph-result-count {
+    margin-left: auto;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.history-card .table-responsive {
+    margin: 0;
+    padding: 0;
+}
+
+.payment-table tbody tr {
+    transition: background .2s;
+}
+
+.payment-table tbody tr:hover {
+    background: #F9FAFF;
+}
+
+@media (max-width: 768px) {
+    .ph-summary { grid-template-columns: 1fr; }
+    .ph-result-count { margin-left: 0; width: 100%; }
+}

@@ -10,6 +10,7 @@ Student Registration
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/admissions_css/register.css' %}">
+<link rel="stylesheet" href="{% static 'css/admissions_css/lead_autofill.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -51,11 +52,13 @@ Student Registration
         </div>
         {% endif %}
 
+
         <form id="studentForm" method="POST" action="{% url 'student' %}{% if locked_batch %}?batch={{ locked_batch.id }}{% endif %}"
             {% if locked_batch %} 
             data-locked-course="{{ locked_batch.course_id }}" 
             data-locked-batch="{{ locked_batch.id }}"
             {% endif %}
+            data-lead-search-url="{% url 'search_lead_for_admission' %}"
             enctype="multipart/form-data" novalidate>
             {% csrf_token %}
 
@@ -144,7 +147,7 @@ Student Registration
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label">Educational Qualification</label>
+                        <label class="form-label">Educational Qualification <span class="required">*</span></label>
                         <div class="input-wrapper">
                             {{ student_form.educational_qualification }}
                             <i class="fas fa-graduation-cap"></i>
@@ -331,4 +334,5 @@ Student Registration
 
 {% block extra_js %}
     <script src="{% static 'js/admissions_js/register.js' %}"></script>
+    <script src="{% static 'js/admissions_js/lead_autofill.js' %}"></script>
 {% endblock %}

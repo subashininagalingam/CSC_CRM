@@ -79,7 +79,9 @@ def check_lead_exists(request):
         data['email_exists'] = qs.exists()
 
     if phone:
-        qs = LeadCapture.objects.filter(phone_no=phone)
+        # Accept either the 10 digits typed in the form or a stored +91 number
+        digits = ''.join(ch for ch in phone if ch.isdigit())[-10:]
+        qs = LeadCapture.objects.filter(phone_no=f'{digits}')
 
         if lead_id:
             qs = qs.exclude(id=lead_id)
@@ -245,10 +247,10 @@ def lead_pipeline_view(request):
           Q(course_interested__icontains=search_query)
     )
 
-    if assigned_to and my_role != 'Sales Exec':
+    if assigned_to and my_role != 'Sales Exec lead':
         leads = leads.filter(assigned_to__id=assigned_to)
 
-    staffs = Staff.objects.filter(role__role_name__in=['BDE', 'Telecall', 'Sales Exec'], status='active')
+    staffs = Staff.objects.filter(role__role_name__in=['BDE', 'Telecall', 'Sales Exec lead'], status='active')
 
     no_results = False
     if (search_query or assigned_to) and leads.count() == 0:
@@ -324,7 +326,7 @@ def export_leads_csv(request):
             Q(course_interested__icontains=search_query)
         )
 
-    if assigned_to and my_role != 'Sales Exec':
+    if assigned_to and my_role != 'Sales Exec''Sales Exec leads':
         leads = leads.filter(assigned_to__id=assigned_to)
 
     if status:
@@ -367,7 +369,7 @@ def lead_conversion_report(request):
     leads_qs = LeadCapture.objects.all()
 
     # Sales Exec -> own assigned leads only
-    if my_role == 'Sales Exec':
+    if my_role == 'Sales Exec''Sales Exec leads':
         leads_qs = leads_qs.filter(assigned_to=my_staff)
 
     total_leads = leads_qs.count()
@@ -581,8 +583,11 @@ def call_log_view(request):
     if request.method == 'POST':
         form = CallLogForm(request.POST)
         if form.is_valid():
-            form.save()
-            return redirect('leads:call_logs')  
+            log = form.save()
+            messages.success(request, 'Call saved!')
+            # After "Save Call" go straight to the contact's call-log page
+            return redirect('leads:contact_calls', log_id=log.id)
+        messages.error(request, 'Please correct the errors in the call form.')
     else:
         form = CallLogForm()
 
@@ -591,6 +596,46 @@ def call_log_view(request):
     return render(request, 'leads/call_logs.html', {
         'form': form,
         'logs': logs
+    })
+
+
+# Contact details + mobile-style call log for one contact
+@block_roles(MARKETING_ONLY_ROLES)
+def contact_calls(request, log_id):
+    log = get_object_or_404(CallLog, id=log_id)
+
+    lead = log.lead
+    if lead is None and log.lead_name:
+        matches = list(LeadCapture.objects.filter(lead_name__iexact=log.lead_name.strip())[:2])
+        if len(matches) == 1:
+            lead = matches[0]
+
+    if lead:
+        calls = CallLog.objects.filter(Q(lead=lead) | Q(lead__isnull=True, lead_name__iexact=lead.lead_name))
+        contact_name = lead.lead_name
+    else:
+        calls = CallLog.objects.filter(lead__isnull=True, lead_name__iexact=(log.lead_name or '').strip())
+        contact_name = log.lead_name or 'Unknown'
+
+    calls = calls.order_by('-call_date', '-call_time', '-created_at')
+    call_list = list(calls)
+
+    total = len(call_list)
+    connected = sum(1 for c in call_list if c.is_connected)
+    talk_seconds = sum(c.total_seconds for c in call_list if c.is_connected)
+    t_min, t_sec = divmod(talk_seconds, 60)
+    t_hr, t_min = divmod(t_min, 60)
+    talk_time = f'{t_hr} hr {t_min} min' if t_hr else (f'{t_min} min {t_sec} s' if t_min else f'{t_sec} sec')
+
+    return render(request, 'leads/contact_calls.html', {
+        'lead': lead,
+        'contact_name': contact_name,
+        'latest_log': call_list[0] if call_list else log,
+        'calls': call_list,
+        'total_calls': total,
+        'connected_calls': connected,
+        'not_connected_calls': total - connected,
+        'talk_time': talk_time,
     })
 
 @block_roles(MARKETING_ONLY_ROLES)

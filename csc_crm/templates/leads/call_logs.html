@@ -47,6 +47,7 @@
         <div class="input-box">
             <i class="fa-regular fa-user"></i>
 
+            <input type="hidden" name="lead" id="lead_id_input">
             <input type="text" name="lead_name" id="lead_name" class="input" placeholder="Search or enter name" oninput="onlyLetters(this); searchLeadName(this.value)" autocomplete="off" required>
 
             <div id="lead_suggestions" class="lead-suggestions"></div>
@@ -78,28 +79,46 @@
             </div>
         
            <div class="row  small-row">
-                  <div class="field">
-                    <label class="label">Duration (MIN)</label>
+
+                <div class="field">
+                    <label class="label">Call Type</label>
                     <div class="input-box">
-                    <i class="fa-solid fa-stopwatch"></i>
-                     <input type="number" name="duration" placeholder="Enter Duration (min)" class="input" min="0" oninput="this.value = this.value.replace('-', '')" required>
-                </div>
-                    
+                        <i class="fa-solid fa-phone-flip"></i>
+                        <select name="call_type" id="call_type" class="select" required>
+                            <option value="outgoing">Outgoing</option>
+                            <option value="answered">Answered (incoming)</option>
+                            <option value="did_not_connect">Did not connect</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="field">
-                    <label class="label">Call Outcome</label required>
-                     
-                        <div class="input-box">
-                         <i class="fa-solid fa-list"></i>
-
-                    <select name="call_outcome" id="call_outcome" class="select" required>
-                        <option>Interested</option>
-                        <option>Not Reachable</option>
-                        <option>Demo Scheduled</option>
-                        <option>Not Interested</option>
-                    </select>
+                    <label class="label">Duration (MIN)</label>
+                    <div class="input-box">
+                        <i class="fa-solid fa-stopwatch"></i>
+                        <input type="number" name="duration" id="duration_min" value="0" placeholder="Minutes" class="input" min="0" oninput="this.value = this.value.replace('-', '')">
+                    </div>
                 </div>
+
+                <div class="field">
+                    <label class="label">Duration (SEC)</label>
+                    <div class="input-box">
+                        <i class="fa-solid fa-stopwatch-20"></i>
+                        <input type="number" name="duration_seconds" id="duration_sec" value="0" placeholder="Seconds" class="input" min="0" max="59" oninput="this.value = this.value.replace('-', '')">
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label">Call Outcome</label>
+                    <div class="input-box">
+                        <i class="fa-solid fa-list"></i>
+                        <select name="call_outcome" id="call_outcome" class="select" required>
+                            <option>Interested</option>
+                            <option>Not Reachable</option>
+                            <option>Demo Scheduled</option>
+                            <option>Not Interested</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -162,16 +181,7 @@ const searchLeadNameUrl = "{% url 'leads:search_lead_by_name' %}";
 
 <div class="card {{ log.call_outcome|slugify }}">
 
-    <a href="javascript:void(0);" 
-       class="card-link"
-       onclick="openPopup(
-       '{{ log.lead_name }}',
-       '{{ log.call_date }}',
-       '{{ log.call_time }}',
-       '{{ log.duration }}',
-       '{{ log.call_outcome }}',
-       '{{ log.notes }}',
-       '{{ log.next_followup_date }}')">
+    <a href="{% url 'leads:contact_calls' log.id %}" class="card-link">
 
         <div class="card-header">
           
@@ -197,7 +207,7 @@ const searchLeadNameUrl = "{% url 'leads:search_lead_by_name' %}";
        </div>
         
         <span class="time">
-                {{ log.call_date }} • {{ log.duration }}m
+                {{ log.call_date }} • {% if log.is_connected %}{{ log.duration_display }}{% else %}Did not connect{% endif %}
         </span>
        </div>
         
@@ -226,20 +236,5 @@ const searchLeadNameUrl = "{% url 'leads:search_lead_by_name' %}";
      {% endif %}
 </div>
 
-
-<div id="popup" class="popup">
-<div class="popup-content">
-<span class="close" onclick="closePopup()">&times;</span>
-
-<h3 id="p_name"></h3>
-<p>Date: <span id="p_date"></span></p>
-<p>Time: <span id="p_time"></span></p>
-<p>Duration: <span id="p_duration"></span></p>
-<p>Outcome: <span id="p_outcome"></span></p>
-<p>Notes: <span id="p_notes"></span></p>
-<p>Followup: <span id="p_follow"></span></p>
-
-</div>
-</div>
 
 {% endblock %}

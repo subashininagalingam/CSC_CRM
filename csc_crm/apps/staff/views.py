@@ -10,7 +10,8 @@ from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
 from django.core.paginator import Paginator
 from django.core.exceptions import PermissionDenied
 
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
+from django.conf import settings
 
 from openpyxl import Workbook
 from functools import wraps
@@ -24,8 +25,177 @@ from csc_crm.apps.leads.models import *
 from csc_crm.apps.admissions.models import *
 from csc_crm.apps.student_attendance.models import *
 
+from .attendance_helpers import (
+    get_long_absent_streaks, ongoing_batch_q, completed_batch_q
+)
+from .constants import (
+    STAFF_LOGIN_TIME, STAFF_CHECKIN_GRACE_MINUTES,
+    STAFF_TOTAL_WORKING_DAYS, LONG_ABSENT_CONSECUTIVE_DAYS,
+)
+
 from .models import *
 from .forms import *
+
+# ====================== SHARED NUMBER HELPERS (dashboard / overview / attendance) ======================
+# Every attendance %, student count and graph value is calculated here ONCE so the
+# Staff Dashboard, Staff Overview and Staff Attendance pages can never disagree.
+
+def get_staff_attendance_summary(staff, year=None, month=None):
+    """
+    Attendance numbers of ONE staff member for ONE month (default: this month).
+
+    Total Working Days is the official figure from settings (Requirement 05) and it
+    is a MONTHLY figure, so the attendance records are counted for the same month -
+    never "all records ever" against a one-month total.
+
+    present / late / absent / leave are exact status counts (no overlap).
+    Attendance % = (present + 0.5 x late) / official working days, max 100
+    (the half-credit-for-late rule already used by every page of the project).
+    """
+    today = timezone.localdate()
+    year = year or today.year
+    month = month or today.month
+
+    records = Attendance.objects.filter(
+        staff=staff, date__year=year, date__month=month
+    )
+
+    present = records.filter(status='Present').count()
+    late = records.filter(status='Late').count()
+    absent = records.filter(status='Absent').count()
+    leave = records.filter(status='Leave').count()
+
+    working_days = STAFF_TOTAL_WORKING_DAYS
+    score = present + (late * 0.5)
+
+    percentage = (
+        min(round((score / working_days) * 100), 100)
+        if working_days > 0 else 0
+    )
+
+    return {
+        'year': year,
+        'month': month,
+        'period': f"{calendar.month_name[month]} {year}",
+        'total_working_days': working_days,
+        'present_days': present,
+        'late_days': late,
+        'absent_days': absent,
+        'leave_days': leave,
+        'percentage': percentage,
+    }
+
+
+def get_weekly_performance(staff, year, month):
+    """
+    Revenue graph data: {1: amount, ... 5: amount} for one staff member / month.
+
+    Revenue = course fee of every ENROLLED admission of a student who came from a lead
+    assigned to this staff member, put in the week (1-7, 8-14, 15-21, 22-28, 29-end)
+    of the enrollment start date.
+    """
+    amounts = {week: 0 for week in range(1, 6)}
+
+    lead_phones = list(
+        LeadCapture.objects.filter(
+            assigned_to=staff,
+            initial_status="enrolled"
+        ).values_list("phone_no", flat=True)
+    )
+
+    if not lead_phones:
+        return amounts
+
+    enrollments = Enrollment.objects.filter(
+        admission__student__phone_no__in=lead_phones,
+        admission__status="enrolled",
+        start_date__year=year,
+        start_date__month=month,
+    ).select_related("admission__course_name")
+
+    for enrollment in enrollments:
+        week = min((enrollment.start_date.day - 1) // 7 + 1, 5)
+        amounts[week] += enrollment.admission.course_name.course_fee or 0
+
+    return amounts
+
+
+def get_student_overview(enrollments):
+    """
+    Active / Completed / Long-Absent for a set of enrollments, counted in
+    distinct STUDENTS (a student in two batches is still ONE student, so the
+    three groups can never add up to more than the real number of students).
+
+    * Long-Absent : a running batch where the latest N attendance records are all Absent
+                    (takes priority - the student needs attention)
+    * Active      : has a running batch and is not Long-Absent
+    * Completed   : only finished batches, nothing running
+    """
+    enrollments = enrollments.exclude(admission__status='dropped')
+
+    ongoing = enrollments.filter(ongoing_batch_q('batch__'))
+    completed = enrollments.filter(completed_batch_q('batch__'))
+
+    streaks = get_long_absent_streaks(ongoing)
+
+    student_of_enrollment = dict(
+        ongoing.values_list('id', 'admission__student_id')
+    )
+
+    ongoing_students = set(student_of_enrollment.values())
+    long_absent_students = {
+        student_of_enrollment[eid] for eid in streaks if eid in student_of_enrollment
+    }
+    active_students = ongoing_students - long_absent_students
+    completed_students = set(
+        completed.values_list('admission__student_id', flat=True)
+    ) - ongoing_students
+
+    return {
+        'active': len(active_students),
+        'completed': len(completed_students),
+        'long_absent': len(long_absent_students),
+        'streaks': streaks,
+    }
+
+
+def add_strength_total(batches):
+    """
+    Batch Strength (Requirement 02) - calculated here, in the staff module, from
+    the real registrations, so the Admissions / Student Attendance modules are
+    not touched.
+
+    Every registered student adds one to the batch's strength total
+    (3/30 -> 4/31) and every removal takes one away; a transfer moves it to the
+    new batch.  strength total = batch base strength + registered students.
+    """
+    batches = list(batches)
+
+    for batch in batches:
+        batch.strength_total = batch.max_students + batch.enrolled_students
+        batch.occupancy_percentage = (
+            round(batch.enrolled_students * 100 / batch.strength_total, 1)
+            if batch.strength_total else 0
+        )
+
+    return batches
+
+
+def get_donut_values(active, completed, long_absent, total):
+    """Percentages + cumulative degrees for the conic-gradient donuts."""
+    if total > 0:
+        active_pct = round(active / total * 100, 1)
+        completed_pct = round(completed / total * 100, 1)
+        long_absent_pct = round(long_absent / total * 100, 1)
+    else:
+        active_pct = completed_pct = long_absent_pct = 0
+
+    active_deg = active_pct * 3.6
+    completed_deg = active_deg + completed_pct * 3.6
+    long_absent_deg = completed_deg + long_absent_pct * 3.6
+
+    return (active_pct, completed_pct, long_absent_pct,
+            active_deg, completed_deg, long_absent_deg)
 
 # ============================= LEAD CAPTURE TARGET - ROLES =============================
 MARKETING_TARGET_ROLES = [
@@ -289,24 +459,6 @@ def staff_management(request):
     }
     return render(request, 'staff/management.html', context)
 
-# ========================== AUTO GENERATE EMP ID ==========================
-
-def generate_employee_id():
-    staff_ids = Staff.objects.values_list('employee_id', flat=True)
-
-    max_number = 0
-
-    for employee_id in staff_ids:
-        match = re.match(r'^EMP(\d+)$', employee_id)
-
-        if match:
-            number = int(match.group(1))
-
-            if number > max_number:
-                max_number = number
-
-    return f"EMP{max_number + 1:03d}"
-
 # ========================== CREATE NEW STAFF ==============================
 def _get_staff_roles_map():
     """{ staff_id (str): role_name } — JS ku Reporting Manager dropdown 
@@ -331,7 +483,8 @@ def add_staff(request):
                 form.add_error(None, 'At least one document is required.')
                 return render(request, 'staff/add_staff.html', {
                     'page_title': 'Add New Staff',
-                    'form': form
+                    'form': form,
+                    'staff_roles_map': _get_staff_roles_map(),
                 })
 
             staff = form.save(commit=False)
@@ -362,12 +515,9 @@ def add_staff(request):
             )
 
             return redirect('overview', staff_id=staff.id)
-        else:
-            print(form.errors)
     else:
-        form = StaffForm(
-            initial={'employee_id': generate_employee_id()}
-        )
+        # Employee ID is entered manually - nothing is pre-filled
+        form = StaffForm()
 
     context = {
         'page_title': 'Add New Staff',
@@ -378,10 +528,11 @@ def add_staff(request):
 
 # ============================= CHECK EMAIL EXISTING (FOR VALIDATION) ===============================
 
+@login_required(login_url='staff_login')
 def check_email(request):
 
     email = request.GET.get('email')
-    staff_id = request.GET.get('staff_id')
+    staff_id = request.GET.get('staff_id') or None
 
     email_exists = Staff.objects.filter(
         email=email
@@ -393,12 +544,32 @@ def check_email(request):
         'exists': email_exists
     })
 
+# ======================= CHECK EMPLOYEE ID EXISTING (FOR VALIDATION) ====================
+
+@login_required(login_url='staff_login')
+def check_employee_id(request):
+    """Live duplicate check for the manual Employee ID field."""
+    employee_id = request.GET.get('employee_id', '').strip()
+    staff_id = request.GET.get('staff_id')
+
+    exists = False
+    if employee_id:
+        qs = Staff.objects.filter(employee_id__iexact=employee_id)
+        if staff_id:
+            qs = qs.exclude(id=staff_id)
+        exists = qs.exists() or User.objects.filter(
+            username__iexact=employee_id
+        ).exclude(staff_profile__id=staff_id or 0).exists()
+
+    return JsonResponse({'exists': exists})
+
 # ======================= CHECK PHONE NO EXISTING (FOR VALIDATION) ====================
 
+@login_required(login_url='staff_login')
 def check_phone(request):
 
     phone = request.GET.get('phone','').strip()
-    staff_id = request.GET.get('staff_id')
+    staff_id = request.GET.get('staff_id') or None
 
     phone_exists = Staff.objects.filter(
         phone = phone
@@ -444,10 +615,18 @@ def edit_staff(request, id):
             # Password empty -> old password remains
             password = form.cleaned_data.get('password')
 
-            if password:
-                staff.set_password(password)
-
             staff.save()
+
+            # The login account is the linked User (Staff has no password of its own)
+            if staff.user:
+                user = staff.user
+                user.username = staff.employee_id      # Employee ID = login username
+                user.email = staff.email
+
+                if password:
+                    user.set_password(password)
+
+                user.save()
 
             messages.success(
                 request,
@@ -629,43 +808,6 @@ def overview(request, staff_id=None):
     if my_staff.role.role_name not in ['Admin', 'Manager']:
         raise PermissionDenied
 
-    def get_weekly_enrollment_amounts(year, month, staff):
-        week_amounts = {}
-        last_day = calendar.monthrange(year, month)[1]
-
-        staff_lead_phones = list(
-            LeadCapture.objects.filter(
-                assigned_to=staff,
-                initial_status="enrolled"
-            ).values_list("phone_no", flat=True)
-        )
-
-        students = Student.objects.filter(phone_no__in=staff_lead_phones)
-
-        for week in range(1, 6):
-            start_day = (week - 1) * 7 + 1
-            end_day = min(start_day + 6, last_day)
-            total = 0
-
-            for student in students:
-                admission = student.admissions.filter(status="enrolled").first()
-
-                if not admission or not hasattr(admission, "enrollment"):
-                    continue
-
-                enrollment = admission.enrollment
-
-                if (
-                    enrollment.start_date.year == year
-                    and enrollment.start_date.month == month
-                    and start_day <= enrollment.start_date.day <= end_day
-                ):
-                    total += admission.course_name.course_fee
-
-            week_amounts[week] = total
-
-        return week_amounts
-
     # === STAFF ===
     if staff_id:
         staff = get_object_or_404(Staff, id=staff_id)
@@ -683,9 +825,20 @@ def overview(request, staff_id=None):
             "error": "No active staff found."
         })
 
-    now = timezone.now()
-    week_amounts = get_weekly_enrollment_amounts(now.year, now.month, staff)
+    # local date (not UTC) so the month changes at midnight IST
+    today = timezone.localdate()
+
+    # ---- performance graph: this month + last month ----
+    if today.month == 1:
+        last_year, last_month = today.year - 1, 12
+    else:
+        last_year, last_month = today.year, today.month - 1
+
+    week_amounts = get_weekly_performance(staff, today.year, today.month)
+    week_amounts_last = get_weekly_performance(staff, last_year, last_month)
+
     week_data_this = [week_amounts.get(i, 0) for i in range(1, 6)]
+    week_data_last = [week_amounts_last.get(i, 0) for i in range(1, 6)]
     completed_amount = sum(week_data_this)
 
     # === KPI: LEADS ===
@@ -695,7 +848,7 @@ def overview(request, staff_id=None):
     pending_leads = leads.filter(
         initial_status__in=["new", "contacted", "interested", "demo_scheduled"]
     ).count()
-    recent_leads = leads.order_by("-created_at")[:6]
+    recent_leads = leads.order_by("-created_at", "-id")[:6]
 
     # === TARGET PROGRESS ===
     target_amount = float(staff.monthly_target or 0)
@@ -704,8 +857,7 @@ def overview(request, staff_id=None):
     )
     progress_percentage = min(progress_percentage, 100)
 
-    # === ATTENDANCE ===
-    today = timezone.localdate()
+    # === ATTENDANCE (this month - same numbers as the Attendance page) ===
     today_attendance = Attendance.objects.filter(
         staff=staff, date=today
     ).order_by("-id").first()
@@ -713,18 +865,13 @@ def overview(request, staff_id=None):
     today_status = today_attendance.status if today_attendance else "Absent"
     is_present_today = today_status in ["Present", "Late"]
 
-    attendance_qs = Attendance.objects.filter(staff=staff)
-    total_working_days = attendance_qs.count()
-    present_days = attendance_qs.filter(status="Present").count()
-    late_days = attendance_qs.filter(status="Late").count()
-    absent_days = attendance_qs.filter(status="Absent").count()
-    leave_days = attendance_qs.filter(status="Leave").count()
-
-    attendance_score = present_days + (late_days * 0.5)
-    attendance_percentage = (
-        round((attendance_score / total_working_days) * 100)
-        if total_working_days > 0 else 0
-    )
+    att = get_staff_attendance_summary(staff)
+    total_working_days = att['total_working_days']
+    present_days = att['present_days']
+    late_days = att['late_days']
+    absent_days = att['absent_days']
+    leave_days = att['leave_days']
+    attendance_percentage = att['percentage']
 
     # === RATING ===
     rating = staff.performance_rating or 0
@@ -748,6 +895,7 @@ def overview(request, staff_id=None):
         "recent_leads": recent_leads,
 
         "week_data_this": week_data_this,
+        "week_data_last": week_data_last,
         "completed_amount": completed_amount,
         "progress_percentage": progress_percentage,
         "week_amounts": week_amounts,
@@ -762,6 +910,7 @@ def overview(request, staff_id=None):
         "absent_days": absent_days,
         "leave_days": leave_days,
         "attendance_percentage": attendance_percentage,
+        "attendance_period": att['period'],
 
         "rating": rating,
         "schedules": schedules,
@@ -824,9 +973,12 @@ def staff_export(request, id):
     
     # SALES EXECUTIVE & TELECALLER
    
-    if role_name in ['sales_executive', 'telecaller']:
+    if role_name in ['Sales Exec', 'Sales Exec Lead']:
 
-        leads = Lead.objects.filter(staff=staff)
+        # same lead data the Staff Overview page shows
+        leads = LeadCapture.objects.filter(
+            assigned_to=staff
+        ).order_by('-created_at')
 
         writer.writerow(['LEADS DATA'])
 
@@ -840,17 +992,17 @@ def staff_export(request, id):
 
         for lead in leads:
             writer.writerow([
-                lead.name,
-                lead.phone,
+                lead.lead_name,
+                lead.phone_no,
                 lead.email or '',
-                lead.get_status_display(),
+                lead.get_initial_status_display(),
                 lead.created_at.strftime('%d-%m-%Y %H:%M')
             ])
 
     
     # TRAINER
    
-    elif role_name == 'trainer':
+    elif role_name == 'Trainer':
 
         schedules = TrainerSchedule.objects.filter(
             staff=staff
@@ -1031,19 +1183,34 @@ def attendance_page(request, id):
         attendance_data = attendance_data.filter(date__year=year)
 
     # ================= COUNTS =================
-    total_working_days = attendance_data.count()
-    present_days = attendance_data.filter(status__in=['Present', 'Late']).count()
-    absent_days = attendance_data.filter(status='Absent').count()
-    leave_days = attendance_data.filter(status='Leave').count()
-    late_days = attendance_data.filter(status='Late').count()
+    # Total Working Days is the official MONTHLY figure (Requirement 05), so the
+    # cards always show ONE month: the month picked in the filter (or the month of
+    # the picked date), otherwise the current month.
+    summary_year, summary_month = today.year, today.month
 
-    attendance_score = (attendance_data.filter(status='Present').count() +(late_days * 0.5))
+    try:
+        if filter_date:
+            picked = datetime.strptime(filter_date, '%Y-%m-%d').date()
+            summary_year, summary_month = picked.year, picked.month
+        else:
+            if year:
+                summary_year = int(year)
+            if month:
+                summary_month = int(month)
+    except (TypeError, ValueError):
+        summary_year, summary_month = today.year, today.month
 
-    if total_working_days > 0:
-        attendance_percentage = int(attendance_score / total_working_days * 100)
-    else:
-        attendance_percentage = 0
-    
+    if not 1 <= summary_month <= 12:
+        summary_month = today.month
+
+    att = get_staff_attendance_summary(staff, summary_year, summary_month)
+    total_working_days = att['total_working_days']
+    present_days = att['present_days']
+    absent_days = att['absent_days']
+    leave_days = att['leave_days']
+    late_days = att['late_days']
+    attendance_percentage = att['percentage']
+
 # ================= PAGINATION =================
     paginator = Paginator(attendance_data, 6)
 
@@ -1060,6 +1227,7 @@ def attendance_page(request, id):
         'leave_days': leave_days,
         'late_days': late_days,
         'attendance_percentage': attendance_percentage,
+        'attendance_period': att['period'],
         'today_status': today_status,
         'today_attendance': today_attendance,
         'show_checkout': show_checkout,
@@ -1189,8 +1357,14 @@ def staff_checkin(request, id):
             attendance.log_in = current_time
             attendance.log_out = None
             attendance.total_hours = None
-            office_time = datetime.strptime("09:15", "%H:%M").time()
-            attendance.status = 'Late' if current_time.time() > office_time else 'Present'
+            # Scheduled login (9:00) + 30 min grace = 9:30.
+            # 9:30:00 or earlier -> Present, after 9:30:00 -> Late.
+            login_hour, login_minute = STAFF_LOGIN_TIME
+            grace_limit = (
+                datetime.combine(today, time(login_hour, login_minute))
+                + timedelta(minutes=STAFF_CHECKIN_GRACE_MINUTES)
+            ).time()
+            attendance.status = 'Late' if current_time.time() > grace_limit else 'Present'
             attendance.save()
 
             if attendance.status == 'Late':
@@ -1386,8 +1560,12 @@ def staff_dashboard(request):
         role__role_name='Admin'
     ).order_by('-created_at')[:5]
 
+    # only active staff that actually have a rating
     average_rating = round(
-        Staff.objects.exclude(role__role_name='Admin').aggregate(
+        Staff.objects.exclude(role__role_name='Admin').filter(
+            status='active',
+            performance_rating__isnull=False
+        ).aggregate(
             Avg('performance_rating')
         )['performance_rating__avg'] or 0,
         2
@@ -1433,16 +1611,16 @@ def staff_dashboard(request):
     trainer_total_students = 0
     trainer_active_students = 0
     trainer_completed_students = 0
-    trainer_dropped_students = 0
+    trainer_long_absent_students = 0
     trainer_recent_students = []
 
     trainer_active_students_pct = 0
     trainer_completed_students_pct = 0
-    trainer_dropped_students_pct = 0
+    trainer_long_absent_students_pct = 0
 
     trainer_active_students_deg = 0
     trainer_completed_students_deg = 0
-    trainer_dropped_students_deg = 0
+    trainer_long_absent_students_deg = 0
 
     trainer_total_batches = 0
     trainer_ongoing_batches = 0
@@ -1454,56 +1632,34 @@ def staff_dashboard(request):
 
         trainer_enrollments = Enrollment.objects.filter(
             batch__trainer=my_staff
-        )
+        ).exclude(admission__status='dropped')
 
         trainer_total_students = trainer_enrollments.values(
             'admission__student'
         ).distinct().count()
 
-        trainer_active_students = trainer_enrollments.filter(
-            batch__status='Ongoing'
-        ).count()
+        trainer_overview = get_student_overview(trainer_enrollments)
 
-        trainer_completed_students = trainer_enrollments.filter(
-            batch__status='Completed'
-        ).count()
-
-        trainer_dropped_students = Admission.objects.filter(
-            status='dropped',
-            enrollment__batch__trainer=my_staff
-        ).count()
+        trainer_active_students = trainer_overview['active']
+        trainer_completed_students = trainer_overview['completed']
+        trainer_long_absent_students = trainer_overview['long_absent']
 
         trainer_recent_students = Student.objects.filter(
             admissions__enrollment__batch__trainer=my_staff
         ).distinct().order_by('-id')[:5]
 
-        if trainer_total_students > 0:
-
-            trainer_active_students_pct = round(
-                (trainer_active_students / trainer_total_students) * 100,
-                1
-            )
-
-            trainer_completed_students_pct = round(
-                (trainer_completed_students / trainer_total_students) * 100,
-                1
-            )
-
-            trainer_dropped_students_pct = round(
-                (trainer_dropped_students / trainer_total_students) * 100,
-                1
-            )
-
-        trainer_active_students_deg = trainer_active_students_pct * 3.6
-
-        trainer_completed_students_deg = (
-            trainer_active_students_deg +
-            (trainer_completed_students_pct * 3.6)
-        )
-
-        trainer_dropped_students_deg = (
-            trainer_completed_students_deg +
-            (trainer_dropped_students_pct * 3.6)
+        (
+            trainer_active_students_pct,
+            trainer_completed_students_pct,
+            trainer_long_absent_students_pct,
+            trainer_active_students_deg,
+            trainer_completed_students_deg,
+            trainer_long_absent_students_deg,
+        ) = get_donut_values(
+            trainer_active_students,
+            trainer_completed_students,
+            trainer_long_absent_students,
+            trainer_total_students,
         )
 
         trainer_batches_qs = Batch.objects.filter(
@@ -1524,18 +1680,18 @@ def staff_dashboard(request):
             status='Completed'
         ).count()
 
-        trainer_batch_summary = trainer_batches_qs.select_related(
-            'course',
-            'trainer'
-        ).annotate(
-            enrolled_students=Count('enrollments'),
-            occupancy_percentage=ExpressionWrapper(
-                Count('enrollments') * 100.0 / F('max_students'),
-                output_field=FloatField()
+        # Batch strength = registered students / strength total.
+        # The strength total grows and shrinks with registrations (3/30 -> 4/31).
+        trainer_batch_summary = add_strength_total(
+            trainer_batches_qs.select_related(
+                'course',
+                'trainer'
+            ).annotate(
+                enrolled_students=Count('enrollments')
+            ).order_by(
+                '-enrolled_students',
+                'batch_name'
             )
-        ).order_by(
-            '-enrolled_students',
-            'batch_name'
         )
 
     # ============================================
@@ -1603,37 +1759,17 @@ def staff_dashboard(request):
     # MY ATTENDANCE
     # ================================
 
+    # this month's numbers - identical to the Attendance and Overview pages
     if my_staff:
 
-        my_attendance_qs = Attendance.objects.filter(
-            staff=my_staff
-        )
+        my_att = get_staff_attendance_summary(my_staff)
 
-        my_total_days = my_attendance_qs.count()
-
-        my_present_days = my_attendance_qs.filter(
-            status='Present'
-        ).count()
-
-        my_late_days = my_attendance_qs.filter(
-            status='Late'
-        ).count()
-
-        my_absent_days = my_attendance_qs.filter(
-            status='Absent'
-        ).count()
-
-        my_leave_days = my_attendance_qs.filter(
-            status='Leave'
-        ).count()
-
-        my_score = my_present_days + (my_late_days * 0.5)
-
-        my_attendance_percentage = (
-            round((my_score / my_total_days) * 100)
-            if my_total_days > 0
-            else 0
-        )
+        my_present_days = my_att['present_days']
+        my_late_days = my_att['late_days']
+        my_absent_days = my_att['absent_days']
+        my_leave_days = my_att['leave_days']
+        my_attendance_percentage = my_att['percentage']
+        my_attendance_period = my_att['period']
 
     else:
 
@@ -1642,6 +1778,7 @@ def staff_dashboard(request):
         my_absent_days = 0
         my_leave_days = 0
         my_attendance_percentage = 0
+        my_attendance_period = ''
 
     # ================================
     # CHECK-IN
@@ -1706,14 +1843,15 @@ def staff_dashboard(request):
         else None
     )
 
-    if total_attendance > 0:
+    # today's attendance % = (present + late) of the staff who are expected today
+    if total_attendance > 0 and active_staff > 0:
 
-        attendance_percentage = round(
-            (
-                (present + late)
-                / active_staff
-            ) * 100,
-            1
+        attendance_percentage = min(
+            round(
+                ((present + late) / active_staff) * 100,
+                1
+            ),
+            100
         )
 
     else:
@@ -1725,10 +1863,11 @@ def staff_dashboard(request):
         'On Leave': on_leave,
         'Inactive': inactive,
         'Terminated': terminate,
-        'my_present_days': my_present_days,
     }
 
-    roles = StaffRole.objects.annotate(
+    roles = StaffRole.objects.exclude(
+        role_name='Admin'
+    ).annotate(
         total_staff=Count('staff_members')
     )
 
@@ -1800,22 +1939,23 @@ def staff_dashboard(request):
         initial_status='lost'
     ).count()
 
-    my_due_today = my_leads_qs.filter(
-        next_followup_date=today
+    # Same follow-up rules as the Follow-Up page (leads app): a follow-up is
+    # pending until it is marked completed, and finished (enrolled/lost) leads never count.
+    my_pending_followups = my_leads_qs.filter(
+        followup_completed=False
     ).exclude(
         initial_status__in=[
             'enrolled',
             'lost'
         ]
+    )
+
+    my_due_today = my_pending_followups.filter(
+        next_followup_date=today
     ).count()
 
-    my_overdue_count = my_leads_qs.filter(
+    my_overdue_count = my_pending_followups.filter(
         next_followup_date__lt=today
-    ).exclude(
-        initial_status__in=[
-            'enrolled',
-            'lost'
-        ]
     ).count()
 
     if my_total_leads > 0:
@@ -1989,15 +2129,17 @@ def staff_dashboard(request):
         ).select_related(
             'assigned_to'
         ).order_by(
-            '-created_at'
+            '-created_at', '-id'
         )[:5]
 
     else:
 
+        # '-id' breaks ties: leads created in the same instant (same created_at)
+        # must still come newest first
         recent_leads = LeadCapture.objects.select_related(
             'assigned_to'
         ).order_by(
-            'created_at'
+            '-created_at', '-id'
         )[:5]
 
     # =====================================================
@@ -2132,13 +2274,18 @@ def staff_dashboard(request):
     # TODAY'S FOLLOW-UPS
     # =====================================================
 
-    today_followups = LeadCapture.objects.filter(
-        next_followup_date=today
+    # Same follow-up rules as the Follow-Up page (leads app)
+    pending_followups = LeadCapture.objects.filter(
+        followup_completed=False
     ).exclude(
         initial_status__in=[
             'enrolled',
             'lost'
         ]
+    )
+
+    today_followups = pending_followups.filter(
+        next_followup_date=today
     )
 
     # =====================================================
@@ -2147,21 +2294,13 @@ def staff_dashboard(request):
 
     due_today = today_followups.count()
 
-    overdue_count = LeadCapture.objects.filter(
-        next_followup_date=today
-    ).exclude(
-        initial_status__in=[
-            'enrolled',
-            'lost'
-        ]
+    overdue_count = pending_followups.filter(
+        next_followup_date__lt=today
     ).count()
 
     completed_today = LeadCapture.objects.filter(
-        updated_at__date=today,
-        initial_status__in=[
-            'enrolled',
-            'lost'
-        ]
+        followup_completed=True,
+        followup_completed_at__date=today
     ).count()
 
     # =====================================================
@@ -2201,59 +2340,46 @@ def staff_dashboard(request):
 
     total_students = Student.objects.count()
 
-    active_students = Enrollment.objects.filter(
-        batch__status='Ongoing'
-    ).count()
+    # Active / Completed / Long-Absent are separate groups of distinct students,
+    # all taken from the real enrollment + attendance records (Requirement 01).
+    all_enrollments = Enrollment.objects.all()
 
-    completed_students = Enrollment.objects.filter(
-        batch__status='Completed'
-    ).count()
+    student_overview = get_student_overview(all_enrollments)
 
-    dropped_students = Admission.objects.filter(
-        status='dropped'
-    ).count()
+    active_students = student_overview['active']
+    completed_students = student_overview['completed']
+    long_absent_students = student_overview['long_absent']
+    long_absent_streaks = student_overview['streaks']
+
+    long_absent_list = [
+        {
+            'name': e.student.first_name + ' ' + e.student.last_name,
+            'batch': e.batch.batch_name if e.batch else '',
+            'days': long_absent_streaks[e.id],
+        }
+        for e in Enrollment.objects.filter(
+            id__in=long_absent_streaks.keys()
+        ).select_related('admission__student', 'batch')
+    ]
+    long_absent_list.sort(key=lambda x: -x['days'])
+    long_absent_list = long_absent_list[:5]
 
     recent_students = Student.objects.order_by(
         '-id'
     )[:5]
 
-    # ==========================================
-    # STUDENT PERCENTAGE
-    # ==========================================
-
-    if total_students > 0:
-
-        active_students_pct = round(
-            (active_students / total_students) * 100,
-            1
-        )
-
-        completed_students_pct = round(
-            (completed_students / total_students) * 100,
-            1
-        )
-
-        dropped_students_pct = round(
-            (dropped_students / total_students) * 100,
-            1
-        )
-
-    else:
-
-        active_students_pct = 0
-        completed_students_pct = 0
-        dropped_students_pct = 0
-
-    active_students_deg = active_students_pct * 3.6
-
-    completed_students_deg = (
-        active_students_deg +
-        (completed_students_pct * 3.6)
-    )
-
-    dropped_students_deg = (
-        completed_students_deg +
-        (dropped_students_pct * 3.6)
+    (
+        active_students_pct,
+        completed_students_pct,
+        long_absent_students_pct,
+        active_students_deg,
+        completed_students_deg,
+        long_absent_students_deg,
+    ) = get_donut_values(
+        active_students,
+        completed_students,
+        long_absent_students,
+        total_students,
     )
 
     # ================================
@@ -2274,18 +2400,19 @@ def staff_dashboard(request):
         status='Completed'
     ).count()
 
-    batch_summary = Batch.objects.select_related(
-        'course',
-        'trainer'
-    ).annotate(
-        enrolled_students=Count('enrollments'),
-        occupancy_percentage=ExpressionWrapper(
-            Count('enrollments') * 100.0 / F('max_students'),
-            output_field=FloatField()
+    # Batch strength (Requirement 02): registered students / strength total.
+    # The strength total is dynamic - it changes with every registration,
+    # transfer or removal (3/30 -> 4/31) - it is not a fixed 30.
+    batch_summary = add_strength_total(
+        Batch.objects.select_related(
+            'course',
+            'trainer'
+        ).annotate(
+            enrolled_students=Count('enrollments')
+        ).order_by(
+            '-enrolled_students',
+            'batch_name'
         )
-    ).order_by(
-        '-enrolled_students',
-        'batch_name'
     )
 
     # ================================
@@ -2349,16 +2476,18 @@ def staff_dashboard(request):
         'total_students': total_students,
         'active_students': active_students,
         'completed_students': completed_students,
-        'dropped_students': dropped_students,
+        'long_absent_students': long_absent_students,
+        'long_absent_list': long_absent_list,
+        'LONG_ABSENT_DAYS': LONG_ABSENT_CONSECUTIVE_DAYS,
         'recent_students': recent_students,
 
         'active_students_pct': active_students_pct,
         'completed_students_pct': completed_students_pct,
-        'dropped_students_pct': dropped_students_pct,
+        'long_absent_students_pct': long_absent_students_pct,
 
         'active_students_deg': active_students_deg,
         'completed_students_deg': completed_students_deg,
-        'dropped_students_deg': dropped_students_deg,
+        'long_absent_students_deg': long_absent_students_deg,
 
         # Batch Module
 
@@ -2374,6 +2503,7 @@ def staff_dashboard(request):
         'my_absent_days': my_absent_days,
         'my_leave_days': my_leave_days,
         'my_attendance_percentage': my_attendance_percentage,
+        'my_attendance_period': my_attendance_period,
 
         # Check-in
 
@@ -2427,22 +2557,22 @@ def staff_dashboard(request):
         'trainer_total_students': trainer_total_students,
         'trainer_active_students': trainer_active_students,
         'trainer_completed_students': trainer_completed_students,
-        'trainer_dropped_students': trainer_dropped_students,
+        'trainer_long_absent_students': trainer_long_absent_students,
         'trainer_recent_students': trainer_recent_students,
 
         'trainer_active_students_pct':
             trainer_active_students_pct,
         'trainer_completed_students_pct':
             trainer_completed_students_pct,
-        'trainer_dropped_students_pct':
-            trainer_dropped_students_pct,
+        'trainer_long_absent_students_pct':
+            trainer_long_absent_students_pct,
 
         'trainer_active_students_deg':
             trainer_active_students_deg,
         'trainer_completed_students_deg':
             trainer_completed_students_deg,
-        'trainer_dropped_students_deg':
-            trainer_dropped_students_deg,
+        'trainer_long_absent_students_deg':
+            trainer_long_absent_students_deg,
 
         'trainer_total_batches': trainer_total_batches,
         'trainer_ongoing_batches': trainer_ongoing_batches,
@@ -2508,21 +2638,14 @@ def staff_profile(request, staff_id):
     else:
         form = staffProfileForm(instance=staff)
 
-    # Attendance this month
-    now = timezone.now()
-    this_month_attendance = Attendance.objects.filter(
-        staff=staff,
-        date__year=now.year,
-        date__month=now.month
-    )
-    days_present = this_month_attendance.filter(status__in=['Present', 'Late']).count()
-    # Approximate working days in month (Mon-Fri)
-    import calendar
-    cal = calendar.monthcalendar(now.year, now.month)
-    working_days = sum(1 for week in cal for day in week[0:5] if day != 0)
+    # Attendance this month - same numbers and the same official Total Working
+    # Days as the Attendance / Overview / Dashboard pages (Requirement 05).
+    att = get_staff_attendance_summary(staff)
+    days_present = att['present_days'] + att['late_days']
+    working_days = att['total_working_days']
 
     # Leave balance (days not marked Absent/Present in month, rough calc)
-    leave_days = this_month_attendance.filter(status='Leave').count()
+    leave_days = att['leave_days']
     # Simple leave balance: assume 15 days annual / 12 months
     leave_balance = max(0, 15 - leave_days)
 
@@ -2614,3 +2737,49 @@ def staff_profile(request, staff_id):
         'activity_feed': activity_feed,
     }
     return render(request, 'staff/staff_profile.html', context)
+
+
+# ================== STAFF-SCOPED LEAD LIST (Staff Overview -> Recent Leads -> View All) ==================
+@login_required(login_url='staff_login')
+@role_required(['Admin', 'Manager'])
+def staff_assigned_leads(request, staff_id):
+    """
+    Shows ONLY the leads assigned to one staff member (Requirement 04).
+    Opened from Staff Overview -> Recent Leads -> "View All", so the staff
+    member being viewed (staff_id) stays in the URL.
+    """
+    staff = get_object_or_404(Staff, id=staff_id)
+
+    leads = LeadCapture.objects.filter(assigned_to=staff).order_by('-created_at', '-id')
+
+    search_query = request.GET.get('search', '').strip()
+    status = request.GET.get('status', '').strip()
+
+    if search_query:
+        leads = leads.filter(
+            Q(lead_name__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(phone_no__icontains=search_query) |
+            Q(lead_id__icontains=search_query)
+        )
+
+    valid_statuses = [value for value, _ in LeadCapture.STATUS_CHOICES]
+    if status in valid_statuses:
+        leads = leads.filter(initial_status=status)
+    else:
+        status = ''
+
+    paginator = Paginator(leads, 10)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    context = {
+        'staff': staff,
+        'leads': page_obj,
+        'page_obj': page_obj,
+        'total_leads': paginator.count,
+        'search_query': search_query,
+        'selected_status': status,
+        'status_choices': LeadCapture.STATUS_CHOICES,
+    }
+
+    return render(request, 'staff/staff_assigned_leads.html', context)

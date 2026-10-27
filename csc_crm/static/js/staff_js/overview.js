@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
     }
 
-    const x = [50, 180, 310, 440, 620];
+    const x = [50, 200, 350, 500, 650];
     const yTop = 120;
     const yBottom = 320;
 

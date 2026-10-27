@@ -19,6 +19,7 @@ urlpatterns = [
     # STAFF OVERVIEW URLS
     path('overview/<int:staff_id>', overview, name='overview'),
     path('overview/<int:id>/export/', staff_export, name='staff_export'),
+    path('overview/<int:staff_id>/leads/', staff_assigned_leads, name='staff_assigned_leads'),
     # STAFF ATTENDANCE
     path('attendance/export/<int:id>/', export_attendance, name='export_attendance'),
     path('attendance/<int:id>/', attendance_page, name='attendance'),
@@ -27,6 +28,7 @@ urlpatterns = [
 
     # VALIDATION (EMAIL)
     path('check-email/', check_email, name='check_email'),
+    path('check-employee-id/', check_employee_id, name='check_employee_id'),
     path('check-phone/', check_phone, name='check_phone'),
 
     # DOCUMENT URLS
@@ -37,9 +39,5 @@ urlpatterns = [
     
     # MY PROFILE
     path('<int:staff_id>/profile/', staff_profile, name='staff_profile'),
-
-    
-
-  
     
 ]

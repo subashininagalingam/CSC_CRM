@@ -1,6 +1,6 @@
 import os
 import uuid
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, Http404
 from django.shortcuts import redirect, render, get_object_or_404
 from django.core.paginator import Paginator
 from django.contrib import messages
@@ -25,7 +25,9 @@ from .services import get_fee_summary
 from csc_crm.apps.student_attendance.models import Batch
 from csc_crm.apps.admissions.models import Payment
 from django.db.models import Prefetch, Sum, Count
-
+from django.db.models import Q
+from django.core.exceptions import PermissionDenied
+from csc_crm.apps.leads.models import LeadCapture
 
 def get_role(request):
     staff = getattr(request.user, 'staff_profile', None)
@@ -47,6 +49,65 @@ def is_hr(request):
 def is_trainer(request):
     return get_role(request) == 'Trainer'
 
+
+def get_selected_batch(request):
+    """
+    Validates ?batch=<id>.
+      - no batch param            -> None (normal list)
+      - invalid / missing batch   -> 404
+      - Trainer, someone else's   -> 403
+    """
+    batch_param = request.GET.get('batch')
+
+    if not batch_param:
+        return None
+
+    if not batch_param.isdigit():
+        raise Http404("Batch not found")
+
+    batch = (
+        Batch.objects.select_related('course')
+        .filter(id=batch_param)
+        .first()
+    )
+
+    if not batch:
+        raise Http404("Batch not found")
+
+    if get_role(request) == 'Trainer':
+        my_staff = getattr(request.user, 'staff_profile', None)
+        if not my_staff or batch.trainer_id != my_staff.pk:
+            raise PermissionDenied
+
+    return batch
+ 
+ 
+@login_required
+def search_lead_for_admission(request):
+    """Lead lookup for the Student Register 'First Name' autofill."""
+ 
+    query = request.GET.get('q', '').strip()
+ 
+    results = []
+ 
+    if len(query) >= 2:
+        leads = LeadCapture.objects.filter(
+            lead_name__icontains=query
+        ).order_by('lead_name')[:10]
+ 
+        results = [
+            {
+                'id': lead.id,
+                'lead_name': lead.lead_name,
+                'email': lead.email,
+                'phone_no': lead.phone_no,
+                'course_interested': lead.course_interested,
+                'course_interested_label': lead.get_course_interested_display(),
+            }
+            for lead in leads
+        ]
+ 
+    return JsonResponse({'leads': results})
 
 def student(request):
     if not (is_admin_manager(request) or is_sales_team(request)):
@@ -253,7 +314,7 @@ def fee_dashboard(request):
             )
             bt["paid"] += float(paid)
             bt["pending"] += float(pending)
-        
+
         if pending > 0:
             fee_students.append(student)
 
@@ -406,8 +467,8 @@ def fee_dashboard(request):
             ])
 
         for col, width in {
-            "A":25, "B":25, "C":18,
-            "D":15, "E":15, "F":20, "G":18
+            "A": 25, "B": 25, "C": 18,
+            "D": 15, "E": 15, "F": 20, "G": 18
         }.items():
             ws.column_dimensions[col].width = width
 
@@ -450,6 +511,66 @@ def fee_dashboard(request):
         "chart_data": chart_data,
     })
 
+
+@login_required(login_url='staff_login')
+def search_student_by_name(request):
+    if not is_admin_manager(request):
+        raise PermissionDenied
+
+    q = request.GET.get("q", "").strip()
+
+    if len(q) < 2:
+        return JsonResponse({"students": []})
+
+    qs = Student.objects.prefetch_related(
+        Prefetch(
+            'admissions',
+            queryset=Admission.objects.select_related('enrollment__batch')
+        )
+    )
+
+    for word in q.split():
+        qs = qs.filter(Q(first_name__icontains=word) | Q(last_name__icontains=word))
+
+    data = []
+    for s in qs[:10]:
+        admission = s.admissions.first()
+        enrollment = getattr(admission, 'enrollment', None) if admission else None
+        batch = enrollment.batch if enrollment and enrollment.batch else None
+
+        data.append({
+            "id": s.id,
+            "name": f"{s.first_name} {s.last_name}".strip(),
+            "batch": batch.batch_name if batch else "",
+        })
+
+    return JsonResponse({"students": data})
+
+
+@login_required(login_url='staff_login')
+def payment_history_all(request):
+    if not is_admin_manager(request):
+        messages.error(request, "You do not have permission to view payment history.")
+        return redirect('staff_dashboard')
+
+    payments = Payment.objects.select_related("student").order_by("-date", "-id")
+
+    q = request.GET.get("q", "").strip()
+    if q:
+        for word in q.split():
+            payments = payments.filter(
+                Q(student__first_name__icontains=word) |
+                Q(student__last_name__icontains=word)
+            )
+
+    total_amount = payments.aggregate(total=Sum("amount"))["total"] or 0
+
+    return render(request, "admissions/payment_history.html", {
+        "payments": payments,
+        "q": q,
+        "total_count": payments.count(),
+        "total_amount": total_amount,
+    })
 
 
 @login_required(login_url='staff_login')
@@ -510,25 +631,7 @@ def generate_receipt(request, pk):
         messages.error(request, "You do not have permission to generate receipts.")
         return redirect('staff_dashboard')
 
-    payment = Payment.objects.get(id=pk)
-    admission = payment.student.admissions.first()
-    enrollment = (
-        admission.enrollment
-        if admission and hasattr(admission, 'enrollment')
-        else None
-    )
-
-    context = {
-        'payment': payment,
-        'student_name': f"{payment.student.first_name} {payment.student.last_name}",
-        'phone': payment.student.phone_no,
-        'email': payment.student.email,
-        'course': admission.course_name if admission else "-",
-        'batch': enrollment.batch if enrollment else "-",
-        'total_fee': payment.student.total_fee(),
-        'total_paid': payment.student.total_paid(),
-        'pending': payment.student.pending_amount(),
-    }
+    payment = get_object_or_404(Payment, id=pk)
 
     url = request.build_absolute_uri(
         reverse("receipt_pdf", args=[pk])
@@ -542,6 +645,7 @@ def generate_receipt(request, pk):
     )
 
     return response
+
 
 def _batch_fee_summary(batch):
     students = (
@@ -580,6 +684,7 @@ def _batch_fee_summary(batch):
         "outstanding": outstanding,
         "pending_students": pending_students,
     }
+
 
 @login_required(login_url='staff_login')
 def _batch_list_response(request, *, overview_url, reset_url,
@@ -666,6 +771,7 @@ def search_batch_list(request):
         show_add=False,
     )
 
+
 @login_required(login_url='staff_login')
 def student_list(request):
     if not (is_admin_manager(request) or is_hr(request) or is_trainer(request)):
@@ -675,15 +781,7 @@ def student_list(request):
     my_staff = getattr(request.user, 'staff_profile', None)
     my_role = get_role(request)
 
-    selected_batch = None
-    batch_param = request.GET.get('batch')
-
-    if batch_param and batch_param.isdigit():
-        selected_batch = (
-            Batch.objects.select_related('course')
-            .filter(id=batch_param)
-            .first()
-        )
+    selected_batch = get_selected_batch(request)
 
     students = Student.objects.prefetch_related(
         'payments',
@@ -843,8 +941,8 @@ def edit_student(request, id):
         return redirect('student_list')
 
     student_obj = get_object_or_404(Student, id=id)
-    admission = Admission.objects.get(student=student_obj)
-    enrollment = Enrollment.objects.get(admission=admission)
+    admission = get_object_or_404(Admission, student=student_obj)
+    enrollment = get_object_or_404(Enrollment, admission=admission)
 
     courses = Course.objects.all()
 
@@ -863,6 +961,12 @@ def edit_student(request, id):
         student_obj.gender = request.POST.get('gender')
         student_obj.guardian_name = request.POST.get('guardian_name')
         student_obj.guardian_phone_no = request.POST.get('guardian_phone_no')
+
+        educational_qualification = request.POST.get('educational_qualification')
+
+        if educational_qualification:
+            student_obj.educational_qualification = educational_qualification
+
         student_obj.address = request.POST.get('address')
 
         if request.FILES.get('photo'):
@@ -881,7 +985,7 @@ def edit_student(request, id):
         if course_id:
             admission.course_name_id = course_id
 
-        admission.status = request.POST.get('status')
+        admission.status = "enrolled"
         admission.save()
 
         batch_id = request.POST.get('batch')
@@ -931,15 +1035,7 @@ def search_students(request):
     my_staff = getattr(request.user, 'staff_profile', None)
     my_role = get_role(request)
 
-    selected_batch = None
-    batch_param = request.GET.get('batch')
-
-    if batch_param and batch_param.isdigit():
-        selected_batch = (
-            Batch.objects.select_related('course')
-            .filter(id=batch_param)
-            .first()
-        )
+    selected_batch = get_selected_batch(request)
 
     students = Student.objects.prefetch_related(
         'admissions__course_name',
@@ -1084,30 +1180,24 @@ def view_student(request, id):
         messages.error(request, "You do not have permission to view students.")
         return redirect('staff_dashboard')
 
-    student_obj = Student.objects.prefetch_related(
-        'payments',
-        'admissions__course_name',
-        'admissions__enrollment'
-    ).get(id=id)
+    student_obj = get_object_or_404(
+        Student.objects.prefetch_related(
+            'payments',
+            'admissions__course_name',
+            'admissions__enrollment'
+        ),
+        id=id
+    )
 
     if my_role == 'Trainer':
+        if not student_obj.admissions.filter(
+            enrollment__batch__trainer=my_staff
+        ).exists():
+            raise PermissionDenied
+
         return render(request, "admissions/view_student_trainer.html", {
             'student': student_obj,
         })
-
-    if my_role == 'Trainer':
-        trainer_batches = Batch.objects.filter(
-            trainer=my_staff
-        ).values_list('id', flat=True)
-
-        if not student_obj.admissions.filter(
-            enrollment__batch_id__in=trainer_batches
-        ).exists():
-            messages.error(
-                request,
-                "You can only view students from your assigned batches."
-            )
-            return redirect('student_list')
 
     admission = student_obj.admissions.first()
     enrollment = admission.enrollment if admission else None
@@ -1160,7 +1250,7 @@ def preview_receipt(request, pk):
         messages.error(request, "You do not have permission to view receipts.")
         return redirect('staff_dashboard')
 
-    payment = Payment.objects.get(id=pk)
+    payment = get_object_or_404(Payment, id=pk)
     admission = payment.student.admissions.first()
 
     enrollment = (
@@ -1192,7 +1282,7 @@ def receipt_pdf(request, pk):
         messages.error(request, "You do not have permission to view receipts.")
         return redirect('staff_dashboard')
 
-    payment = Payment.objects.get(id=pk)
+    payment = get_object_or_404(Payment, id=pk)
     admission = payment.student.admissions.first()
 
     enrollment = (

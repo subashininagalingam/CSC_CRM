@@ -80,13 +80,28 @@ class CallLog(models.Model):
     def __str__(self):
         return self.lead_name
 
+    CALL_TYPE_CHOICES = [
+        ('outgoing', 'Outgoing'),
+        ('answered', 'Answered'),
+        ('did_not_connect', 'Did not connect'),
+    ]
+
+    lead = models.ForeignKey(
+        'LeadCapture', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='calls'
+    )
+
     lead_name = models.CharField(max_length=100,null=True, blank= True)
 
+    call_type = models.CharField(
+        max_length=20, choices=CALL_TYPE_CHOICES, default='outgoing'
+    )
 
     call_date = models.DateField(max_length=100,null=True, blank= True)
     call_time = models.TimeField(max_length=100,null=True, blank= True)
 
-    duration = models.IntegerField(null=True, blank= True)  
+    duration = models.IntegerField(null=True, blank= True)  # minutes
+    duration_seconds = models.PositiveSmallIntegerField(default=0)  # extra seconds (0-59)
 
     call_outcome = models.CharField(max_length=50, choices=LEAD_STATUS_CHOICES)
 
@@ -96,6 +111,38 @@ class CallLog(models.Model):
     next_followup_date = models.DateField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
+
+    # ---- mobile call-log style helpers ----
+    @property
+    def total_seconds(self):
+        return (self.duration or 0) * 60 + (self.duration_seconds or 0)
+
+    @property
+    def is_connected(self):
+        return self.call_type != 'did_not_connect'
+
+    @property
+    def duration_display(self):
+        """e.g. '2 min 44 s', '9 sec', '' (when not connected)"""
+        if not self.is_connected:
+            return ''
+        mins, secs = divmod(self.total_seconds, 60)
+        if mins:
+            return f'{mins} min {secs} s'
+        return f'{secs} sec'
+
+    @property
+    def log_label(self):
+        """e.g. 'Outgoing 2 min 44 s' / 'Answered 3 min 9 s' / 'Did not connect'"""
+        label = self.get_call_type_display()
+        return f'{label} {self.duration_display}'.strip()
+
+    @property
+    def timestamp_display(self):
+        if self.call_date:
+            t = self.call_time.strftime('%H:%M') if self.call_time else ''
+            return f'{self.call_date.strftime("%Y/%m/%d")} {t}'.strip()
+        return timezone.localtime(self.created_at).strftime('%Y/%m/%d %H:%M')
 
 # ================================ LEAD CAPTURE TARGET (MARKETING) ================================
 class LeadCaptureTarget(models.Model):

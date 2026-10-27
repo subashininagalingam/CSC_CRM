@@ -1,308 +1,377 @@
+/* ==========================================
+   EDIT STUDENT FORM STYLES
+   ==========================================*/
+
+:root {
+    --csc-navy: #1e1b4b;
+    --csc-navy-light: #2c2870;
+    --csc-yellow: #ffc82c;
+    --csc-yellow-dark: #f0b400;
+    --csc-indigo: #4338ca;
+    --csc-bg: #f4f5fa;
+    --csc-white: #ffffff;
+    --csc-border: #e9eaf2;
+    --csc-text: #1f2142;
+    --csc-text-muted: #8b8da3;
+    --csc-purple-bg: #ede9fe;
+    --csc-purple-text: #6d4fc4;
+    --csc-red: #dc2626;
+    --csc-red-bg: #fee2e2;
+    --csc-radius-lg: 16px;
+    --csc-radius-md: 12px;
+    --csc-radius-sm: 8px;
+    --csc-shadow: 0 2px 10px rgba(30, 27, 75, 0.06);
+}
+
 * {
-    margin: 0;
-    padding: 0;
     box-sizing: border-box;
 }
 
-body{
-    background: #f5f7fb;
+body {
+    background: var(--csc-bg);
 }
 
-.edit-container {
-    width: 95%;
-    margin: 10px auto 20px auto;  
-
+.student-mgmt-form-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 24px auto 30px;
+    padding: 0 16px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: var(--csc-text);
 }
 
-strong,p{
-    color: rgb(30, 42, 120);
-}
-.edit-container p{
-    font-size: 12px;
-    padding-bottom: 15px;
+/* ===================================== FORM CARD ===================================== */
+
+.student-mgmt-form-card {
+    background: var(--csc-white);
+    border-radius: var(--csc-radius-lg);
+    box-shadow: var(--csc-shadow);
+    padding: 28px 32px 32px;
 }
 
-.section-title,
-.section-title-details {
+.student-mgmt-form-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 15px;
-    font-weight: 600;
-    color:rgb(30, 42, 120);
-    margin-bottom: 15px;
-}
-
-.section-title i,
-.section-title-details i {
-    color: rgb(30, 42, 120);
-    font-size: 14px;
-}
-
-.personal-info {
-    width: 100%;
-    background: white;
+    gap: 16px;
     padding: 20px;
-    margin-bottom: 20px;
-    border-radius: 10px;
-    box-shadow: -5px 0 0 0 rgb(255, 202, 43);
-    box-sizing: border-box;
+    margin-bottom: 22px;
+    border-bottom: 1px solid var(--csc-border);
 }
 
-label {
-    font-size: 14px;
-    font-weight: 500;
-    margin-bottom: 3px;
-    display: block;
-}
-
-input,
-select,
-textarea {
-    width: 100%;
-    padding: 8px;
-    height: 40px;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    font-size: 14px;
-    box-sizing: border-box;
-}
-
-textarea {
-    height: auto;
-    resize: vertical;
-}
-
-.personal-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-}
-
-.address-grid {
-    display: grid;
-    gap: 12px;
-}
-
-.course-grid,
-.document-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 15px;
-}
-
-.admission-status {
+.form-header-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: var(--csc-purple-bg);
     display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-top: 10px;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
-.status-option input {
+.form-header-icon i {
+    font-size: 22px;
+    color: var(--csc-purple-text);
+}
+
+.student-mgmt-form-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--csc-navy);
+    margin: 0;
+    line-height: 1.3;
+}
+
+.student-mgmt-form-subtitle {
+    font-size: 13.5px;
+    color: var(--csc-text-muted);
+    margin: 6px 0 0;
+}
+
+/* =========================== SECTIONS ================================ */
+
+.student-mgmt-form-section {
+    border: none;
+    padding: 0;
+    margin: 0 0 28px;
+}
+
+.student-mgmt-form-section:last-of-type {
+    margin-bottom: 0;
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--csc-navy);
+    padding: 0;
+    margin-bottom: 18px;
+}
+
+.section-bar {
+    width: 4px;
+    height: 18px;
+    border-radius: 4px;
+    background: var(--csc-indigo);
+}
+
+.section-title i {
+    color: var(--csc-indigo);
+    font-size: 15px;
+}
+
+/* ================================ FORM ROWS & FIELDS ================================ */
+
+.form-row {
+    display: grid;
+    gap: 18px;
+    margin-bottom: 18px;
+}
+
+.form-row.three-columns {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.form-row.two-columns {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--csc-text);
+    margin-bottom: 8px;
+}
+
+.required {
+    color: var(--csc-red);
+}
+
+/* edit_student.js writes into these spans (.error is kept for compatibility) */
+.form-error,
+.error {
+    font-size: 11.5px;
+    color: var(--csc-red);
+    margin-top: 4px;
+    display: block;
+    min-height: 14px;
+    font-weight: 500;
+}
+
+/* ===== Input wrapper (icon inputs / selects) ===== */
+
+.input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.input-wrapper input,
+.input-wrapper select,
+.input-wrapper textarea {
+    width: 100%;
+}
+
+.input-wrapper i {
+    position: absolute;
+    right: 14px;
+    top: 20px;
+    transform: translateY(-50%);
+    color: var(--csc-text-muted);
+    font-size: 14px;
+    pointer-events: none;
+}
+
+.input-wrapper select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group input[type="tel"],
+.form-group input[type="date"],
+.form-group input[type="number"],
+.form-group input:not([type]),
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    height: 42px;
+    border: 1px solid var(--csc-border);
+    border-radius: var(--csc-radius-sm);
+    padding: 10px 40px 10px 14px;
+    font-size: 13.5px;
+    color: var(--csc-text);
+    background: var(--csc-white);
+    font-family: inherit;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: #9ca3af;
+}
+
+.form-group textarea {
+    height: auto;
+    min-height: 80px;
+    resize: vertical;
+    padding: 10px 14px;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--csc-indigo);
+    box-shadow: 0 0 0 3px rgba(67, 56, 202, 0.12);
+}
+
+.form-group input[readonly] {
+    background: var(--csc-bg);
+    color: var(--csc-text-muted);
+}
+
+/* Hide the native calendar icon so only our icon shows */
+.input-wrapper input[type="date"]::-webkit-calendar-picker-indicator {
     display: none;
 }
 
-.status {
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 13px;
+.input-wrapper input[type="date"] {
     cursor: pointer;
-    transition: 0.2s ease;
 }
 
-/* Status Colors */
-.status.enquiry {
-    background: #fff7cc;
-    color: #a68b00;
+/* Error state */
+.error-input {
+    border-color: var(--csc-red) !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1) !important;
 }
 
-.status.confirmed {
-    background: #e0e7ff;
-    color: #3b5bdb;
-}
+/* ===== Phone field: separate "+91" box ===== */
 
-.status.enrolled {
-    background: #d3f9d8;
-    color: #2b8a3e;
-}
-
-.status.dropped {
-    background: #ffe3e3;
-    color: #c92a2a;
-}
-
-/* Selected Status */
-.status-option input[value="enquiry"]:checked + .status {
-    border: 2px solid #facc15;
-}
-
-.status-option input[value="confirmed"]:checked + .status {
-    border: 2px solid #3b5bdb;
-}
-
-.status-option input[value="enrolled"]:checked + .status {
-    border: 2px solid #2b8a3e;
-}
-
-.status-option input[value="dropped"]:checked + .status {
-    border: 2px solid #c92a2a;
-}
-
-.file-name {
-    margin-top: 6px;
-    font-size: 12px;
-    color: #2563eb;
-    word-break: break-word;
-}
-
-.error {
-    color: #dc2626;
-    font-size: 12px;
-    margin-top: 4px;
-    display: block;
-}
-
-.form-btn {
-    margin-top: 25px;
+.phone-wrapper {
     display: flex;
-    justify-content: flex-end;
-}
-
-button {
-    background: rgb(30, 42, 120);
-    color: white;
-    padding: 8px 15px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: 0.2s ease;
-}
-
-button:hover {
-    background: rgb(255, 202, 43);
-    color: rgb(30, 42, 120);
-    box-shadow: 0 4px 10px rgb(255, 202, 43);
-}
-
-a {
-    text-decoration: none;
-}
-
-.file-link{
-    display: inline-block;
-    margin-top: 6px;
-    font-size: 12px;
-    color: #2563eb;
-    text-decoration: none;
-    word-break: break-word;
-}
-
-.file-link:hover{
-    text-decoration: underline;
-}
-.error {
-    color: #dc2626;
-    font-size: 12px;
-}
-
-@media (max-width: 550px) {
-
-    .container {
-        width: 100%;
-        padding: 10px;
-    }
-
-    .personal-grid,
-    .course-grid,
-    .document-grid {
-        grid-template-columns: 1fr;
-    }
-
-    button {
-        width: 100%;
-    }
-}
-
-/* =========================== FILE UPLOAD (parity with register page) =========================== */
-
-.document-grid input[type="file"] {
     width: 100%;
-    height: auto;
-    padding: 8px 15px;
-    border: 1px solid #d1d5db;
-    border-radius: 10px;
-    background: #fff;
-    cursor: pointer;
-    font-size: 14px;
-    transition: .3s;
 }
 
-.document-grid input[type="file"]:hover {
-    border-color: #2563eb;
+.country-code {
+    width: 52px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--csc-bg);
+    border: 1px solid var(--csc-border);
+    border-right: none;
+    border-radius: var(--csc-radius-sm) 0 0 var(--csc-radius-sm);
+    font-size: 13.5px;
+    color: var(--csc-text-muted);
+    font-weight: 600;
 }
 
-.document-grid input[type="file"]:focus {
-    border: 1px solid #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, .15);
-    outline: none;
+.phone-wrapper .input-wrapper {
+    flex: 1;
 }
 
-.document-grid input[type="file"]::file-selector-button {
-    background: #2563eb;
-    color: #fff;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    margin-right: 12px;
-    font-size: 13px;
-    transition: .3s;
+.phone-wrapper .input-wrapper input {
+    border-radius: 0 var(--csc-radius-sm) var(--csc-radius-sm) 0;
 }
 
-.document-grid input[type="file"]::file-selector-button:hover {
-    background: #1d4ed8;
-}
-
-.document-grid input[type="file"].error-input {
-    border: 1px solid #dc2626 !important;
-}
+/* =================================== FILE UPLOAD =================================== */
 
 .file-upload-wrapper {
     position: relative;
-    width: 100%;
 }
 
-.file-upload-wrapper input[type="file"] {
+.upload-dropzone {
+    position: relative;
+    border: 1.5px dashed #c7c9f5;
+    border-radius: var(--csc-radius-md);
+    background: #fbfaff;
+    padding: 34px 16px;
+    text-align: center;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.upload-dropzone:hover {
+    border-color: var(--csc-indigo);
+    background: var(--csc-purple-bg);
+}
+
+.upload-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: var(--csc-purple-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+    color: var(--csc-indigo);
+    font-size: 17px;
+}
+
+.upload-text {
+    font-size: 13px;
+    color: var(--csc-text);
+    margin: 0;
+}
+
+.upload-link {
+    color: var(--csc-indigo);
+    font-weight: 600;
+}
+
+.upload-hint {
+    font-size: 11.5px;
+    color: var(--csc-text-muted);
+    margin: 4px 0 0;
+}
+
+.upload-dropzone input[type="file"] {
+    position: absolute;
+    inset: 0;
     width: 100%;
-    padding-right: 38px;
-    box-sizing: border-box;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    padding: 0;
+    border: none;
 }
 
 .remove-file-btn {
     position: absolute;
-    top: 50%;
-    right: 12px;
-    transform: translateY(-50%);
-
-    width: 28px;
-    height: 28px;
-
-    border: none;
+    top: -10px;
+    right: -10px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
-
-    background: #dc2626;
-    color: #ffffff;
-
-    font-size: 12px;
-    font-weight: bold;
-
+    border: none;
+    background: var(--csc-red);
+    color: var(--csc-white);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
     cursor: pointer;
-
     display: none;
     align-items: center;
     justify-content: center;
-
     z-index: 10;
+    padding: 0;
 }
 
 .remove-file-btn:hover {
@@ -310,201 +379,143 @@ a {
 }
 
 .upload-progress {
-    width: 100%;
-    height: 10px;
-    background: #e5e7eb;
-    border-radius: 10px;
-    overflow: hidden;
+    height: 5px;
+    border-radius: 4px;
+    background: var(--csc-border);
     margin-top: 10px;
-    margin-bottom: 10px;
+    overflow: hidden;
 }
 
 .progress-bar {
-    width: 0%;
     height: 100%;
-    background: #16a34a;
-    transition: 0.3s;
+    width: 0%;
+    background: var(--csc-indigo);
+    transition: width 0.2s ease;
 }
 
-
-
-.error{
-    color:#dc2626;
-    font-size:12px;
-    margin-top:4px;
-    display:block;
+.upload-status {
+    display: block;
+    font-size: 11.5px;
+    color: var(--csc-text-muted);
+    margin-top: 6px;
+    word-break: break-word;
 }
 
-
-/* ===========================
-   INPUT ICON STYLE
-=========================== */
-
-.required{
-    color:#111010;
-    font-weight:bold;
+.file-link {
+    color: var(--csc-indigo);
+    font-weight: 600;
+    text-decoration: none;
 }
 
-/* wrapper */
-
-.input-icon-wrapper{
-
-    position:relative;
-    width:100%;
-
+.file-link:hover {
+    text-decoration: underline;
 }
 
-/* input */
-
-.input-icon-wrapper input,
-.input-icon-wrapper select{
-
-    width:100%;
-    height:46px;
-    padding:10px 42px 10px 12px;
-
+.upload-dropzone.error-input {
+    border-color: var(--csc-red) !important;
 }
 
-/* textarea */
+/* ================================== FORM ACTIONS ================================== */
 
-.input-icon-wrapper textarea{
-
-    width:100%;
-    min-height:80px;
-    padding:10px 42px 10px 12px;
-
+.form-actions {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 16px;
+    margin-top: 30px;
+    padding: 22px;
+    border-top: 1px solid var(--csc-border);
 }
 
-/* icon */
-
-.input-icon-wrapper i{
-
-    position:absolute;
-
-    top:50%;
-
-    right:14px;
-
-    transform:translateY(-50%);
-
-    color:#9ca3af;
-
-    font-size:15px;
-
-    pointer-events:none;
-
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: var(--csc-radius-sm);
+    padding: 13px 20px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    text-decoration: none;
+    transition: opacity 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
-/* textarea icon */
-
-.input-icon-wrapper textarea+i{
-
-    top:18px;
-
-    transform:none;
-
+.btn-cancel {
+    background: var(--csc-bg);
+    color: var(--csc-text);
+    border: 1px solid var(--csc-border);
 }
 
-/* date */
-
-.input-icon-wrapper input[type="date"]{
-
-    padding-right:42px;
-
+.btn-cancel:hover {
+    background: var(--csc-border);
 }
 
-/* Native browser calendar icon (the built-in one on type="date" inputs)
-   sits on top of our custom .fa-calendar-alt icon and shows as a second
-   icon. Hide the native one - clicking the input still opens the picker
-   via edit_student.js's own click/showPicker handler, so no functionality
-   is lost. */
-.input-icon-wrapper input[type="date"]::-webkit-calendar-picker-indicator{
-
-    display:none;
-
+.btn-primary {
+    background: var(--csc-yellow);
+    color: var(--csc-navy);
 }
 
-.input-icon-wrapper input[type="date"]{
-
-    cursor:pointer;
-
+.btn-primary:hover {
+    background: var(--csc-yellow-dark);
+    box-shadow: 0 4px 10px rgba(255, 200, 44, 0.4);
 }
 
-/* select */
+/* ================================= RESPONSIVE ================================= */
 
-.input-icon-wrapper select{
-
-    appearance:none;
-
+@media (max-width: 1100px) {
+    .form-row.three-columns {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
-/* phone */
+@media (max-width: 968px) {
+    .form-row.three-columns,
+    .form-row.two-columns {
+        grid-template-columns: 1fr;
+    }
 
-.phone-wrapper{
-
-    display:flex;
-
-    width:100%;
-
+    .student-mgmt-form-container {
+        padding: 0 12px;
+    }
 }
 
-.country-code{
+@media (max-width: 700px) {
+    .student-mgmt-form-container {
+        padding: 0 10px;
+        margin: 16px auto 20px;
+    }
 
-    width:58px;
+    .student-mgmt-form-card {
+        padding: 18px;
+    }
 
-    display:flex;
+    .form-actions {
+        grid-template-columns: 1fr;
+        padding: 16px 0 0;
+    }
 
-    align-items:center;
-
-    justify-content:center;
-
-    background:#f5f5f5;
-
-    border:1px solid #d1d5db;
-
-    border-right:none;
-
-    border-radius:6px 0 0 6px;
-
-    font-size:14px;
-
+    .student-mgmt-form-header {
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+        padding: 12px 0;
+    }
 }
 
-.phone-wrapper .input-icon-wrapper{
+@media (max-width: 480px) {
+    .student-mgmt-form-title {
+        font-size: 19px;
+    }
 
-    flex:1;
+    .form-group input,
+    .form-group select {
+        font-size: 13px;
+        height: 40px;
+    }
 
-}
-
-.phone-wrapper input{
-
-    border-radius:0 6px 6px 0;
-
-}
-
-/* error */
-
-.error-input{
-
-    border:2px solid #dc2626!important;
-
-}
-
-.error{
-
-    color:#dc2626;
-
-    font-size:12px;
-
-    margin-top:4px;
-
-}
-
-/* placeholder */
-
-input::placeholder,
-textarea::placeholder{
-
-    color:#9ca3af;
-
+    .btn {
+        padding: 11px 16px;
+        font-size: 13.5px;
+    }
 }

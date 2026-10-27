@@ -1,21 +1,5 @@
 // Call-Logs //
     
-    function openPopup(name, date, time, duration, outcome, notes, follow) {
-        document.getElementById("p_name").innerText = name;
-        document.getElementById("p_date").innerText = date;
-        document.getElementById("p_time").innerText = time;
-        document.getElementById("p_duration").innerText = duration;
-        document.getElementById("p_outcome").innerText = outcome;
-        document.getElementById("p_notes").innerText = notes;
-        document.getElementById("p_follow").innerText = follow;
-
-        document.getElementById("popup").style.display = "block";
-    }
-
-    function closePopup() {
-        document.getElementById("popup").style.display = "none";
-    }
-
 function onlyLetters(input) {
 
     input.value = input.value.replace(/[^A-Za-z\s]/g, '');
@@ -30,6 +14,8 @@ let selectedLeadId = null;
 function searchLeadName(query) {
 
     selectedLeadId = null;
+    const hiddenLead = document.getElementById("lead_id_input");
+    if (hiddenLead) hiddenLead.value = "";
 
     const box = document.getElementById("lead_suggestions");
 
@@ -80,6 +66,8 @@ function renderLeadSuggestions(leads) {
 function selectLead(id, name, phone) {
 
     selectedLeadId = id;
+    const hiddenLead = document.getElementById("lead_id_input");
+    if (hiddenLead) hiddenLead.value = id;
 
     const nameInput = document.getElementById("lead_name");
     nameInput.value = name;
@@ -126,30 +114,33 @@ window.onload = function () {
 
     document.getElementById("call_date").setAttribute("max", today);
 
-}
-window.onload = function () {
-
-    let today = new Date().toISOString().split("T")[0];
-
-   
-    document.getElementById("call_date").setAttribute("max", today);
-
-    
-    document.getElementById("next_followup_date").setAttribute("min", today);
-
-}
-
-window.onload = function () {
-
-    let today = new Date().toISOString().split("T")[0];
-
-    document.getElementById("call_date").setAttribute("max", today);
-
     document.getElementById("next_followup_date").setAttribute("min", today);
 
     toggleFollowupRequired();
+    toggleDurationFields();
 
     document.getElementById("call_outcome").addEventListener("change", toggleFollowupRequired);
+    document.getElementById("call_type").addEventListener("change", toggleDurationFields);
+}
+
+// A call that did not connect has no talk time
+function toggleDurationFields() {
+
+    const type = document.getElementById("call_type").value;
+    const min = document.getElementById("duration_min");
+    const sec = document.getElementById("duration_sec");
+
+    const off = type === "did_not_connect";
+
+    min.disabled = off;
+    sec.disabled = off;
+
+    if (off) {
+        min.value = 0;
+        sec.value = 0;
+        document.getElementById("call_outcome").value = "Not Reachable";
+        toggleFollowupRequired();
+    }
 }
 
 function toggleFollowupRequired() {
