@@ -1,6 +1,7 @@
 from django.db.models import Q
 from .models import Attendance,Batch
 from csc_crm.apps.admissions.models import Enrollment
+from django.db.models import Q, Count, Case, When, IntegerField
 
 #=========================== STATUS COLOR MAP (SHARED ACROSS PDF/EXCEL) ==============================#
 STATUS_COLOR_HEX = {
@@ -34,33 +35,65 @@ def get_attendance_status(present_count, absent_count, late_count, total_days):
 
     return status, attendance_rate
 
-#============================ PRESENT/ABSENT/LATE COUNTS - PER ENROLLMENT =============================#
+# ================= PRESENT / ABSENT / LATE COUNTS - PER ENROLLMENT =================
 def get_attendance_counts(enrollment, date_from=None, date_to=None):
     qs = Attendance.objects.filter(enrollment=enrollment)
 
     if date_from:
         qs = qs.filter(attendance_date__gte=date_from)
+
     if date_to:
         qs = qs.filter(attendance_date__lte=date_to)
 
-    present_count = qs.filter(status='Present').count()
-    absent_count = qs.filter(status='Absent').count()
-    late_count = qs.filter(status='Late').count()
+    counts = qs.aggregate(
+        present=Count(
+            "id",
+            filter=Q(status="Present")
+        ),
+        absent=Count(
+            "id",
+            filter=Q(status="Absent")
+        ),
+        late=Count(
+            "id",
+            filter=Q(status="Late")
+        ),
+    )
+
+    present_count = counts["present"] or 0
+    absent_count = counts["absent"] or 0
+    late_count = counts["late"] or 0
+
     total_days = present_count + absent_count + late_count
 
     return present_count, absent_count, late_count, total_days
 
-#======================= PRESENT/ABSENT/LATE COUNTS - GENERIC QUERYSET =========================#
+
+# ================= PRESENT / ABSENT / LATE COUNTS - GENERIC QUERYSET =================
 def count_by_status(queryset):
     """
-    Generic present/absent/late/total counter for any Attendance queryset.
-    Used wherever a queryset's status breakdown is needed (dashboard, batch
-    preview, attendance history, student summary, etc.) instead of repeating
-    the same three .filter(status=...).count() calls everywhere.
+    Returns Present / Absent / Late / Total counts
+    using a single database query.
     """
-    present = queryset.filter(status="Present").count()
-    absent = queryset.filter(status="Absent").count()
-    late = queryset.filter(status="Late").count()
+
+    counts = queryset.aggregate(
+        present=Count(
+            "id",
+            filter=Q(status="Present")
+        ),
+        absent=Count(
+            "id",
+            filter=Q(status="Absent")
+        ),
+        late=Count(
+            "id",
+            filter=Q(status="Late")
+        ),
+    )
+
+    present = counts["present"] or 0
+    absent = counts["absent"] or 0
+    late = counts["late"] or 0
 
     return {
         "present": present,

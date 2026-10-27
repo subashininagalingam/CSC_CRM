@@ -34,313 +34,152 @@ function getCookie(name) {
 }
 
 //================ NOTIFY / RE-NOTIFY BUTTON HANDLER ==================//
-document.addEventListener(
+document.addEventListener("DOMContentLoaded", function () {
 
-    "DOMContentLoaded",
+    const notifyButtons = document.querySelectorAll(".notify-action-btn");
 
-    function () {
+    notifyButtons.forEach(function (button) {
 
-        const notifyButtons = document.querySelectorAll(
+        button.addEventListener("click", function () {
 
-            ".notify-action-btn"
+            const studentId = button.dataset.id;
 
-        );
+            fetch(`/api/mark-notification/${studentId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                });
 
-        notifyButtons.forEach(
+            // PREVENT MULTIPLE CLICKS
+            button.disabled = true;
 
-            function (button) {
+            // LOADING STATE
+            button.innerHTML = `
+                <span class="spinner-border spinner-border-sm"></span>
+                Sending...
+            `;
 
-                button.addEventListener(
+            // SIMULATE REAL-TIME API
+            setTimeout(function () {
 
-                    "click",
+                // BUTTON STYLE CHANGE
+                button.classList.remove("notify-btn");
+                button.classList.add("renotify-btn");
 
-                    function () {
-                        const studentId = button.dataset.id;
+                // BUTTON TEXT CHANGE
+                button.innerHTML = `
+                    <i class="bi bi-arrow-repeat"></i>
+                    Re-notify
+                `;
 
-                        fetch(`/api/mark-notification/${studentId}/`)
-                            .then(response => response.json())
-                            .then(data => {
-                                console.log(data);
-                            });
+                // ENABLE AGAIN
+                button.disabled = false;
 
-                        // PREVENT MULTIPLE CLICKS
+                // STATUS BADGE UPDATE
+                const row = button.closest("tr");
+                const statusBadge = row.querySelector(".notification-cell .status-badge");
 
-                        button.disabled = true;
+                if (statusBadge) {
+                    statusBadge.classList.remove("pending");
+                    statusBadge.classList.add("dispatched");
+                    statusBadge.innerHTML = `
+                        <i class="bi bi-check-circle-fill"></i>
+                        Dispatched
+                    `;
+                }
 
-                        // LOADING STATE
+                // SUCCESS MESSAGE
+                showToast("Student SMS Alert Queued Successfully", 'success');
 
-                        button.innerHTML = `
+            }, 3200);
 
-                            <span class="spinner-border spinner-border-sm"></span>
+        });
 
-                            Sending...
+    });
 
-                        `;
-
-                        // SIMULATE REAL-TIME API
-
-                        setTimeout(function () {
-
-                            // BUTTON STYLE CHANGE
-
-                            button.classList.remove(
-
-                                "notify-btn"
-
-                            );
-
-                            button.classList.add(
-
-                                "renotify-btn"
-
-                            );
-
-                            // BUTTON TEXT CHANGE
-
-                            button.innerHTML = `
-
-                                <i class="bi bi-arrow-repeat"></i>
-
-                                Re-notify
-
-                            `;
-                            showToast("Student Re-notification Sent Successfully", 'success');
-
-                            // ENABLE AGAIN
-
-                            button.disabled = false;
-
-                            // STATUS BADGE UPDATE
-
-                            const row = button.closest("tr");
-
-                            const statusBadge = row.querySelector(
-
-                                ".notification-cell .status-badge"
-                            );
-
-                            statusBadge.classList.remove(
-
-                                "pending"
-                            );
-
-                            statusBadge.classList.add(
-
-                                "dispatched"
-                            );
-
-                            statusBadge.innerHTML = `
-
-                                <i class="bi bi-check-circle-fill"></i>
-
-                                Dispatched
-
-                            `;
-
-                            // SUCCESS MESSAGE
-
-                            showToast("Student SMS Alert Queued Successfully", 'success');
-
-                        }, 3200);
-
-                    }
-
-                );
-
-            }
-
-        );
-
-    }
-
-);
+});
 
 //================ TABLE FILTERS (NAME, BATCH, COURSE, PHONE, EMAIL, STATUS) ==================//
 function applyFilters() {
 
-    const name =
-        document.getElementById(
-            "studentNameFilter"
-        ).value.toLowerCase();
+    const name = document.getElementById("studentNameFilter").value.toLowerCase();
+    const batch = document.getElementById("batchFilter").value.toLowerCase();
 
+    // courseFilter is rendered only for Admin / Manager / HR (null for Trainer)
+    const courseEl = document.getElementById("courseFilter");
+    const course = courseEl ? courseEl.value.toLowerCase() : "";
 
-
-    const batch =
-        document.getElementById(
-            "batchFilter"
-        ).value.toLowerCase();
-
-    const course =
-        document.getElementById(
-            "courseFilter"
-        ).value.toLowerCase();
-
-    const phone =
-        document.getElementById(
-            "phoneFilter"
-        ).value.toLowerCase();
-
-    const email =
-        document.getElementById(
-            "emailFilter"
-        ).value.toLowerCase();
-
-    const status =
-        document.getElementById(
-            "statusFilter"
-        ).value.toLowerCase();
+    const phone = document.getElementById("phoneFilter").value.toLowerCase();
+    const email = document.getElementById("emailFilter").value.toLowerCase();
+    const status = document.getElementById("statusFilter").value.toLowerCase();
 
     let visibleCount = 0;
 
-    const totalCount =
-        document.querySelectorAll(
-            ".student-row"
-        ).length;
+    const totalCount = document.querySelectorAll(".student-row").length;
 
-    document.querySelectorAll(
-        ".student-row"
-    ).forEach(row => {
+    document.querySelectorAll(".student-row").forEach(row => {
 
         const show =
+            (name === "" || row.dataset.name.toLowerCase().startsWith(name)) &&
+            (course === "" || row.dataset.course.toLowerCase() === course) &&
+            (batch === "" || row.dataset.batch.toLowerCase() === batch) &&
+            (phone === "" || row.dataset.phone.toLowerCase().startsWith(phone)) &&
+            (email === "" || row.dataset.email.toLowerCase().includes(email)) &&
+            (status === "" || row.dataset.status.toLowerCase() === status);
 
-            (name === "" ||
-                row.dataset.name
-                    .toLowerCase()
-                    .startsWith(name)) &&
-
-
-            (course === "" ||
-                row.dataset.course
-                    .toLowerCase() === course) &&
-
-            (batch === "" ||
-                row.dataset.batch
-                    .toLowerCase() === batch) &&
-
-            (phone === "" ||
-                row.dataset.phone
-                    .toLowerCase()
-                    .startsWith(phone)) &&
-
-            (email === "" ||
-                row.dataset.email
-                    .toLowerCase()
-                    .includes(email)) &&
-
-            (status === "" ||
-                row.dataset.status
-                    .toLowerCase() === status);
-
-        row.style.display =
-            show ? "" : "none";
+        row.style.display = show ? "" : "none";
 
         if (show) {
-
             visibleCount++;
-
         }
 
     });
-    document.getElementById(
-        "resultsCount"
-    ).innerHTML =
 
+    document.getElementById("resultsCount").innerHTML =
         `Showing ${visibleCount} of ${totalCount} Students`;
-    if (visibleCount === 0) {
 
-        document.getElementById("noResultsMessage").style.display = "block";
-
-    } else {
-
-        document.getElementById("noResultsMessage").style.display = "none";
-
+    const noResults = document.getElementById("noResultsMessage");
+    if (noResults) {
+        noResults.style.display = (visibleCount === 0 && totalCount > 0) ? "block" : "none";
     }
-
 
 }
 
 //================ FILTER INPUT LISTENERS (KEYUP/CHANGE) ==================//
-document.querySelectorAll(
-    ".filter-input, .filter-select"
-).forEach(input => {
-
-    input.addEventListener(
-        "keyup",
-        applyFilters
-    );
-
-    input.addEventListener(
-        "change",
-        applyFilters
-    );
-
+document.querySelectorAll(".filter-input, .filter-select").forEach(input => {
+    input.addEventListener("keyup", applyFilters);
+    input.addEventListener("change", applyFilters);
 });
 
 //================ CLEAR FILTERS BUTTON ==================//
-document.getElementById(
-    "clearFilters"
-).addEventListener(
-    "click",
-    function () {
+function clearAllFilters() {
 
-        document.querySelectorAll(
-            ".filter-input"
-        ).forEach(input => {
+    document.querySelectorAll(".filter-input").forEach(input => {
+        input.value = "";
+    });
 
-            input.value = "";
+    document.getElementById("statusFilter").value = "";
+    document.getElementById("batchFilter").value = "";
 
-        });
+    // courseFilter does not exist for Trainer login
+    const courseEl = document.getElementById("courseFilter");
+    if (courseEl) courseEl.value = "";
 
-        document.getElementById(
-            "statusFilter"
-        ).value = "";
+    applyFilters();
+}
 
-        document.getElementById(
-            "courseFilter"
-        ).value = "";
-        document.getElementById(
-            "batchFilter"
-        ).value = "";
+const clearBtn = document.getElementById("clearFilters");
+if (clearBtn) {
+    clearBtn.addEventListener("click", clearAllFilters);
+}
 
-        applyFilters();
+//================ SHOW ALL / RESET FILTERS BUTTON (OPTIONAL - COMMENTED OUT IN HTML) ==================//
+const showAllBtn = document.getElementById("showAllBtn");
+if (showAllBtn) {
+    showAllBtn.addEventListener("click", clearAllFilters);
+}
 
-
-
-    }
-);
-
-//================ SHOW ALL / RESET FILTERS BUTTON ==================//
-document.getElementById(
-    "showAllBtn"
-).addEventListener(
-    "click",
-    function () {
-
-        document.querySelectorAll(
-            ".filter-input"
-        ).forEach(input => {
-
-            input.value = "";
-
-        });
-
-        document.getElementById(
-            "statusFilter"
-        ).value = "";
-
-        document.getElementById(
-            "courseFilter"
-        ).value = "";
-
-        document.getElementById(
-            "batchFilter"
-        ).value = "";
-
-        applyFilters();
-
-    }
-);
-
+//================ TOAST (SAME DESIGN AS REST OF CRM) ==================//
 function showToast(message, type = 'success', duration = 3200) {
 
     let container = document.getElementById('toastContainer');
@@ -349,7 +188,12 @@ function showToast(message, type = 'success', duration = 3200) {
         container = document.createElement('div');
         container.id = 'toastContainer';
         container.className = 'toast-container';
-        document.body.appendChild(container);   
+    }
+
+    // Keep the container directly under <body> so parent overflow / z-index
+    // / transform inside the page layout cannot hide the toast
+    if (container.parentElement !== document.body) {
+        document.body.appendChild(container);
     }
 
     const toast = document.createElement('div');
@@ -379,94 +223,78 @@ function showToast(message, type = 'success', duration = 3200) {
     toast.addEventListener('mouseenter', () => clearTimeout(timer));
 }
 
+// Initial run
 applyFilters();
+
+//================ ADMIN NOTES MODAL - SET MODE (VIEW / EDIT) ==================//
+function setNoteMode(mode) {
+
+    const textarea = document.getElementById("adminNoteText");
+    const title = document.getElementById("adminNoteTitle");
+    const isEdit = mode === "edit";
+
+    textarea.readOnly = !isEdit;
+
+    if (title) {
+        title.textContent = isEdit ? "Edit Admin Notes" : "Admin Notes";
+    }
+
+    document.getElementById("saveNoteBtn").style.display = isEdit ? "inline-block" : "none";
+    document.getElementById("editNoteBtn").style.display = isEdit ? "none" : "inline-block";
+
+    if (isEdit) {
+        textarea.focus();
+        // cursor at the end of the existing text
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    }
+}
 
 //================ ADMIN NOTES MODAL - EDIT MODE ==================//
 function openEditModal(id, note) {
 
-    document.getElementById(
-        "trackerId"
-    ).value = id;
+    closeActionMenus();
 
-    document.getElementById(
-        "adminNoteText"
-    ).value = note || "";
+    document.getElementById("trackerId").value = id;
 
-    document.getElementById(
-        "adminNoteText"
-    ).readOnly = false;
+    document.getElementById("adminNoteText").value = note || "";
 
-    document.querySelector(
-        ".notify-btn.mt-3"
-    ).style.display = "inline-block";
+    document.getElementById("adminNoteModal").style.display = "block";
 
-    document.getElementById(
-        "adminNoteModal"
-    ).style.display = "block";
+    setNoteMode("edit");
 
 }
 
 //================ ADMIN NOTES MODAL - VIEW MODE (READ-ONLY) ==================//
 function openViewModal(id, note) {
 
-    document.getElementById(
-        "trackerId"
-    ).value = id;
+    closeActionMenus();
 
-    document.getElementById(
-        "adminNoteText"
-    ).value = note || "No notes available";
+    document.getElementById("trackerId").value = id;
 
-    document.getElementById(
-        "adminNoteText"
-    ).readOnly = true;
+    document.getElementById("adminNoteText").value = note || "No notes available";
 
-    document.getElementById(
-        "saveNoteBtn"
-    ).style.display = "none";
+    document.getElementById("adminNoteModal").style.display = "block";
 
-    document.getElementById(
-        "editNoteBtn"
-    ).style.display = "inline-block";
-
-    document.getElementById(
-        "adminNoteModal"
-    ).style.display = "block";
+    setNoteMode("view");
 }
 
 //================ ADMIN NOTES MODAL - CLOSE ==================//
 function closeAdminModal() {
 
-    document.getElementById(
-        "adminNoteModal"
-    ).style.display = "none";
+    document.getElementById("adminNoteModal").style.display = "none";
 
-    document.getElementById(
-        "adminNoteText"
-    ).value = "";
+    document.getElementById("adminNoteText").value = "";
 
-    document.getElementById(
-        "adminNoteText"
-    ).readOnly = false;
-
-    document.querySelector(
-        ".notify-btn.mt-3"
-    ).style.display = "inline-block";
+    // Reset to default (edit) state
+    setNoteMode("edit");
 
 }
 
 //================ ADMIN NOTES - SAVE (AJAX POST) ==================//
 function saveAdminNotes() {
 
-    const trackerId =
-        document.getElementById(
-            "trackerId"
-        ).value;
-
-    const note =
-        document.getElementById(
-            "adminNoteText"
-        ).value.trim();
+    const trackerId = document.getElementById("trackerId").value;
+    const note = document.getElementById("adminNoteText").value.trim();
 
     const csrftoken = getCookie("csrftoken");
 
@@ -492,13 +320,14 @@ function saveAdminNotes() {
             if (data.status === "success") {
 
                 closeAdminModal();
+                closeActionMenus();
 
                 updateAdminNoteInRow(trackerId, note);
 
-                showToast(" Notes Saved Successfully!", 'success');
+                showToast("Notes updated successfully!", 'success');
 
             } else {
-                showToast(" Failed to save notes.", 'error');
+                showToast(data.message || " Failed to save notes.", 'error');
             }
         })
         .catch(error => {
@@ -509,6 +338,7 @@ function saveAdminNotes() {
 }
 
 //================ UPDATE ADMIN NOTE ON BUTTON WITHOUT PAGE RELOAD ==================//
+// Selector depends on the onclick starting exactly as: openViewModal('ID' / openEditModal('ID'
 function updateAdminNoteInRow(trackerId, note) {
 
     const safeNote = note && note.trim() !== "" ? note : "No notes available";
@@ -521,17 +351,18 @@ function updateAdminNoteInRow(trackerId, note) {
         `.action-dropdown button[onclick*="openEditModal('${trackerId}'"]`
     );
 
+    // JSON.stringify gives a valid JS string literal (handles quotes + new lines)
     if (viewBtn) {
         viewBtn.setAttribute(
             "onclick",
-            `openViewModal('${trackerId}', \`${safeNote.replace(/`/g, "\\`")}\`)`
+            `openViewModal('${trackerId}', ${JSON.stringify(safeNote)})`
         );
     }
 
     if (editBtn) {
         editBtn.setAttribute(
             "onclick",
-            `openEditModal('${trackerId}', '${note.replace(/'/g, "\\'")}')`
+            `openEditModal('${trackerId}', ${JSON.stringify(note || "")})`
         );
     }
 }
@@ -539,17 +370,21 @@ function updateAdminNoteInRow(trackerId, note) {
 //================ ADMIN NOTES MODAL - SWITCH VIEW MODE TO EDIT MODE ==================//
 function enableEditMode() {
 
-    document.getElementById(
-        "adminNoteText"
-    ).readOnly = false;
+    const textarea = document.getElementById("adminNoteText");
 
-    document.getElementById(
-        "saveNoteBtn"
-    ).style.display = "inline-block";
+    // If it was only the placeholder text, start with an empty box
+    if (textarea.value === "No notes available") {
+        textarea.value = "";
+    }
 
-    document.getElementById(
-        "editNoteBtn"
-    ).style.display = "none";
+    setNoteMode("edit");
+}
+
+//================ ACTION MENU - CLOSE ALL ==================//
+function closeActionMenus() {
+    document.querySelectorAll('.action-dropdown.show').forEach(menu => {
+        menu.classList.remove('show');
+    });
 }
 
 //================ ACTION MENU (THREE-DOT DROPDOWN) - TOGGLE ==================//
@@ -562,9 +397,7 @@ function toggleActionMenu(button) {
     const wasOpen = dropdown.classList.contains('show');
 
     // Close all other menus
-    document.querySelectorAll('.action-dropdown.show').forEach(menu => {
-        menu.classList.remove('show');
-    });
+    closeActionMenus();
 
     if (!wasOpen) {
 
@@ -579,25 +412,13 @@ function toggleActionMenu(button) {
 }
 
 //================ ACTION MENU - CLOSE ON OUTSIDE CLICK ==================//
-// Close menu when clicking outside
 document.addEventListener('click', function (event) {
 
     if (!event.target.closest('.action-menu')) {
-
-        document
-            .querySelectorAll('.action-dropdown.show')
-            .forEach(menu => {
-                menu.classList.remove('show');
-            });
-
+        closeActionMenus();
     }
 
 });
 
 //================ ACTION MENU - CLOSE ON SCROLL ==================//
-// Close open dropdown on scroll (table scroll / page scroll)
-document.addEventListener('scroll', function () {
-    document.querySelectorAll('.action-dropdown.show').forEach(menu => {
-        menu.classList.remove('show');
-    });
-}, true);
+document.addEventListener('scroll', closeActionMenus, true);

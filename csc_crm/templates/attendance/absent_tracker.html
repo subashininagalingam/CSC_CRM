@@ -230,19 +230,21 @@
                                 🟡 Follow-up
                             </span>
 
-                            {% elif student.total_absences <= 5 %} <span class="obs-badge parent-pending"
+                            {% elif student.total_absences <= 5 %}
+
+                            <span class="obs-badge parent-pending"
                                 title="Parent/Guardian communication is recommended due to increasing absences.">
                                 🟠 Warning
-                                </span>
+                            </span>
 
-                                {% else %}
+                            {% else %}
 
-                                <span class="obs-badge critical-risk"
-                                    title="Attendance level is critically low and requires immediate intervention.">
-                                    🔴 Critical Risk
-                                </span>
+                            <span class="obs-badge critical-risk"
+                                title="Attendance level is critically low and requires immediate intervention.">
+                                🔴 Critical Risk
+                            </span>
 
-                                {% endif %}
+                            {% endif %}
 
                         </td>
 
@@ -303,15 +305,14 @@
 
                                 <div class="action-dropdown">
 
-                                    <button type="button"
-                                        onclick="openViewModal( '{{ student.tracker_id }}',`{{ student.admin_notes|default_if_none:"
-                                        No notes available"|escapejs }}` )">
+                                    {# NOTE: each {{ }} must stay on ONE line, and no space after "(" - JS selector depends on this exact format #}
+                                    <button type="button" onclick="openViewModal('{{ student.tracker_id }}', '{{ student.admin_notes|default_if_none:''|escapejs }}')">
                                         <i class="bi bi-eye"></i>
                                         View
                                     </button>
 
                                     {% if request.user.staff_profile.role.role_name in "Admin,Manager,Trainer" %}
-                                    <button type="button" onclick="openEditModal( '{{ student.tracker_id }}', '{{ student.admin_notes|default_if_none:""|escapejs }}' )">
+                                    <button type="button" onclick="openEditModal('{{ student.tracker_id }}', '{{ student.admin_notes|default_if_none:''|escapejs }}')">
                                         <i class="bi bi-pencil-square"></i>
                                         Edit
                                     </button>
@@ -358,7 +359,7 @@
 
                 <div class="modal-header">
 
-                    <h5>Admin Notes</h5>
+                    <h5 id="adminNoteTitle">Admin Notes</h5>
 
                     <span onclick="closeAdminModal()">
                         &times;
@@ -368,8 +369,7 @@
 
                 <input type="hidden" id="trackerId">
 
-                <textarea id="adminNoteText" class="form-control" rows="6">
-        </textarea>
+                <textarea id="adminNoteText" class="form-control" rows="6"></textarea>
 
                 <button id="saveNoteBtn" class="notify-btn mt-3" onclick="saveAdminNotes()">
 
@@ -377,7 +377,7 @@
 
                 </button>
 
-                <button type="button" id="editNoteBtn" class="notify-btn" onclick="enableEditMode()">
+                <button type="button" id="editNoteBtn" class="notify-btn mt-3" onclick="enableEditMode()">
 
                     Edit Notes
 
@@ -499,6 +499,8 @@
         </div>
 
     </div>
+
+</div>
 
 {% endblock %}
 
