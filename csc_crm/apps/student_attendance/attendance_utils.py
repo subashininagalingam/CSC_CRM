@@ -283,3 +283,41 @@ def build_export_rows(qs):
             "trainer_name": getattr(r.trainer, "name", str(r.trainer)),
         })
     return rows
+
+def get_bulk_attendance_counts(enrollment_ids, date_from=None, date_to=None):
+    """
+    Fetch attendance counts for all enrollments using one grouped query.
+    Returns a dictionary keyed by enrollment_id.
+    """
+
+    qs = Attendance.objects.filter(
+        enrollment_id__in=enrollment_ids
+    )
+
+    if date_from:
+        qs = qs.filter(attendance_date__gte=date_from)
+
+    if date_to:
+        qs = qs.filter(attendance_date__lte=date_to)
+
+    rows = qs.values('enrollment_id').annotate(
+        present=Count('id', filter=Q(status='Present')),
+        absent=Count('id', filter=Q(status='Absent')),
+        late=Count('id', filter=Q(status='Late')),
+    )
+
+    result = {}
+
+    for row in rows:
+        present = row['present'] or 0
+        absent = row['absent'] or 0
+        late = row['late'] or 0
+
+        result[row['enrollment_id']] = {
+            'present': present,
+            'absent': absent,
+            'late': late,
+            'total': present + absent + late,
+        }
+
+    return result

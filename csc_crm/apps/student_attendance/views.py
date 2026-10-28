@@ -45,6 +45,7 @@ from .attendance_utils import (
     build_attendance_email,
     build_attendance_sms,
     build_export_rows,
+    get_bulk_attendance_counts,
     STATUS_COLOR_HEX,
 )
 from .pdf_utils import get_default_table_style
@@ -53,6 +54,16 @@ from django.contrib.auth.decorators import login_required
 
 from csc_crm.apps.staff.models import TrainerSchedule, Staff
 from .forms import TrainerScheduleForm
+
+#===================================== HR ROLE HELPER ====================================#
+# HR can see batches but must not edit them. Set this to the exact role_name
+# stored for HR in the Role table (comparison ignores case and spaces).
+HR_ROLE_NAME = 'HR'
+
+
+def is_hr_role(role_name):
+    return (role_name or '').strip().lower() == HR_ROLE_NAME.lower()
+
 
 #===================================== BATCH CRUD API ====================================#
 class BatchViewSet(viewsets.ModelViewSet):
@@ -88,6 +99,16 @@ class BatchViewSet(viewsets.ModelViewSet):
             )
         return None
 
+    # HR -> can view batches but cannot edit them (PUT / PATCH)
+    def _block_hr_edit(self):
+        _, role = self._staff_and_role()
+        if is_hr_role(role):
+            return Response(
+                {'detail': 'HR is not allowed to edit batches.'},
+                status=403
+            )
+        return None
+
     def create(self, request, *args, **kwargs):
         blocked = self._block_trainer()
         if blocked:
@@ -95,7 +116,7 @@ class BatchViewSet(viewsets.ModelViewSet):
         return super().create(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):   # PATCH-um idhula dha varum
-        blocked = self._block_trainer()
+        blocked = self._block_trainer() or self._block_hr_edit()
         if blocked:
             return blocked
         return super().update(request, *args, **kwargs)
@@ -485,7 +506,14 @@ def dashboard(request):
 #==================================== BATCHES PAGE ======================================#
 def batches_page(request):
     form = BatchForm()
-    context = {'form': form}
+
+    my_staff = getattr(request.user, 'staff_profile', None)
+    my_role = my_staff.role.role_name if my_staff and my_staff.role else None
+
+    context = {
+        'form': form,
+        'is_hr': is_hr_role(my_role),   # batches.html uses this for IS_HR
+    }
     return render(request, 'attendance/batches.html', context)
 
 #===================================== BATCH PREVIEW PAGE ================================#
@@ -1900,10 +1928,20 @@ def reports(request):
     if student_name:
         enrollments = enrollments.filter(admission__student__first_name__istartswith=student_name)
 
+    # Fetch enrollment IDs once
+    enrollment_ids = list(enrollments.values_list('id', flat=True))
+
+    # Fetch attendance counts for all enrollments in one query
+    attendance_counts_map = get_bulk_attendance_counts(enrollment_ids,date_from_filter,date_to_filter)
+
     for enrollment in enrollments:
-        present_count, absent_count, late_count, total_days = get_attendance_counts(
-            enrollment, date_from_filter, date_to_filter
-        )
+        counts = attendance_counts_map.get(enrollment.id, {})
+
+        present_count = counts.get('present', 0)
+        absent_count = counts.get('absent', 0)
+        late_count = counts.get('late', 0)
+        total_days = counts.get('total', 0)
+
 
         if total_days == 0:
             continue
@@ -2088,12 +2126,40 @@ def reports(request):
         attendance_date__lte=distribution_date_to,
     )
 
-    distribution_present = distribution_attendance_qs.filter(status='Present').count()
-    distribution_absent = distribution_attendance_qs.filter(status='Absent').count()
-    distribution_late = distribution_attendance_qs.filter(status='Late').count()
+    # Get attendance statistics using a single database query
+    distribution_stats = distribution_attendance_qs.aggregate(
+        present=Count('id', filter=Q(status='Present')),
+        absent=Count('id', filter=Q(status='Absent')),
+        late=Count('id', filter=Q(status='Late')),
+        days_count=Count('attendance_date', distinct=True),
+    )
 
-    distribution_days_count = distribution_attendance_qs.values('attendance_date').distinct().count() or 1
-    distribution_expected_days = distribution_enrollments.count() * distribution_days_count
+    distribution_present = distribution_stats['present']
+    distribution_absent = distribution_stats['absent']
+    distribution_late = distribution_stats['late']
+
+    distribution_days_count = distribution_stats['days_count'] or 1
+
+    distribution_expected_days = (distribution_enrollments.count() * distribution_days_count)
+
+    distribution_incomplete = max(distribution_expected_days - (distribution_present + distribution_absent 
+                                                                + distribution_late), 0)
+
+    distribution_total = (distribution_present+ distribution_absent + distribution_late + distribution_incomplete)
+
+    def _pct(part):
+        return round((part / distribution_total) * 100, 1) if distribution_total else 0
+
+    distribution_data = {
+        "present": distribution_present,
+        "absent": distribution_absent,
+        "late": distribution_late,
+        "incomplete": distribution_incomplete,
+        "present_pct": _pct(distribution_present),
+        "absent_pct": _pct(distribution_absent),
+        "late_pct": _pct(distribution_late),
+        "incomplete_pct": _pct(distribution_incomplete),
+    }
 
     distribution_incomplete = max(
         distribution_expected_days - (distribution_present + distribution_absent + distribution_late), 0
@@ -2115,7 +2181,10 @@ def reports(request):
         "incomplete_pct": _pct(distribution_incomplete),
     }
 
-    all_batches_qs = Batch.objects.all()
+    # ================= OPTIMIZED BATCH-WISE ATTENDANCE STATS =================
+
+    all_batches_qs = Batch.objects.select_related('course').all()
+
     if my_role == 'Trainer':
         all_batches_qs = all_batches_qs.filter(trainer=my_staff)
 
@@ -2126,15 +2195,74 @@ def reports(request):
     all_batch_percentage_list = []
     all_batch_ids = []
 
-    for batch in all_batches_qs:
-        stats = compute_batch_stats(batch, date_from=date_from_filter, date_to=date_to_filter, fallback_to_latest=True)
+    # Get the latest attendance date once when no date filters are selected
+    latest_date = None
+
+    if not date_from_filter and not date_to_filter:
+        latest_date = (
+        Attendance.objects
+        .order_by('-attendance_date')
+        .values_list('attendance_date', flat=True)
+        .first()
+    )
+
+    # Build one attendance queryset for all batches
+    batch_attendance_qs = Attendance.objects.filter(batch__in=all_batches_qs)
+
+    if date_from_filter:
+        batch_attendance_qs = batch_attendance_qs.filter(
+        attendance_date__gte=date_from_filter
+    )
+
+    if date_to_filter:
+        batch_attendance_qs = batch_attendance_qs.filter(
+        attendance_date__lte=date_to_filter
+    )
+
+    if not date_from_filter and not date_to_filter:
+        batch_attendance_qs = batch_attendance_qs.filter(
+        attendance_date=latest_date
+    )
+
+    # Aggregate attendance counts grouped by batch
+    batch_stats_map = {}
+
+    batch_stats_rows = (batch_attendance_qs.values('batch_id').annotate(
+        present=Count('id', filter=Q(status='Present')),
+        absent=Count('id', filter=Q(status='Absent')),
+        late=Count('id', filter=Q(status='Late')),)
+    )
+
+    for row in batch_stats_rows:
+        present = row['present'] or 0
+        absent = row['absent'] or 0
+        late = row['late'] or 0
+        total = present + absent + late
+
+        batch_stats_map[row['batch_id']] = {
+            'present': present,
+            'absent': absent,
+            'late': late,
+            'percentage': round(((present + late) / total) * 100, 1) if total else 0,
+        }
+
+        # Prepare chart data
+        for batch in all_batches_qs:
+            stats = batch_stats_map.get(
+            batch.id,{
+                'present': 0,
+                'absent': 0,
+                'late': 0,
+                'percentage': 0,
+            }
+        )
 
         all_batch_ids.append(batch.id)
         all_batch_labels.append(f"{batch.course.course_name} - {batch.batch_name}")
-        all_batch_present_list.append(stats["present"])
-        all_batch_absent_list.append(stats["absent"])
-        all_batch_late_list.append(stats["late"])
-        all_batch_percentage_list.append(stats["percentage"])
+        all_batch_present_list.append(stats['present'])
+        all_batch_absent_list.append(stats['absent'])
+        all_batch_late_list.append(stats['late'])
+        all_batch_percentage_list.append(stats['percentage'])
 
     context = {
         "total_students": total_students,

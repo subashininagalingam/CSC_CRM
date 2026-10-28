@@ -60,6 +60,12 @@ function resetBatchModalToCreateMode() {
 //================ POPULATE FORM FOR EDIT MODE (FROM CACHED BATCH DATA) ==================//
 async function editBatch(batchId) {
 
+    // HR cannot edit batches (the API blocks it too)
+    if (typeof IS_HR !== 'undefined' && IS_HR) {
+        showToast("You are not allowed to edit batches", 'error');
+        return;
+    }
+
     const batch = allBatches.find(b => b.id === batchId);
 
     if (!batch) {
@@ -540,7 +546,7 @@ function renderBatches(filtered) {
         ${batch.is_marked ? 'Update' : 'Mark'}
        </button>`
             }
-                ${IS_TRAINER ? '' : `
+                ${(IS_TRAINER || (typeof IS_HR !== 'undefined' && IS_HR)) ? '' : `
                     <button class="btn-edit" onclick="editBatch(${batch.id})">
                         <i class="fa-solid fa-pen"></i> Edit
                     </button>`}

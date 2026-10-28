@@ -292,6 +292,7 @@ Student Attendance - Batches
 {% block extra_js %}
 <script>
     const IS_TRAINER = {% if request.user.staff_profile.role.role_name == "Trainer" %}true{% else %}false{% endif %};
-</script>
+    const IS_HR = {% if request.user.staff_profile.role.role_name == "HR" %}true{% else %}false{% endif %};
+    </script>
 <script src="{% static 'js/attendance_js/batches.js' %}"></script>
 {% endblock %}
