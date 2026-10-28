@@ -418,8 +418,27 @@
             </div>
 
             <div class="report-table-footer" id="reportTableFooter">
-                Showing all {{ report_students|length }} record{{ report_students|length|pluralize }} — single page, no
-                pagination.
+                <span id="paginationInfo">Showing 0 records</span>
+
+                <div class="pagination-controls" id="paginationControls">
+                    <button type="button" id="firstPageBtn" class="pagination-btn">
+                     First
+                    </button>
+
+                    <button type="button" id="prevPageBtn" class="pagination-btn">
+                       Previous
+                    </button>
+
+                    <div id="paginationNumbers" class="pagination-numbers"></div>
+                    
+                    <button type="button" id="nextPageBtn" class="pagination-btn">
+                    Next
+                    </button>
+
+                    <button type="button" id="lastPageBtn" class="pagination-btn">
+                    Last
+                    </button>
+                </div>
             </div>
 
         </div>

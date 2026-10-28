@@ -946,3 +946,220 @@ document.getElementById(
 
     }
 );
+
+// ================= STUDENT REPORT TABLE PAGINATION =================
+
+document.addEventListener("DOMContentLoaded", function () {
+    const tableBody = document.getElementById("reportTableBody");
+    const paginationInfo = document.getElementById("paginationInfo");
+    const paginationNumbers = document.getElementById("paginationNumbers");
+    const paginationControls = document.getElementById("paginationControls");
+
+    const firstBtn = document.getElementById("firstPageBtn");
+    const prevBtn = document.getElementById("prevPageBtn");
+    const nextBtn = document.getElementById("nextPageBtn");
+    const lastBtn = document.getElementById("lastPageBtn");
+
+    if (!tableBody || !paginationInfo || !paginationNumbers) {
+        return;
+    }
+
+    const rows = Array.from(
+        tableBody.querySelectorAll("tr.report-row")
+    );
+
+    const rowsPerPage = 10;
+    let currentPage = 1;
+
+    // Track rows hidden by existing filters separately.
+    rows.forEach(row => {
+        row.dataset.paginationHidden = "false";
+    });
+
+    function getFilteredRows() {
+        return rows.filter(row => {
+            return row.style.display === "none";
+        }).length === rows.length
+            ? []
+            : rows.filter(row => row.dataset.paginationHidden !== "true");
+    }
+
+    function renderPagination() {
+        // Respect rows hidden by the existing filters.
+        const filteredRows = rows.filter(row => {
+            return row.dataset.paginationHidden !== "true";
+        });
+
+        const totalRecords = filteredRows.length;
+        const totalPages = Math.max(
+            1,
+            Math.ceil(totalRecords / rowsPerPage)
+        );
+
+        // Keep current page valid after filtering.
+        currentPage = Math.min(currentPage, totalPages);
+        currentPage = Math.max(currentPage, 1);
+
+        const startIndex = (currentPage - 1) * rowsPerPage;
+        const endIndex = Math.min(
+            startIndex + rowsPerPage,
+            totalRecords
+        );
+
+        // Hide all rows on pages other than the current page.
+        rows.forEach(row => {
+            row.hidden = true;
+        });
+
+        // Show only the current page's filtered rows.
+        filteredRows.slice(startIndex, endIndex).forEach(row => {
+            row.hidden = false;
+        });
+
+        // Update record count.
+        if (totalRecords === 0) {
+            paginationInfo.textContent = "Showing 0 records";
+        } else {
+            paginationInfo.textContent =
+                `Showing ${startIndex + 1}–${endIndex} of ${totalRecords} records`;
+        }
+
+        // Update page number buttons.
+        paginationNumbers.innerHTML = "";
+
+        for (let page = 1; page <= totalPages; page++) {
+            const button = document.createElement("button");
+
+            button.type = "button";
+            button.className = "pagination-btn page-number";
+            button.textContent = page;
+            button.setAttribute("aria-label", `Page ${page}`);
+
+            if (page === currentPage) {
+                button.classList.add("active");
+                button.setAttribute("aria-current", "page");
+            }
+
+            button.addEventListener("click", function () {
+                currentPage = page;
+                renderPagination();
+            });
+
+            paginationNumbers.appendChild(button);
+        }
+
+        // Enable/disable navigation buttons.
+        firstBtn.disabled = currentPage === 1 || totalRecords === 0;
+        prevBtn.disabled = currentPage === 1 || totalRecords === 0;
+        nextBtn.disabled = currentPage === totalPages || totalRecords === 0;
+        lastBtn.disabled = currentPage === totalPages || totalRecords === 0;
+
+        // Hide pagination if there is only one page.
+        if (paginationControls) {
+            paginationControls.style.display =
+                totalRecords > rowsPerPage ? "flex" : "none";
+        }
+    }
+
+    // First, Previous, Next and Last buttons.
+    firstBtn.addEventListener("click", function () {
+        currentPage = 1;
+        renderPagination();
+    });
+
+    prevBtn.addEventListener("click", function () {
+        if (currentPage > 1) {
+            currentPage--;
+            renderPagination();
+        }
+    });
+
+    nextBtn.addEventListener("click", function () {
+        const totalRecords = rows.filter(
+            row => row.dataset.paginationHidden !== "true"
+        ).length;
+
+        const totalPages = Math.max(
+            1,
+            Math.ceil(totalRecords / rowsPerPage)
+        );
+
+        if (currentPage < totalPages) {
+            currentPage++;
+            renderPagination();
+        }
+    });
+
+    lastBtn.addEventListener("click", function () {
+        const totalRecords = rows.filter(
+            row => row.dataset.paginationHidden !== "true"
+        ).length;
+
+        currentPage = Math.max(
+            1,
+            Math.ceil(totalRecords / rowsPerPage)
+        );
+
+        renderPagination();
+    });
+
+    // Detect filtering changes made by the existing reports.js.
+    const observer = new MutationObserver(function (mutations) {
+        let filterChanged = false;
+
+        mutations.forEach(mutation => {
+            if (
+                mutation.type === "attributes" &&
+                mutation.attributeName === "style"
+            ) {
+                const row = mutation.target;
+
+                if (row.matches("tr.report-row")) {
+                    const isFilteredOut =
+                        row.style.display === "none";
+
+                    row.dataset.paginationHidden =
+                        isFilteredOut ? "true" : "false";
+
+                    filterChanged = true;
+                }
+            }
+        });
+
+        if (filterChanged) {
+            currentPage = 1;
+            renderPagination();
+        }
+    });
+
+    rows.forEach(row => {
+        observer.observe(row, {
+            attributes: true,
+            attributeFilter: ["style"]
+        });
+    });
+
+    // Re-render after Apply Filter or Clear.
+    ["showAllBtn", "clearFilters"].forEach(id => {
+        const button = document.getElementById(id);
+
+        if (button) {
+            button.addEventListener("click", function () {
+                setTimeout(function () {
+                    currentPage = 1;
+
+                    rows.forEach(row => {
+                        row.dataset.paginationHidden =
+                            row.style.display === "none"
+                                ? "true"
+                                : "false";
+                    });
+
+                    renderPagination();
+                }, 100);
+            });
+        }
+    });
+
+    renderPagination();
+});
