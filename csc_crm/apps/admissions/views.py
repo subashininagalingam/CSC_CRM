@@ -602,28 +602,53 @@ def link_callback(uri):
     return uri
 
 
-async def html_to_pdf(url):
+async def html_to_pdf(url, cookies=None):
+    """
+    Opens `url` in headless Chromium and returns the PDF bytes.
+    `cookies` = the logged-in user's session cookie, so that the
+    login_required receipt_pdf page opens as the receipt (not the login page).
+    """
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
-        await page.goto(url, wait_until="networkidle")
-        await page.wait_for_load_state("networkidle")
-        await page.emulate_media(media="print")
 
-        pdf = await page.pdf(
-            format="A4",
-            print_background=True,
-            prefer_css_page_size=True,
-            margin={
-                "top": "8mm",
-                "bottom": "8mm",
-                "left": "8mm",
-                "right": "8mm"
-            },
-        )
+        try:
+            context = await browser.new_context()
 
-        await browser.close()
-        return pdf
+            if cookies:
+                await context.add_cookies(cookies)
+
+            page = await context.new_page()
+            response = await page.goto(url, wait_until="networkidle")
+
+            if response is None or response.status >= 400:
+                raise RuntimeError(
+                    f"Receipt page failed to load (status: "
+                    f"{response.status if response else 'no response'})"
+                )
+
+            # session cookie missing/expired -> redirected to login page
+            if "login" in page.url.lower():
+                raise RuntimeError("Session not accepted, redirected to login page.")
+
+            await page.wait_for_load_state("networkidle")
+            await page.emulate_media(media="print")
+
+            pdf = await page.pdf(
+                format="A4",
+                print_background=True,
+                prefer_css_page_size=True,
+                margin={
+                    "top": "8mm",
+                    "bottom": "8mm",
+                    "left": "8mm",
+                    "right": "8mm"
+                },
+            )
+
+            return pdf
+
+        finally:
+            await browser.close()
 
 
 def generate_receipt(request, pk):
@@ -637,7 +662,22 @@ def generate_receipt(request, pk):
         reverse("receipt_pdf", args=[pk])
     )
 
-    pdf = async_to_sync(html_to_pdf)(url)
+    # pass the logged-in user's session to the headless browser
+    session_value = request.COOKIES.get(settings.SESSION_COOKIE_NAME)
+    cookies = []
+
+    if session_value:
+        cookies.append({
+            "name": settings.SESSION_COOKIE_NAME,
+            "value": session_value,
+            "url": request.build_absolute_uri("/"),
+        })
+
+    try:
+        pdf = async_to_sync(html_to_pdf)(url, cookies)
+    except Exception as e:
+        messages.error(request, f"Could not generate receipt PDF: {e}")
+        return redirect('preview_receipt', pk=pk)
 
     response = HttpResponse(pdf, content_type="application/pdf")
     response["Content-Disposition"] = (

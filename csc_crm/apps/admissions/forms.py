@@ -1,8 +1,10 @@
 import os
 from django import forms
+from django.db.models import Count, F, Q
 from .models import *
 from datetime import date
 from django.core.exceptions import ValidationError
+from csc_crm.apps.student_attendance.models import Batch
 #==============================Form Validations=======================================
 def validate_image(file):
     ext = os.path.splitext(file.name)[1].lower()
@@ -129,9 +131,46 @@ class AdmissionForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['course_name'].empty_label = "Select Course"
 
+#===========================BATCH DROPDOWN (course tag + seats label)=======================================
+
+class BatchSelect(forms.Select):
+    """Adds data-course to every <option> so the browser can filter batches by course."""
+
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(
+            name, value, label, selected, index, subindex=subindex, attrs=attrs
+        )
+
+        instance = getattr(value, 'instance', None)
+
+        if instance is not None:
+            option['attrs']['data-course'] = instance.course_id
+
+        return option
+
+
+class BatchChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        enrolled = getattr(obj, 'enrolled', None)
+
+        if enrolled is None:
+            enrolled = obj.student_count
+
+        seats_left = obj.max_students - enrolled
+        plural = '' if seats_left == 1 else 's'
+
+        return f"{obj.batch_name} · {obj.timing} · {seats_left} seat{plural} left"
+
 #===========================ENROLLMENT FORM=======================================
 
 class EnrollmentForm(forms.ModelForm):
+
+    batch = BatchChoiceField(
+        queryset=Batch.objects.none(),
+        required=True,
+        empty_label="Select Batch",
+        widget=BatchSelect(),
+    )
 
     start_date = forms.DateField(
         widget=forms.DateInput(
@@ -147,9 +186,9 @@ class EnrollmentForm(forms.ModelForm):
         if not batch:
             return batch
 
-        if batch.enrollments.exclude(pk=self.instance.pk).count() >= 30:
+        if batch.enrollments.exclude(pk=self.instance.pk).count() >= batch.max_students:
             raise forms.ValidationError(
-                "This batch is full. Maximum 30 students allowed."
+                f"This batch is full. Maximum {batch.max_students} students allowed."
             )
 
         return batch
@@ -212,6 +251,21 @@ class EnrollmentForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # Only batches a new student can actually join:
+        # active, not completed/cancelled, not ended, seats available
+        today = date.today()
+
+        self.fields['batch'].queryset = (
+            Batch.objects
+            .select_related('course')
+            .filter(is_active=True)
+            .exclude(status__in=['Completed', 'Cancelled'])
+            .filter(Q(end_date__isnull=True) | Q(end_date__gte=today))
+            .annotate(enrolled=Count('enrollments'))
+            .filter(enrolled__lt=F('max_students'))
+            .order_by('batch_name')
+        )
 
         self.fields['batch'].widget.attrs.update({
             'id': 'id_batch'

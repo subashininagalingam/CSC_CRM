@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from django.conf import settings
 from django.conf.urls.static import static
+from .course_views import course_list, course_create, course_update, course_delete
 
 
 urlpatterns = [
@@ -22,4 +23,8 @@ urlpatterns = [
     path('check-phone/',views.check_phone,name='check_phone'),
     path('search-lead/', views.search_lead_for_admission, name='search_lead_for_admission'),
     path('preview_receipt/<int:pk>/', views.preview_receipt, name='preview_receipt'),
+    path('courses/', course_list, name='course_list'),
+    path('course/create/', course_create, name='course_create'),
+    path('course/<int:pk>/update/', course_update, name='course_update'),
+    path('course/<int:pk>/delete/', course_delete, name='course_delete'),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
