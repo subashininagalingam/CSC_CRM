@@ -21,7 +21,7 @@ Student Attendance - Batches
 
     <div class="container-fluid mt-4 batches-page">
 
-        <!-- ============ HERO BANNER (PAGE TITLE + NEW BATCH BUTTON) ============ -->
+        <!-- ============ HERO BANNER (PAGE TITLE + NEW COURSE / NEW BATCH BUTTONS) ============ -->
         <div class="hero-banner">
             <div class="hero-left">
                 <div class="hero-icon">
@@ -33,9 +33,14 @@ Student Attendance - Batches
                 </div>
             </div>
             {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" %}
-            <button class="btn-new-batch" data-bs-toggle="modal" data-bs-target="#batchModal">
-            <i class="fa-solid fa-plus"></i> New Batch
-            </button>
+            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                <button class="btn-new-batch" data-bs-toggle="modal" data-bs-target="#courseModal">
+                    <i class="fa-solid fa-book"></i> New Course
+                </button>
+                <button class="btn-new-batch" data-bs-toggle="modal" data-bs-target="#batchModal">
+                    <i class="fa-solid fa-plus"></i> New Batch
+                </button>
+            </div>
             {% endif %}
         </div>
 
@@ -283,6 +288,86 @@ Student Attendance - Batches
                 </div>
             </div>
         </div>
+
+        {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" %}
+        <!-- COURSE CREATE MODAL -->
+        <div class="modal fade" id="courseModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content attendance-modal">
+
+                    <div class="modal-header">
+                        <div class="modal-title-wrap">
+                            <div class="modal-icon">
+                                <i class="fa-solid fa-book"></i>
+                            </div>
+                            <div>
+                                <h5 class="modal-title">Create New Course</h5>
+                                <p class="modal-subtitle">Add a course so batches and admissions can use it</p>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <form method="post" id="courseForm" novalidate>
+                        {% csrf_token %}
+
+                        <div class="modal-body">
+
+                            <!-- ============ COURSE NAME FIELD ============ -->
+                            <div class="mb-3">
+                                <label>Course Name <span class="required"> *</span></label>
+                                <div class="field-icon">
+                                    <i class="fa-solid fa-book"></i>
+                                    <input type="text" name="course_name" class="form-control"
+                                           maxlength="50" placeholder="e.g. Python Full Stack" required>
+                                </div>
+                                <div id="courseNameError" class="text-danger mt-1"></div>
+                            </div>
+
+                            <!-- ============ DURATION & FEE FIELDS ============ -->
+                            <div class="grid gap-3">
+                                <div class="mb-3">
+                                    <label>Duration (months) <span class="required"> *</span></label>
+                                    <div class="field-icon">
+                                        <i class="fa-regular fa-clock"></i>
+                                        <input type="number" name="duration" class="form-control"
+                                               min="1" max="60" value="3" required>
+                                    </div>
+                                    <div id="durationError" class="text-danger mt-1"></div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label>Course Fee (₹) <span class="required"> *</span></label>
+                                    <div class="field-icon">
+                                        <i class="fa-solid fa-indian-rupee-sign"></i>
+                                        <input type="number" name="course_fee" class="form-control"
+                                               min="1" placeholder="e.g. 45000" required>
+                                    </div>
+                                    <div id="courseFeeError" class="text-danger mt-1"></div>
+                                </div>
+                            </div>
+
+                            <div id="courseFormError" class="text-danger"></div>
+
+                        </div>
+
+                        <!-- ============ MODAL FOOTER (CANCEL / SUBMIT BUTTONS) ============ -->
+                        <div class="modal-footer">
+                            <button type="button" class="btn-cancel" data-bs-dismiss="modal">
+                                <i class="fa-solid fa-xmark"></i> Cancel
+                            </button>
+                            <button type="submit" class="btn-create" id="courseSubmitBtn">
+                                <i class="fa-solid fa-plus"></i> Create Course
+                            </button>
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
     </div>
 </div>
 
@@ -293,6 +378,8 @@ Student Attendance - Batches
 <script>
     const IS_TRAINER = {% if request.user.staff_profile.role.role_name == "Trainer" %}true{% else %}false{% endif %};
     const IS_HR = {% if request.user.staff_profile.role.role_name == "HR" %}true{% else %}false{% endif %};
+    window.COURSE_CREATE_URL = "{% url 'course_create' %}";
     </script>
 <script src="{% static 'js/attendance_js/batches.js' %}"></script>
+<script src="{% static 'js/attendance_js/course_modal.js' %}"></script>
 {% endblock %}

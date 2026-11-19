@@ -53,6 +53,9 @@ from .attendance_utils import (
 )
 from .pdf_utils import get_default_table_style
 from .excel_utils import ExcelStyles, STATUS_FILL_MAP, style_header_row
+from xml.sax.saxutils import escape
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.enums import TA_CENTER
 from django.contrib.auth.decorators import login_required
 
 from csc_crm.apps.staff.models import TrainerSchedule, Staff
@@ -153,7 +156,10 @@ def get_course_duration(request, course_id):
         return JsonResponse({"error": "Course not found"}, status=404)
 
 
-#================ TRAINER SCHEDULE PAGE (CREATE FORM + HISTORY LIST, PAGINATED) ==================#
+#================ TRAINER SCHEDULE PAGE (CREATE FORM + HISTORY LIST) ==================#
+SCHEDULE_RECENT_LIMIT = 5      # rows shown by default
+SCHEDULE_PAGE_SIZE = 10        # rows per page in "View all"
+
 @login_required(login_url='staff_login')
 def schedule_page(request):
 
@@ -171,16 +177,28 @@ def schedule_page(request):
         schedules_qs = TrainerSchedule.objects.all(
         ).select_related('staff').order_by('-date', '-time')
 
-    # ---- Pagination: 10 rows per page ----
-    paginator = Paginator(schedules_qs, 10)
-    page_obj = paginator.get_page(request.GET.get('page'))
+    total_count = schedules_qs.count()
+    show_all = request.GET.get('view') == 'all'
+
+    if show_all:
+        # Full history, paginated
+        paginator = Paginator(schedules_qs, SCHEDULE_PAGE_SIZE)
+        page_obj = paginator.get_page(request.GET.get('page'))
+        schedules = page_obj
+    else:
+        # Default: only the most recent 5
+        page_obj = None
+        schedules = list(schedules_qs[:SCHEDULE_RECENT_LIMIT])
 
     form = TrainerScheduleForm() if is_admin_or_manager else None
 
     context = {
         'form': form,
-        'schedules': page_obj,       # template loops over this
-        'page_obj': page_obj,        # used for pagination controls
+        'schedules': schedules,
+        'page_obj': page_obj,
+        'show_all': show_all,
+        'total_count': total_count,
+        'recent_limit': SCHEDULE_RECENT_LIMIT,
         'is_admin_or_manager': is_admin_or_manager,
         'my_role': my_role,
     }
@@ -577,6 +595,11 @@ def mark_attendance_page(request, batch_id):
     my_staff = getattr(request.user, 'staff_profile', None)
     my_role = my_staff.role.role_name if my_staff and my_staff.role else None
 
+    # HR can view batches but must not mark / edit attendance
+    if is_hr_role(my_role):
+        messages.error(request, "HR is not allowed to mark attendance.")
+        return redirect('batches_page')
+
     batch = get_object_or_404(Batch, id=batch_id)
 
     if my_role == 'Trainer' and batch.trainer_id != my_staff.id:
@@ -628,6 +651,14 @@ def bulk_attendance(request):
 
     my_staff = getattr(request.user, 'staff_profile', None)
     my_role = my_staff.role.role_name if my_staff and my_staff.role else None
+
+    # HR can view batches but must not mark / edit attendance
+    if is_hr_role(my_role):
+        return Response({
+                'status': False,
+                'message': 'HR is not allowed to mark attendance'
+            }, status=403
+        )
 
     batch_id = request.data.get('batch')
     attendance_list = request.data.get('attendance', [])
@@ -781,6 +812,40 @@ def _history_params(request):
     }
 
 
+#===================== RECORD TYPE FILTER (EDITED / NOT EDITED) =====================#
+# One batch-day is "edited" when its last update is more than EDIT_GRACE after
+# its first timestamp. Filtering the raw attendance rows by these batch-days
+# keeps the page, the Student Entries count and the export all in sync.
+def _apply_record_type(qs, record_type):
+
+    if record_type not in ('edited', 'original'):
+        return qs
+
+    edited_cond = Q(
+        last_edit__gt=ExpressionWrapper(
+            F('first_marked') + EDIT_GRACE, output_field=DateTimeField()
+        )
+    )
+
+    edited_pairs = (
+        qs.order_by()
+        .values('batch_id', 'attendance_date')
+        .annotate(first_marked=Min('timestamp'), last_edit=Max('updated_at'))
+        .filter(edited_cond)
+        .values_list('batch_id', 'attendance_date')
+    )
+
+    pair_q = Q()
+    for batch_id, day in edited_pairs:
+        pair_q |= Q(batch_id=batch_id, attendance_date=day)
+
+    # No edited batch-days at all
+    if not pair_q:
+        return qs.none() if record_type == 'edited' else qs
+
+    return qs.filter(pair_q) if record_type == 'edited' else qs.exclude(pair_q)
+
+
 #===================== FILTERED ATTENDANCE QUERYSET (SHARED) =====================#
 # Used by BOTH the history page (grouped batch-day rows) and the export.
 def _history_queryset(request, my_staff, my_role):
@@ -820,6 +885,9 @@ def _history_queryset(request, my_staff, my_role):
             Q(batch__trainer__last_name__icontains=f['search']) |
             Q(topic_match=True)
         )
+
+    # Must be LAST, after every other filter has been applied
+    qs = _apply_record_type(qs, f['record_type'])
 
     return qs, f
 
@@ -907,6 +975,8 @@ def attendance_history_page(request):
     my_staff = getattr(request.user, 'staff_profile', None)
     my_role = my_staff.role.role_name if my_staff and my_staff.role else None
 
+    # qs already has EVERY filter applied (record_type included), so the
+    # rows, Records, Student entries and Edited counts below all stay in sync.
     qs, f = _history_queryset(request, my_staff, my_role)
 
     # One row per batch per day (NOT one row per student)
@@ -929,11 +999,6 @@ def attendance_history_page(request):
         )
     )
     edited_count = rows_qs.filter(edited_cond).count()
-
-    if f['record_type'] == 'edited':
-        rows_qs = rows_qs.filter(edited_cond)
-    elif f['record_type'] == 'original':
-        rows_qs = rows_qs.exclude(edited_cond)
 
     paginator = Paginator(rows_qs, PAGE_SIZE)
     page_obj = paginator.get_page(request.GET.get('page'))
@@ -1118,7 +1183,7 @@ def attendance_export(request):
     my_staff = getattr(request.user, 'staff_profile', None)
     my_role = my_staff.role.role_name if my_staff and my_staff.role else None
 
-    # Same filters as the history page (date range, search, course, trainer)
+    # Same filters as the history page (date range, search, course, trainer, record type)
     qs, _f = _history_queryset(request, my_staff, my_role)
 
     qs = qs.select_related(
@@ -1416,6 +1481,78 @@ def save_admin_notes(request):
 
     return JsonResponse({"status": "success"})
 
+#=========================== LOW ATTENDANCE - SHARED FILTER (PAGE + EXPORT) ============================#
+# One place for every low-attendance filter, so the page and the Excel export
+# always show exactly the same students.
+def _filter_low_attendance(request, my_staff, my_role):
+
+    students = get_low_attendance_data()
+
+    # Trainer -> only students from own assigned batches
+    if my_role == 'Trainer':
+        students = [
+            s for s in students
+            if s['batch'] and s['batch'].trainer_id == my_staff.id
+        ]
+
+    # ---- Student name / ID filter ("STU12", "12" or part of the name) ----
+    name_filter = (request.GET.get("name") or "").strip()
+
+    if name_filter:
+        search_text = " ".join(name_filter.lower().split())
+
+        id_text = search_text
+        if id_text.startswith("stu"):
+            id_text = id_text[3:].strip()
+        id_value = int(id_text) if id_text.isdigit() else None
+
+        def _matches_name_or_id(item):
+            stu = item['student']
+            full_name = " ".join(f"{stu.first_name} {stu.last_name}".lower().split())
+            return search_text in full_name or (id_value is not None and stu.id == id_value)
+
+        students = [s for s in students if _matches_name_or_id(s)]
+
+    course_filter = request.GET.get("course")
+
+    if course_filter:
+        students = [
+            s for s in students
+            if s["course"].course_name.lower() == course_filter.lower()
+        ]
+
+    batch_filter = request.GET.get("batch")
+
+    if batch_filter:
+        students = [
+            s for s in students
+            if str(s["batch"].id) == str(batch_filter)
+        ]
+
+    attendance_filter = request.GET.get("attendance")
+
+    if attendance_filter:
+        try:
+            attendance_value = float(attendance_filter)
+        except ValueError:
+            attendance_value = None
+
+        if attendance_value is not None:
+            students = [
+                s for s in students
+                if s["attendance_percentage"] == attendance_value
+            ]
+
+    filters = {
+        "name": name_filter or "",
+        "course": course_filter or "",
+        "batch": batch_filter or "",
+        "attendance": attendance_filter or "",
+    }
+
+    return students, filters
+
+
 #==================================== LOW ATTENDANCE ALERTS PAGE =================================#
 @login_required(login_url='staff_login')
 def low_attendance_alerts(request):
@@ -1423,49 +1560,7 @@ def low_attendance_alerts(request):
     my_staff = getattr(request.user, 'staff_profile', None)
     my_role = my_staff.role.role_name if my_staff and my_staff.role else None
 
-    low_attendance_students = (get_low_attendance_data())
-
-    # Trainer -> only students from own assigned batches
-    if my_role == 'Trainer':
-        low_attendance_students = [
-            student for student in low_attendance_students
-            if student['batch'] and student['batch'].trainer_id == my_staff.id
-        ]
-
-    name_filter = request.GET.get("name")
-
-    if name_filter:
-        low_attendance_students = [
-            student for student in low_attendance_students
-            if name_filter.lower() in (
-                f"{student['student'].first_name} {student['student'].last_name}".lower()
-            )
-        ]
-
-    course_filter = request.GET.get("course")
-
-    if course_filter:
-        low_attendance_students = [
-            student for student in low_attendance_students
-            if student["course"].course_name.lower() == course_filter.lower()
-        ]
-
-    batch_filter = request.GET.get("batch")
-
-    if batch_filter:
-        low_attendance_students = [
-            student for student in low_attendance_students
-            if str(student["batch"].id) == str(batch_filter)
-        ]
-
-    attendance_filter = request.GET.get("attendance")
-
-    if attendance_filter:
-        low_attendance_students = [
-            student
-            for student in low_attendance_students
-            if student["attendance_percentage"] == float(attendance_filter)
-        ]
+    low_attendance_students, filters = _filter_low_attendance(request, my_staff, my_role)
 
     critical_students = [
         student
@@ -1501,12 +1596,7 @@ def low_attendance_alerts(request):
         "overall_average": overall_average,
         'courses': courses,
         'batches': batches,
-        "filters": {
-                "name": name_filter or "",
-                "course": course_filter or "",
-                "batch": batch_filter or "",
-                "attendance": attendance_filter or "",
-            },
+        "filters": filters,
     }
 
     return render(request, 'attendance/low_attendance.html', context)
@@ -1520,13 +1610,8 @@ def low_attendance_export(request):
 
     alert_type = request.GET.get("type")
 
-    students = get_low_attendance_data()
-
-    if my_role == 'Trainer':
-        students = [
-            s for s in students
-            if s['batch'] and s['batch'].trainer_id == my_staff.id
-        ]
+    # Same filters as the Low Attendance page (name / ID, course, batch, attendance %)
+    students, _filters = _filter_low_attendance(request, my_staff, my_role)
 
     if alert_type == "critical":
         students = [s for s in students if s["alert_level"] == "Critical"]
@@ -1566,7 +1651,6 @@ def low_attendance_export(request):
     wb.save(response)
 
     return response
-
 #============================= NOTIFICATIONS - SINGLE STUDENT (EMAIL) ============================#
 @login_required(login_url='staff_login')
 def send_low_attendance_email(request, enrollment_id):
@@ -1757,19 +1841,30 @@ def send_monthly_report(request):
 # (report table data + PDF/Excel exports for Reports page)
 #================================================================
 
-#=========================== STUDENT NAME FILTER (REPORTS + EXPORTS) ==============================#
+#=========================== STUDENT NAME / ID FILTER (REPORTS + EXPORTS) ==============================#
+# Searches by first name, last name, full name, OR student ID ("STU12", "stu 12", "12").
 def filter_enrollments_by_name(enrollments, name):
-    name = name.strip()
+    name = " ".join((name or "").split())
 
-    return enrollments.annotate(
+    enrollments = enrollments.annotate(
         student_full_name=Concat(
             'admission__student__first_name', Value(' '), 'admission__student__last_name'
         )
-    ).filter(
+    )
+
+    condition = (
         Q(admission__student__first_name__icontains=name) |
         Q(admission__student__last_name__icontains=name) |
         Q(student_full_name__icontains=name)
     )
+
+    id_text = name.lower()
+    if id_text.startswith("stu"):
+        id_text = id_text[3:].strip()
+    if id_text.isdigit():
+        condition |= Q(admission__student__id=int(id_text))
+
+    return enrollments.filter(condition)
 
 
 def get_report_students(my_staff=None, my_role=None):
@@ -1851,7 +1946,7 @@ def reports(request):
             validation_errors.append("Selected course could not be found, so the course filter was ignored.")
             course_filter = None
 
-    valid_status_values = {"excellent", "good", "warning", "critical"}
+    valid_status_values = {"excellent", "good", "warning", "critical", "new"}
     if status_filter and status_filter.lower() not in valid_status_values:
         validation_errors.append("Selected status is not recognized, so the status filter was ignored.")
         status_filter = None
@@ -2086,81 +2181,8 @@ def reports(request):
         "incomplete_pct": _pct(distribution_incomplete),
     }
 
-    # ---------------- AJAX filter refresh (stops here) ----------------
-    if is_ajax:
-
-        table_rows_html = render_to_string(
-            "attendance/_report_table_rows.html",
-            {"report_students": report_students},
-            request=request
-        )
-
-        filter_message_html = render_to_string(
-            "attendance/_filter_message.html",
-            {
-                "attendance_status": attendance_status,
-                "today_marked_count": today_marked_count,
-                "total_students": total_students,
-                "pending_count": pending_count,
-                "validation_errors": validation_errors,
-            },
-            request=request
-        )
-
-        return JsonResponse({
-            "monthly_present": monthly_present,
-            "monthly_absent": monthly_absent,
-            "monthly_late": monthly_late,
-            "monthly_incomplete": monthly_incomplete,
-            "monthly_chart_title": monthly_chart_title,
-            "distribution_data": distribution_data,
-            "table_rows_html": table_rows_html,
-            "record_count": len(report_students),
-            "filter_message_html": filter_message_html,
-            "validation_errors": validation_errors,
-        })
-
-    # ---------------- Full page only ----------------
-    attendance_date = get_formatted_latest_attendance_date()
-
-    low_attendance_all = get_low_attendance_data()
-    if my_role == 'Trainer':
-        low_attendance_all = [
-            s for s in low_attendance_all
-            if s['batch'] and s['batch'].trainer_id == my_staff.id
-        ]
-    low_attendance = len(low_attendance_all)
-
-    batch_chart_title = "Batch-wise Attendance"
-
-    if batch_filter:
-        selected_batch_obj = Batch.objects.select_related('course').filter(id=batch_filter).first()
-        if selected_batch_obj:
-            batch_chart_title = (
-                f"Batch-wise Attendance - "
-                f"{selected_batch_obj.batch_name}"
-                f"({selected_batch_obj.course.course_name})"
-            )
-    elif course_filter:
-        batch_chart_title = f"Batch-wise Attendance - {course_filter.title()}"
-
-    # students per course (one query)
-    courses = list(Course.objects.all())
-
-    course_enrollment_qs = Enrollment.objects.all()
-    if my_role == 'Trainer':
-        course_enrollment_qs = course_enrollment_qs.filter(batch__trainer=my_staff)
-
-    course_count_map = dict(
-        course_enrollment_qs.values_list('admission__course_name')
-        .annotate(total=Count('id'))
-        .order_by()
-    )
-
-    course_labels = [c.course_name for c in courses]
-    course_counts = [course_count_map.get(c.id, 0) for c in courses]
-
-    # batch-wise chart (filtered batches)
+    # ================= BATCH-WISE CHART (FILTERED BATCHES) =================
+    # Built BEFORE the AJAX return so Apply Filter can refresh this chart too.
     batch_labels = []
     batch_counts = []
     batch_present_counts = []
@@ -2210,6 +2232,128 @@ def reports(request):
         batch_performance_labels.append(label)
         batch_performance_counts.append(stats["percentage"])
 
+    # ================= ALL BATCHES CHART (DROPDOWN SELECTOR DATA) =================
+    all_batches = Batch.objects.select_related('course')
+
+    if my_role == 'Trainer':
+        all_batches = all_batches.filter(trainer=my_staff)
+
+    all_batches = list(all_batches)
+
+    all_batch_stats = get_bulk_batch_stats(
+        [b.id for b in all_batches],
+        date_from=date_from_filter,
+        date_to=date_to_filter,
+        fallback_to_latest=True,
+    )
+
+    all_batch_labels = []
+    all_batch_present_list = []
+    all_batch_absent_list = []
+    all_batch_late_list = []
+    all_batch_percentage_list = []
+    all_batch_ids = []
+
+    for batch in all_batches:
+        stats = all_batch_stats[batch.id]
+
+        all_batch_ids.append(batch.id)
+        all_batch_labels.append(f"{batch.course.course_name} - {batch.batch_name}")
+        all_batch_present_list.append(stats['present'])
+        all_batch_absent_list.append(stats['absent'])
+        all_batch_late_list.append(stats['late'])
+        all_batch_percentage_list.append(stats['percentage'])
+
+    # ---------------- AJAX filter refresh (stops here) ----------------
+    if is_ajax:
+
+        table_rows_html = render_to_string(
+            "attendance/_report_table_rows.html",
+            {"report_students": report_students},
+            request=request
+        )
+
+        filter_message_html = render_to_string(
+            "attendance/_filter_message.html",
+            {
+                "attendance_status": attendance_status,
+                "today_marked_count": today_marked_count,
+                "total_students": total_students,
+                "pending_count": pending_count,
+                "validation_errors": validation_errors,
+            },
+            request=request
+        )
+
+        return JsonResponse({
+            "monthly_present": monthly_present,
+            "monthly_absent": monthly_absent,
+            "monthly_late": monthly_late,
+            "monthly_incomplete": monthly_incomplete,
+            "monthly_chart_title": monthly_chart_title,
+            "distribution_data": distribution_data,
+            "table_rows_html": table_rows_html,
+            "record_count": len(report_students),
+            "filter_message_html": filter_message_html,
+            "validation_errors": validation_errors,
+
+            # batch-wise chart (filtered batches = "All Batches" view)
+            "batch_labels": batch_labels,
+            "batch_counts": batch_counts,
+            "batch_present_list": batch_present_list,
+            "batch_absent_list": batch_absent_list,
+            "batch_late_list": batch_late_list,
+            "batch_percentage_list": batch_percentage_list,
+
+            # batch-wise chart (dropdown selector data)
+            "all_batch_labels": all_batch_labels,
+            "all_batch_ids": all_batch_ids,
+            "all_batch_present_list": all_batch_present_list,
+            "all_batch_absent_list": all_batch_absent_list,
+            "all_batch_late_list": all_batch_late_list,
+            "all_batch_percentage_list": all_batch_percentage_list,
+        })
+
+    # ---------------- Full page only ----------------
+    attendance_date = get_formatted_latest_attendance_date()
+
+    low_attendance_all = get_low_attendance_data()
+    if my_role == 'Trainer':
+        low_attendance_all = [
+            s for s in low_attendance_all
+            if s['batch'] and s['batch'].trainer_id == my_staff.id
+        ]
+    low_attendance = len(low_attendance_all)
+
+    batch_chart_title = "Batch-wise Attendance"
+
+    if batch_filter:
+        selected_batch_obj = Batch.objects.select_related('course').filter(id=batch_filter).first()
+        if selected_batch_obj:
+            batch_chart_title = (
+                f"Batch-wise Attendance - "
+                f"{selected_batch_obj.batch_name}"
+                f"({selected_batch_obj.course.course_name})"
+            )
+    elif course_filter:
+        batch_chart_title = f"Batch-wise Attendance - {course_filter.title()}"
+
+    # students per course (one query)
+    courses = list(Course.objects.all())
+
+    course_enrollment_qs = Enrollment.objects.all()
+    if my_role == 'Trainer':
+        course_enrollment_qs = course_enrollment_qs.filter(batch__trainer=my_staff)
+
+    course_count_map = dict(
+        course_enrollment_qs.values_list('admission__course_name')
+        .annotate(total=Count('id'))
+        .order_by()
+    )
+
+    course_labels = [c.course_name for c in courses]
+    course_counts = [course_count_map.get(c.id, 0) for c in courses]
+
     is_filtered = bool(
         course_filter
         or batch_filter
@@ -2245,38 +2389,6 @@ def reports(request):
         batch.id: "done" if batch.id in marked_today_ids else "not_started"
         for batch in batches
     }
-
-    # ================= ALL BATCHES CHART (NO COURSE / BATCH FILTER) =================
-    all_batches = Batch.objects.select_related('course')
-
-    if my_role == 'Trainer':
-        all_batches = all_batches.filter(trainer=my_staff)
-
-    all_batches = list(all_batches)
-
-    all_batch_stats = get_bulk_batch_stats(
-        [b.id for b in all_batches],
-        date_from=date_from_filter,
-        date_to=date_to_filter,
-        fallback_to_latest=True,
-    )
-
-    all_batch_labels = []
-    all_batch_present_list = []
-    all_batch_absent_list = []
-    all_batch_late_list = []
-    all_batch_percentage_list = []
-    all_batch_ids = []
-
-    for batch in all_batches:
-        stats = all_batch_stats[batch.id]
-
-        all_batch_ids.append(batch.id)
-        all_batch_labels.append(f"{batch.course.course_name} - {batch.batch_name}")
-        all_batch_present_list.append(stats['present'])
-        all_batch_absent_list.append(stats['absent'])
-        all_batch_late_list.append(stats['late'])
-        all_batch_percentage_list.append(stats['percentage'])
 
     context = {
         "total_students": total_students,
@@ -2325,16 +2437,102 @@ def reports(request):
     }
 
     return render(request, "attendance/reports.html", context)
+#=========================== CLEAN REPORT FILTERS (SHARED BY ALL EXPORTS) ==============================#
+def _clean_report_filters(request):
+
+    def _to_date(value):
+        try:
+            return datetime.strptime(value, "%Y-%m-%d").date()
+        except (TypeError, ValueError):
+            return None
+
+    student_name = (request.GET.get("student_name") or "").strip()
+    course = (request.GET.get("course") or "").strip()
+
+    batch = (request.GET.get("batch") or "").strip()
+    batch = int(batch) if batch.isdigit() else None
+
+    status = (request.GET.get("status") or "").strip().lower()
+    if status not in ("excellent", "good", "warning", "critical", "new"):
+        status = ""
+
+    try:
+        attendance = float(request.GET.get("attendance"))
+        if attendance < 0 or attendance > 100:
+            attendance = None
+    except (TypeError, ValueError):
+        attendance = None
+
+    date_from = _to_date(request.GET.get("date_from"))
+    date_to = _to_date(request.GET.get("date_to"))
+
+    if date_from and date_to and date_from > date_to:
+        date_from = None
+        date_to = None
+
+    return {
+        "student_name": student_name,
+        "course": course,
+        "batch": batch,
+        "status": status,
+        "attendance": attendance,
+        "date_from": date_from,
+        "date_to": date_to,
+    }
+
+
+#=========================== "FILTERS APPLIED" TEXT (PDF / EXCEL HEADER) ==============================#
+def _applied_filters_text(request):
+    f = _clean_report_filters(request)
+    parts = []
+
+    if f["student_name"]:
+        parts.append(f"Student: {f['student_name']}")
+
+    if f["course"]:
+        parts.append(f"Course: {f['course']}")
+
+    if f["batch"]:
+        b = Batch.objects.select_related('course').filter(id=f["batch"]).first()
+        parts.append(
+            f"Batch: {b.batch_name} ({b.course.course_name})" if b else f"Batch ID: {f['batch']}"
+        )
+
+    if f["status"]:
+        parts.append(f"Status: {f['status'].title()}")
+
+    if f["attendance"] is not None:
+        parts.append(f"Attendance %: {f['attendance']:g}")
+
+    if f["date_from"] or f["date_to"]:
+        d_from = f["date_from"].strftime("%d %b %Y") if f["date_from"] else "Start"
+        d_to = f["date_to"].strftime("%d %b %Y") if f["date_to"] else "Today"
+        parts.append(f"Date: {d_from} to {d_to}")
+
+    return " | ".join(parts) if parts else "None (all data)"
+
+#=========================== GENERATED DATE + TIME (LOCAL TIMEZONE) ==============================#
+def _generated_on_text():
+    return timezone.localtime(timezone.now()).strftime("%d %b %Y, %I:%M %p")
+
+#=========================== ANALYTICS TABLE ROWS WITH FILTERS (PDF / EXCEL) ==============================#
+def _analytics_rows_for_request(request, my_staff, my_role):
+    f = _clean_report_filters(request)
+
+    return get_batch_analytics_rows(
+        my_staff=my_staff,
+        my_role=my_role,
+        course=f["course"],
+        batch_id=f["batch"],
+        date_from=f["date_from"],
+        date_to=f["date_to"],
+    )
+
 
 #=========================== FILTERED REPORT STUDENTS (PDF / EXCEL EXPORTS) ==============================#
 def get_filtered_report_students(request, my_staff=None, my_role=None):
-    student_name = request.GET.get("student_name")
-    attendance_filter = request.GET.get("attendance")
-    course_filter = request.GET.get("course")
-    batch_filter = request.GET.get("batch")
-    status_filter = request.GET.get("status")
-    date_from_filter = request.GET.get("date_from")
-    date_to_filter = request.GET.get("date_to")
+
+    f = _clean_report_filters(request)
 
     enrollments = Enrollment.objects.select_related(
         'admission__student',
@@ -2345,23 +2543,23 @@ def get_filtered_report_students(request, my_staff=None, my_role=None):
     if my_role == 'Trainer':
         enrollments = enrollments.filter(batch__trainer=my_staff)
 
-    if course_filter:
+    if f["course"]:
         enrollments = enrollments.filter(
-            admission__course_name__course_name__iexact=course_filter
+            admission__course_name__course_name__iexact=f["course"]
         )
 
-    if batch_filter:
-        enrollments = enrollments.filter(batch_id=batch_filter)
+    if f["batch"]:
+        enrollments = enrollments.filter(batch_id=f["batch"])
 
-    if student_name and student_name.strip():
-        enrollments = filter_enrollments_by_name(enrollments, student_name)
+    if f["student_name"]:
+        enrollments = filter_enrollments_by_name(enrollments, f["student_name"])
 
     enrollments = list(enrollments)
 
     attendance_counts_map = get_bulk_attendance_counts(
         [e.id for e in enrollments],
-        date_from_filter,
-        date_to_filter
+        f["date_from"],
+        f["date_to"]
     )
 
     report_students = []
@@ -2384,13 +2582,11 @@ def get_filtered_report_students(request, my_staff=None, my_role=None):
             total_days
         )
 
-        if attendance_filter:
-            if round(attendance_rate, 1) != round(float(attendance_filter), 1):
-                continue
+        if f["attendance"] is not None and round(attendance_rate, 1) != round(f["attendance"], 1):
+            continue
 
-        if status_filter:
-            if status.lower() != status_filter.lower():
-                continue
+        if f["status"] and status.lower() != f["status"]:
+            continue
 
         report_students.append({
             "enrollment_id": enrollment.id,
@@ -2406,6 +2602,23 @@ def get_filtered_report_students(request, my_staff=None, my_role=None):
         })
 
     return report_students
+
+#=========================== ANALYTICS SUMMARY (FILTER-AWARE, PDF + EXCEL) ==============================#
+def _analytics_summary(request, my_staff, my_role):
+
+    report_students = get_filtered_report_students(request, my_staff=my_staff, my_role=my_role)
+    enrollment_ids = [s["enrollment_id"] for s in report_students]
+
+    today = timezone.now().date()
+    today_qs = Attendance.objects.filter(enrollment_id__in=enrollment_ids, attendance_date=today)
+
+    return {
+        "report_students": report_students,
+        "total_students": len(report_students),
+        "present_today": today_qs.filter(status='Present').count(),
+        "absent_today": today_qs.filter(status='Absent').count(),
+        "low_attendance": sum(1 for s in report_students if s["status"] in ("Warning", "Critical")),
+    }
 
 #============================= ANALYTICS EXPORT - PDF =====================================#
 @login_required(login_url='staff_login')
@@ -2423,44 +2636,32 @@ def analytics_pdf(request):
 
     elements.append(Paragraph("CSC Computer Education", styles['Title']))
     elements.append(Paragraph("Attendance Analytics Report", styles['Heading2']))
+    elements.append(Paragraph(
+        f"<b>Filters Applied:</b> {escape(_applied_filters_text(request))}",
+        styles['Normal']
+    ))
+
     elements.append(Spacer(1, 15))
 
-    today = timezone.now().date()
-
-    total_students_qs = Enrollment.objects.all()
-    present_today_qs = Attendance.objects.filter(attendance_date=today, status='Present')
-    absent_today_qs = Attendance.objects.filter(attendance_date=today, status='Absent')
-
-    if my_role == 'Trainer':
-        total_students_qs = total_students_qs.filter(batch__trainer=my_staff)
-        present_today_qs = present_today_qs.filter(batch__trainer=my_staff)
-        absent_today_qs = absent_today_qs.filter(batch__trainer=my_staff)
-
-    total_students = total_students_qs.count()
-    present_today = present_today_qs.count()
-    absent_today = absent_today_qs.count()
-
-    low_attendance_all = get_low_attendance_data()
-    if my_role == 'Trainer':
-        low_attendance_all = [
-            s for s in low_attendance_all
-            if s['batch'] and s['batch'].trainer_id == my_staff.id
-        ]
-    low_attendance = len(low_attendance_all)
+    summary = _analytics_summary(request, my_staff, my_role)
+    report_students = summary["report_students"]
 
     attendance_date = get_formatted_latest_attendance_date()
 
     summary_data = [
         ["Metric", "Value"],
-        ["Total Students", total_students],
-        ["Present Today", present_today],
-        ["Absent Today", absent_today],
-        ["Low Attendance", low_attendance],
+        ["Total Students", summary["total_students"]],
+        ["Present Today", summary["present_today"]],
+        ["Absent Today", summary["absent_today"]],
+        ["Low Attendance", summary["low_attendance"]],
         ["Last Attendance Updated", attendance_date],
+        ["Report Generated On", _generated_on_text()]
     ]
+    
 
     summary_table = Table(summary_data, colWidths=[220, 150])
     summary_table.setStyle(get_default_table_style(header_color="#1e40af", zebra=True))
+
 
     elements.append(summary_table)
     elements.append(Spacer(1, 20))
@@ -2468,11 +2669,14 @@ def analytics_pdf(request):
     elements.append(Paragraph("Course & Batch Analytics", styles['Heading2']))
 
     analytics_header = [["Course", "Batch", "Students", "Total Days", "Present", "Absent", "Late", "Attendance %"]]
-    analytics_rows = get_batch_analytics_rows(my_staff=my_staff, my_role=my_role)
-    analytics_rows = [[Paragraph(row[0], styles['BodyText'])] + row[1:] for row in analytics_rows]
+    analytics_rows = _analytics_rows_for_request(request, my_staff, my_role)
+    analytics_rows = [
+        [Paragraph(row[0], styles['BodyText']), Paragraph(row[1], styles['BodyText'])] + row[2:]
+        for row in analytics_rows
+    ]
     analytics_data = analytics_header + analytics_rows
 
-    analytics_table = Table(analytics_data, colWidths=[140, 75, 50, 55, 45, 45, 40, 68])
+    analytics_table = Table(analytics_data, colWidths=[120, 95, 50, 55, 45, 45, 40, 68])
     analytics_table.setStyle(get_default_table_style(header_color="#2563eb", zebra=True))
 
     elements.append(analytics_table)
@@ -2480,11 +2684,6 @@ def analytics_pdf(request):
 
     elements.append(Paragraph("Attendance Summary", styles['Heading2']))
 
-    report_students = get_filtered_report_students(
-        request,
-        my_staff=my_staff,
-        my_role=my_role
-    )
     counts = get_status_summary_counts(report_students)
 
     attendance_summary = [
@@ -2493,13 +2692,16 @@ def analytics_pdf(request):
         ["Good", counts["Good"]],
         ["Warning", counts["Warning"]],
         ["Critical", counts["Critical"]],
+        ["New", counts["New"]],
     ]
 
     attendance_summary_table = Table(attendance_summary, colWidths=[180, 120])
     summary_style = get_default_table_style(header_color="#059669", zebra=True)
-    summary_style.add('BACKGROUND', (0, 1), (-1, 1), colors.lightgreen)
-    summary_style.add('BACKGROUND', (0, 2), (-1, 2), colors.yellow)
-    summary_style.add('BACKGROUND', (0, 3), (-1, 3), colors.salmon)
+    summary_style.add('BACKGROUND', (0, 1), (-1, 1), colors.lightgreen)   # Excellent
+    summary_style.add('BACKGROUND', (0, 2), (-1, 2), colors.lightblue)    # Good
+    summary_style.add('BACKGROUND', (0, 3), (-1, 3), colors.yellow)       # Warning
+    summary_style.add('BACKGROUND', (0, 4), (-1, 4), colors.salmon)       # Critical
+    summary_style.add('BACKGROUND', (0, 5), (-1, 5), colors.lightgrey)   # New
     attendance_summary_table.setStyle(summary_style)
 
     elements.append(attendance_summary_table)
@@ -2507,6 +2709,7 @@ def analytics_pdf(request):
     doc.build(elements)
 
     return response
+
 #================================ ANALYTICS EXPORT - EXCEL ================================#
 @login_required(login_url='staff_login')
 def analytics_excel(request):
@@ -2518,37 +2721,25 @@ def analytics_excel(request):
     ws = wb.active
     ws.title = "Attendance Analytics"
 
-    today = timezone.now().date()
+    # Summary numbers follow the applied filters (same as the table)
+    summary = _analytics_summary(request, my_staff, my_role)
+    report_students = summary["report_students"]
 
-    total_students_qs = Enrollment.objects.all()
-    present_today_qs = Attendance.objects.filter(attendance_date=today, status='Present')
-    absent_today_qs = Attendance.objects.filter(attendance_date=today, status='Absent')
-
-    if my_role == 'Trainer':
-        total_students_qs = total_students_qs.filter(batch__trainer=my_staff)
-        present_today_qs = present_today_qs.filter(batch__trainer=my_staff)
-        absent_today_qs = absent_today_qs.filter(batch__trainer=my_staff)
-
-    total_students = total_students_qs.count()
-    present_today = present_today_qs.count()
-    absent_today = absent_today_qs.count()
-
-    low_attendance_all = get_low_attendance_data()
-    if my_role == 'Trainer':
-        low_attendance_all = [
-            s for s in low_attendance_all
-            if s['batch'] and s['batch'].trainer_id == my_staff.id
-        ]
-    low_attendance = len(low_attendance_all)
+    total_students = summary["total_students"]
+    present_today = summary["present_today"]
+    absent_today = summary["absent_today"]
+    low_attendance = summary["low_attendance"]
 
     attendance_date = get_formatted_latest_attendance_date()
-    generated_date = timezone.now().strftime("%d %b %Y %I:%M %p")
-
+    generated_date = _generated_on_text()
     ws.merge_cells("A1:H1")
     ws["A1"] = "CSC Computer Education - Attendance Analytics Report"
     ws["A1"].fill = ExcelStyles.title_fill
     ws["A1"].font = Font(color="FFFFFF", bold=True, size=16)
     ws["A1"].alignment = ExcelStyles.center
+    ws.merge_cells("A2:H2")
+    ws["A2"] = "Filters Applied: " + _applied_filters_text(request)
+    ws["A2"].font = Font(italic=True)
 
     ws.merge_cells("A3:B3")
     ws["A3"] = "Summary Dashboard"
@@ -2590,7 +2781,7 @@ def analytics_excel(request):
     style_header_row(ws, header_row, len(analytics_header))
 
     data_row = header_row + 1
-    for row_data in get_batch_analytics_rows(my_staff=my_staff, my_role=my_role):
+    for row_data in _analytics_rows_for_request(request, my_staff, my_role):
         for col_num, value in enumerate(row_data, start=1):
             cell = ws.cell(row=data_row, column=col_num)
             cell.value = value
@@ -2598,11 +2789,6 @@ def analytics_excel(request):
             cell.alignment = ExcelStyles.center
         data_row += 1
 
-    report_students = get_filtered_report_students(
-        request,
-        my_staff=my_staff,
-        my_role=my_role
-    )
     counts = get_status_summary_counts(report_students)
 
     status_row = data_row + 2
@@ -2621,6 +2807,7 @@ def analytics_excel(request):
         ["Good", counts["Good"]],
         ["Warning", counts["Warning"]],
         ["Critical", counts["Critical"]],
+        ["New", counts["New"]],
     ]
 
     current_row = summary_header_row + 1
@@ -2667,24 +2854,38 @@ def report_pdf(request):
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename=attendance_report.pdf'
 
-    doc = SimpleDocTemplate(response)
+    # Smaller margins -> 535pt usable width, so the table fits inside the page
+    doc = SimpleDocTemplate(
+        response,
+        pagesize=A4,
+        leftMargin=30, rightMargin=30, topMargin=30, bottomMargin=30
+    )
     styles = getSampleStyleSheet()
     elements = []
+
+    cell_style = ParagraphStyle(
+        'cell', parent=styles['BodyText'], fontSize=9, leading=11, alignment=TA_CENTER
+    )
 
     elements.append(Paragraph("CSC Computer Education", styles['Title']))
     elements.append(Paragraph("Student Attendance Report", styles['Heading2']))
 
     attendance_date = get_formatted_latest_attendance_date()
+    elements.append(Paragraph(
+        f"<b>Filters Applied:</b> {escape(_applied_filters_text(request))}",
+        styles['Normal']
+    ))
     elements.append(Paragraph(f"Last Attendance Updated : {attendance_date}", styles['Normal']))
+    elements.append(Paragraph(f"Generated On : {_generated_on_text()}", styles['Normal']))
     elements.append(Spacer(1, 15))
 
     data = [["Student Name", "Course", "Batch", "Present", "Absent", "Late", "Attendance %", "Status"]]
 
     for student in students:
         data.append([
-            f"{student['student'].first_name} {student['student'].last_name}",
-            student['course'].course_name,
-            student['batch'].batch_name if student['batch'] else "-",
+            Paragraph(escape(f"{student['student'].first_name} {student['student'].last_name}"), cell_style),
+            Paragraph(escape(student['course'].course_name), cell_style),
+            Paragraph(escape(student['batch'].batch_name if student['batch'] else "-"), cell_style),
             student['present_count'],
             student['absent_count'],
             student['late_count'],
@@ -2692,30 +2893,46 @@ def report_pdf(request):
             student['status'],
         ])
 
-    table = Table(data, colWidths=[90, 105, 65, 45, 45, 35, 75, 65])
+    # total = 535
+    table = Table(data, colWidths=[95, 95, 105, 45, 45, 35, 60, 55], repeatRows=1)
     table_style = get_default_table_style(header_color="#1E40AF", zebra=True)
+    table_style.add('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
 
-    def _rate_color_hex(rate):
-        if rate == 100:
-            return STATUS_COLOR_HEX["Excellent"]
-        elif rate >= 75:
-            return STATUS_COLOR_HEX["Good"]
-        elif rate >= 60:
-            return STATUS_COLOR_HEX["Warning"]
-        return STATUS_COLOR_HEX["Critical"]
-
+    # Rate + status color both come from the student's status (90 / 75 / 60 rule)
     for row_num, student in enumerate(students, start=1):
-        table_style.add(
-            'TEXTCOLOR', (7, row_num), (7, row_num),
-            colors.HexColor(f"#{STATUS_COLOR_HEX[student['status']]}")
-        )
-        table_style.add(
-            'TEXTCOLOR', (6, row_num), (6, row_num),
-            colors.HexColor(f"#{_rate_color_hex(student['attendance_rate'])}")
-        )
+        status_color = colors.HexColor(f"#{STATUS_COLOR_HEX[student['status']]}")
+
+        table_style.add('TEXTCOLOR', (7, row_num), (7, row_num), status_color)
+        table_style.add('TEXTCOLOR', (6, row_num), (6, row_num), status_color)
 
     table.setStyle(table_style)
     elements.append(table)
+    elements.append(Spacer(1, 20))
+
+    # ---------------- Attendance Summary (same as Excel) ----------------
+    elements.append(Paragraph("Attendance Summary", styles['Heading2']))
+
+    counts = get_status_summary_counts(students)
+
+    summary_data = [
+        ["Status", "Students"],
+        ["Excellent", counts["Excellent"]],
+        ["Good", counts["Good"]],
+        ["Warning", counts["Warning"]],
+        ["Critical", counts["Critical"]],
+        ["New", counts["New"]],
+    ]
+
+    summary_table = Table(summary_data, colWidths=[180, 120], hAlign='LEFT')
+    summary_style = get_default_table_style(header_color="#059669", zebra=False)
+    summary_style.add('BACKGROUND', (0, 1), (-1, 1), colors.lightgreen)   # Excellent
+    summary_style.add('BACKGROUND', (0, 2), (-1, 2), colors.lightblue)    # Good
+    summary_style.add('BACKGROUND', (0, 3), (-1, 3), colors.yellow)       # Warning
+    summary_style.add('BACKGROUND', (0, 4), (-1, 4), colors.salmon)       # Critical
+    summary_style.add('BACKGROUND', (0, 5), (-1, 5), colors.lightgrey)   # New
+    summary_table.setStyle(summary_style)
+
+    elements.append(summary_table)
 
     doc.build(elements)
 
@@ -2748,12 +2965,21 @@ def report_excel(request):
     ws['A2'].font = Font(size=14, bold=True)
     ws['A2'].alignment = Alignment(horizontal="center")
 
+    ws.merge_cells('A3:H3')
+    ws['A3'] = "Filters Applied: " + _applied_filters_text(request)
+    ws['A3'].font = Font(italic=True)
+
     attendance_date = get_formatted_latest_attendance_date()
 
     ws['A4'] = "Generated On"
-    ws['B4'] = timezone.now().strftime("%d %b %Y")
+    ws['B4'] = _generated_on_text()
+    ws.merge_cells('B4:C4')
+
+    # label spans D:F so the full text is visible
+    ws.merge_cells('D4:F4')
     ws['D4'] = "Last Attendance Updated"
-    ws['E4'] = attendance_date
+    ws['D4'].alignment = Alignment(horizontal="right")
+    ws['G4'] = attendance_date
 
     headers = ["Student Name", "Course", "Batch", "Present", "Absent", "Late", "Attendance %", "Status"]
     header_row = 6
@@ -2779,17 +3005,9 @@ def report_excel(request):
             for col in range(1, 9):
                 ws.cell(row=row_num, column=col).fill = PatternFill("solid", fgColor="F8FAFC")
 
+        # Rate color follows the student's status (90 / 75 / 60 rule)
         attendance_cell = ws.cell(row=row_num, column=7)
-        rate = student['attendance_rate']
-
-        if rate == 100:
-            attendance_cell.font = Font(color=STATUS_COLOR_HEX["Excellent"], bold=True)
-        elif rate >= 76:
-            attendance_cell.font = Font(color=STATUS_COLOR_HEX["Good"], bold=True)
-        elif rate >= 60:
-            attendance_cell.font = Font(color=STATUS_COLOR_HEX["Warning"], bold=True)
-        else:
-            attendance_cell.font = Font(color=STATUS_COLOR_HEX["Critical"], bold=True)
+        attendance_cell.font = Font(color=STATUS_COLOR_HEX[student['status']], bold=True)
 
         status_cell = ws.cell(row=row_num, column=8)
         status_cell.fill = PatternFill("solid", fgColor=STATUS_COLOR_HEX[student['status']])
@@ -2797,7 +3015,7 @@ def report_excel(request):
 
         for col in range(1, 9):
             cell = ws.cell(row=row_num, column=col)
-            cell.alignment = ExcelStyles.center
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
             cell.border = ExcelStyles.thin_border
 
         row_num += 1
@@ -2805,29 +3023,34 @@ def report_excel(request):
     counts = get_status_summary_counts(students)
 
     summary_row = row_num + 2
-    ws.merge_cells(f'A{summary_row}:H{summary_row}')
+    ws.merge_cells(f'A{summary_row}:B{summary_row}')
     ws[f'A{summary_row}'] = "Attendance Summary"
     ws[f'A{summary_row}'].font = Font(bold=True, size=14)
 
-    ws.cell(summary_row + 1, 1).value = "Excellent"
-    ws.cell(summary_row + 1, 2).value = counts["Excellent"]
+    header_r = summary_row + 1
+    ws.cell(header_r, 1).value = "Status"
+    ws.cell(header_r, 2).value = "Students"
+    style_header_row(ws, header_r, 2)
 
-    ws.cell(summary_row + 2, 1).value = "Good"
-    ws.cell(summary_row + 2, 2).value = counts["Good"]
+    for i, status in enumerate(["Excellent", "Good", "Warning", "Critical", "New"], start=1):
+        r = header_r + i
+        ws.cell(r, 1).value = status
+        ws.cell(r, 2).value = counts[status]
 
-    ws.cell(summary_row + 3, 1).value = "Warning"
-    ws.cell(summary_row + 3, 2).value = counts["Warning"]
-
-    ws.cell(summary_row + 4, 1).value = "Critical"
-    ws.cell(summary_row + 4, 2).value = counts["Critical"]
+        for col in (1, 2):
+            c = ws.cell(r, col)
+            c.fill = PatternFill("solid", fgColor=STATUS_COLOR_HEX[status])
+            c.font = Font(color="FFFFFF", bold=True)
+            c.alignment = Alignment(horizontal="center")
+            c.border = ExcelStyles.thin_border
 
     ws.column_dimensions['A'].width = 25
     ws.column_dimensions['B'].width = 25
-    ws.column_dimensions['C'].width = 15
+    ws.column_dimensions['C'].width = 28
     ws.column_dimensions['D'].width = 12
     ws.column_dimensions['E'].width = 12
     ws.column_dimensions['F'].width = 12
-    ws.column_dimensions['G'].width = 15
+    ws.column_dimensions['G'].width = 16
     ws.column_dimensions['H'].width = 15
 
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')

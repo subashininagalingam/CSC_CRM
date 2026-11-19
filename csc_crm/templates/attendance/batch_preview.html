@@ -233,19 +233,22 @@
                 <span class="bp-overview-value bp-text-green">{{ attendance_percentage }}%</span>
             </div>
 
-            {% if batch_status == 'Upcoming' %}
-            <button type="button" class="bp-btn bp-btn-view-attendance bp-btn-disabled" disabled>
-                <i class="fa-regular fa-clock"></i>
-                Batch Not Started — Starts {{ batch.start_date|date:"d M Y" }}
-            </button>
-            {% elif batch_status == 'Completed' or batch_status == 'Cancelled' %}
-            <button type="button" class="bp-btn bp-btn-view-attendance bp-btn-disabled" disabled>
-                <i class="fa-solid fa-ban"></i> Batch {{ batch_status }}
-            </button>
-            {% else %}
-            <a href="{% url 'mark_attendance_page' batch.id %}" class="bp-btn bp-btn-view-attendance">
-                <i class="fa-regular fa-eye"></i> View Attendance
-            </a>
+            {# Attendance action button - hidden for HR (HR can only view batch details) #}
+            {% if request.user.staff_profile.role.role_name != "HR" %}
+                {% if batch_status == 'Upcoming' %}
+                <button type="button" class="bp-btn bp-btn-view-attendance bp-btn-disabled" disabled>
+                    <i class="fa-regular fa-clock"></i>
+                    Batch Not Started — Starts {{ batch.start_date|date:"d M Y" }}
+                </button>
+                {% elif batch_status == 'Completed' or batch_status == 'Cancelled' %}
+                <button type="button" class="bp-btn bp-btn-view-attendance bp-btn-disabled" disabled>
+                    <i class="fa-solid fa-ban"></i> Batch {{ batch_status }}
+                </button>
+                {% else %}
+                <a href="{% url 'mark_attendance_page' batch.id %}" class="bp-btn bp-btn-view-attendance">
+                    <i class="fa-regular fa-eye"></i> View Attendance
+                </a>
+                {% endif %}
             {% endif %}
         </div>
 

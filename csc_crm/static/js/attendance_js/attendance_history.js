@@ -67,18 +67,26 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (form) {
 
+        // Dropdowns + dates filter immediately
         form.querySelectorAll("select, input[type='date']").forEach(el => {
             el.addEventListener("change", () => form.submit());
         });
 
+        // Search filters only after typing is finished:
+        // on Enter, or when the box loses focus with a changed value.
         const search = form.querySelector("input[name='search']");
-        let timer;
 
         if (search) {
-            search.addEventListener("input", () => {
-                clearTimeout(timer);
-                timer = setTimeout(() => form.submit(), 600);
+
+            search.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    form.submit();
+                }
             });
+
+            // "change" fires on blur only if the value was edited
+            search.addEventListener("change", () => form.submit());
         }
     }
 

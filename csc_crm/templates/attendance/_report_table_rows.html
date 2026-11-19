@@ -31,6 +31,8 @@
         <span class="status-badge warning-badge">Warning</span>
         {% elif student.status == "Excellent" %}
         <span class="status-badge excellent-badge">Excellent</span>
+        {% elif student.status == "New" %}
+        <span class="status-badge new-badge">New</span>
         {% else %}
         <span class="status-badge good-badge">Good</span>
         {% endif %}

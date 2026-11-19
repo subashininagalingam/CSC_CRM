@@ -17,9 +17,13 @@
     <!-- ============ PAGE HEADER ============ -->
     <div class="schedule-header">
         <div>
-            <h2 class="schedule-title">Trainer Schedule</h2>
+            <h2 class="schedule-title">
+                {% if show_all %}Schedule History{% else %}Trainer Schedule{% endif %}
+            </h2>
             <p class="schedule-subtitle">
-                {% if is_admin_or_manager %}
+                {% if show_all %}
+                    Complete history of all schedules
+                {% elif is_admin_or_manager %}
                     Create and manage class / meeting schedules for trainers
                 {% else %}
                     Your assigned classes and meetings
@@ -27,15 +31,18 @@
             </p>
         </div>
 
+        <!-- Export only in History view -->
+        {% if show_all %}
         <button type="button" id="exportBtn" class="export-btn">
             <i class="fa-solid fa-download"></i> Export
         </button>
+        {% endif %}
     </div>
 
     <div id="scheduleAlert" class="schedule-alert" style="display:none;"></div>
 
-    <!-- ============ CREATE FORM (ADMIN / MANAGER ONLY) ============ -->
-    {% if is_admin_or_manager %}
+    <!-- ============ CREATE FORM (ADMIN / MANAGER ONLY, hidden in History view) ============ -->
+    {% if is_admin_or_manager and not show_all %}
     <div class="schedule-form-card">
 
         <h3 class="form-card-title"><i class="fa-solid fa-calendar-plus"></i> Create Schedule</h3>
@@ -82,7 +89,7 @@
                 </div>
 
                 <div class="field-group form-submit-group">
-                    <button type="submit" class="add-schedule-btn">
+                    <button type="submit" class="add-schedule-btn" id="addScheduleBtn">
                         <i class="fa-solid fa-plus"></i> Add Schedule
                     </button>
                 </div>
@@ -97,7 +104,20 @@
     <div class="schedule-list-card">
 
         <div class="schedule-list-header">
-            <h3 class="form-card-title"><i class="fa-solid fa-list"></i> Schedule History</h3>
+            <h3 class="form-card-title">
+                <i class="fa-solid fa-list"></i>
+                {% if show_all %}Schedule History{% else %}Recent Schedules{% endif %}
+            </h3>
+
+            {% if show_all %}
+            <a href="{% url 'schedule_page' %}" class="export-btn" style="text-decoration:none;">
+                <i class="fa-solid fa-clock-rotate-left"></i> Show Recent
+            </a>
+            {% elif total_count > recent_limit %}
+            <a href="?view=all" class="export-btn" style="text-decoration:none;">
+                <i class="fa-solid fa-list"></i> View All ({{ total_count }})
+            </a>
+            {% endif %}
         </div>
 
         {% if schedules %}
@@ -105,7 +125,9 @@
             <table class="schedule-table">
                 <thead>
                     <tr>
+                        {% if show_all %}
                         <th class="col-check"><input type="checkbox" id="selectAllRows"></th>
+                        {% endif %}
                         {% if my_role != "Trainer" %}
                         <th>Trainer</th>
                         {% endif %}
@@ -124,9 +146,11 @@
                 <tbody id="scheduleTableBody">
                     {% for schedule in schedules %}
                     <tr data-id="{{ schedule.id }}">
+                        {% if show_all %}
                         <td class="col-check">
                             <input type="checkbox" class="row-check" value="{{ schedule.id }}">
                         </td>
+                        {% endif %}
                         {% if my_role != "Trainer" %}
                         <td>{{ schedule.staff.full_name }}</td>
                         {% endif %}
@@ -167,39 +191,47 @@
             </table>
         </div>
 
-        <!-- ============ PAGINATION (10 rows / page) ============ -->
-        {% if page_obj.paginator.num_pages > 1 %}
-        <div class="schedule-pagination">
+        {% if show_all %}
+            <!-- ============ PAGINATION (View All mode, 10 rows / page) ============ -->
+            {% if page_obj.paginator.num_pages > 1 %}
+            <div class="schedule-pagination">
 
-            <span class="rows-info">
-                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} records
-            </span>
+                <span class="rows-info">
+                    Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} records
+                </span>
 
-            <div class="page-controls">
+                <div class="page-controls">
 
-                {% if page_obj.has_previous %}
-                    <a href="?page={{ page_obj.previous_page_number }}" class="page-btn">&laquo;</a>
-                {% else %}
-                    <span class="page-btn disabled">&laquo;</span>
-                {% endif %}
-
-                {% for num in page_obj.paginator.page_range %}
-                    {% if num == page_obj.number %}
-                        <span class="page-btn active">{{ num }}</span>
+                    {% if page_obj.has_previous %}
+                        <a href="?view=all&page={{ page_obj.previous_page_number }}" class="page-btn">&laquo;</a>
                     {% else %}
-                        <a href="?page={{ num }}" class="page-btn">{{ num }}</a>
+                        <span class="page-btn disabled">&laquo;</span>
                     {% endif %}
-                {% endfor %}
 
-                {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}" class="page-btn">&raquo;</a>
-                {% else %}
-                    <span class="page-btn disabled">&raquo;</span>
-                {% endif %}
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if num == page_obj.number %}
+                            <span class="page-btn active">{{ num }}</span>
+                        {% else %}
+                            <a href="?view=all&page={{ num }}" class="page-btn">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <a href="?view=all&page={{ page_obj.next_page_number }}" class="page-btn">&raquo;</a>
+                    {% else %}
+                        <span class="page-btn disabled">&raquo;</span>
+                    {% endif %}
+
+                </div>
 
             </div>
-
-        </div>
+            {% endif %}
+        {% else %}
+            <div class="schedule-pagination">
+                <span class="rows-info">
+                    Showing latest {{ schedules|length }} of {{ total_count }} records
+                </span>
+            </div>
         {% endif %}
 
         {% else %}

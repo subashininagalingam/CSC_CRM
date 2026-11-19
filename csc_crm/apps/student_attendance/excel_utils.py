@@ -22,6 +22,7 @@ STATUS_FILL_MAP = {
     "Good": ExcelStyles.good_fill,
     "Warning": ExcelStyles.warning_fill,
     "Critical": ExcelStyles.critical_fill,
+    "New": PatternFill("solid", fgColor="6B7280"),
 }
 
 #================ EXCEL HEADER ROW STYLER ==================#

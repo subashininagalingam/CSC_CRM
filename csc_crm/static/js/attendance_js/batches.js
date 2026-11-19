@@ -325,6 +325,10 @@ let allBatches = [];
 let currentPage = 1;
 let pageSize = 10;
 
+// Search box only accepts letters, numbers and spaces.
+// Anything else (".", "@", "#", "$" ...) is treated as "no match" -> No batches found.
+const VALID_SEARCH_REGEX = /^[\p{L}\p{N}\s]*$/u;
+
 // Map backend display_status -> the CSS class + filter-value your UI already uses
 const STATUS_CLASS_MAP = {
     'Upcoming': 'upcoming',
@@ -380,7 +384,10 @@ function applyFiltersAndRender() {
     const timingFilter = document.getElementById('filterTiming').value;
     const statusFilter = document.getElementById('filterStatus').value;
 
-    let filtered = allBatches.filter(batch => {
+    // "." or any special character typed in search -> show no batches at all
+    const hasInvalidSearch = !VALID_SEARCH_REGEX.test(search);
+
+    let filtered = hasInvalidSearch ? [] : allBatches.filter(batch => {
 
         // status now comes straight from the backend (batch.display_status),
         // no more re-deriving Upcoming/Completed from dates here.
@@ -470,14 +477,134 @@ function renderStats(filtered) {
         batchesThisMonth > 0 ? `+${batchesThisMonth} this month` : 'No new batches this month';
 }
 
+//================ EMPTY STATE STYLES (INJECTED ONCE) ==================//
+// Kept inside JS so no CSS file change is needed. Can be moved to batches.css later.
+function injectEmptyStateStyles() {
+
+    if (document.getElementById('batchEmptyStateStyles')) return;
+
+    const style = document.createElement('style');
+    style.id = 'batchEmptyStateStyles';
+    style.textContent = `
+        .batch-empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 28px 16px;
+            background: #ffffff;
+            border: 1px dashed #d5d9e4;
+            border-radius: 12px;
+        }
+        .batch-empty-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #eef0ff;
+            color: #5b5fe0;
+            font-size: 22px;
+            margin-bottom: 12px;
+        }
+        .batch-empty-title {
+            margin: 0 0 4px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .batch-empty-text {
+            margin: 0;
+            font-size: 13px;
+            color: #6b7280;
+        }
+        .batch-empty-btn {
+            margin-top: 12px;
+            padding: 6px 14px;
+            border: 1px solid #5b5fe0;
+            border-radius: 6px;
+            background: #ffffff;
+            color: #5b5fe0;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+        .batch-empty-btn:hover {
+            background: #5b5fe0;
+            color: #ffffff;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+//================ RENDER COMPACT EMPTY STATE ==================//
+// Picks a short message depending on WHY there are no batches.
+function renderEmptyState(container) {
+
+    injectEmptyStateStyles();
+
+    const search = document.getElementById('searchInput').value.trim().toLowerCase();
+    const hasInvalidSearch = !VALID_SEARCH_REGEX.test(search);
+
+    const hasActiveFilters = !!(
+        search ||
+        document.getElementById('filterCourse').value ||
+        document.getElementById('filterTrainer').value ||
+        document.getElementById('filterTiming').value ||
+        document.getElementById('filterStatus').value
+    );
+
+    let icon, title, message;
+
+    if (allBatches.length === 0) {
+        icon = 'fa-calendar-plus';
+        title = 'No batches yet';
+        message = 'Created batches will appear here.';
+    } else if (hasInvalidSearch) {
+        icon = 'fa-magnifying-glass';
+        title = 'No batches found';
+        message = 'Use letters and numbers only.';
+    } else {
+        icon = 'fa-folder-open';
+        title = 'No batches found';
+        message = 'Try a different search or filter.';
+    }
+
+    const showResetBtn = allBatches.length > 0 && hasActiveFilters;
+
+    container.innerHTML = `
+        <div class="col-12">
+            <div class="batch-empty-state">
+                <div class="batch-empty-icon"><i class="fa-solid ${icon}"></i></div>
+                <h5 class="batch-empty-title">${title}</h5>
+                <p class="batch-empty-text">${message}</p>
+                ${showResetBtn ? `
+                <button type="button" class="batch-empty-btn" onclick="document.getElementById('btnReset').click()">
+                    Reset
+                </button>` : ''}
+            </div>
+        </div>
+    `;
+}
+
 //================ RENDER BATCH CARDS (CURRENT PAGE) ==================//
 function renderBatches(filtered) {
 
     const container = document.getElementById('batchContainer');
     container.innerHTML = '';
 
+    // Nothing matched (search / filters / special characters) -> empty state
+    if (filtered.length === 0) {
+        renderEmptyState(container);
+        return;
+    }
+
     const startIndex = (currentPage - 1) * pageSize;
     const pageBatches = filtered.slice(startIndex, startIndex + pageSize);
+
+    // HR can only view batches - Mark/Update and Edit buttons are hidden for HR
+    const isHrUser = (typeof IS_HR !== 'undefined' && IS_HR);
 
     pageBatches.forEach(batch => {
 
@@ -493,6 +620,27 @@ function renderBatches(filtered) {
         const pct = batch.student_count > 0
             ? Math.round((present / batch.student_count) * 100)
             : 0;
+
+        // Mark / Update (or the disabled Upcoming/Completed/Cancelled) button - hidden for HR
+        let attendanceBtnHtml = '';
+        if (!isHrUser) {
+            if (isUpcoming) {
+                attendanceBtnHtml = `<button class="btn-attendance" disabled>Upcoming</button>`;
+            } else if (isCompleted || isCancelled) {
+                attendanceBtnHtml = `<button class="btn-attendance" disabled>${statusLabel}</button>`;
+            } else {
+                attendanceBtnHtml = `<button class="btn-attendance"
+        onclick="window.location.href='/api/mark-attendance/${batch.id}/'">
+        ${batch.is_marked ? 'Update' : 'Mark'}
+       </button>`;
+            }
+        }
+
+        // Edit button - hidden for Trainer and HR
+        const editBtnHtml = (IS_TRAINER || isHrUser) ? '' : `
+                    <button class="btn-edit" onclick="editBatch(${batch.id})">
+                        <i class="fa-solid fa-pen"></i> Edit
+                    </button>`;
 
         container.innerHTML += `
         <div class="col-lg-6 col-md-6">
@@ -537,19 +685,8 @@ function renderBatches(filtered) {
                     <button class="btn-view" onclick="window.location.href='/api/batch-preview/${batch.id}/'">
                         <i class="fa-regular fa-eye"></i> View
                     </button>
-                    ${isUpcoming
-                ? `<button class="btn-attendance" disabled>Upcoming</button>`
-                : (isCompleted || isCancelled)
-                    ? `<button class="btn-attendance" disabled>${statusLabel}</button>`
-                    : `<button class="btn-attendance"
-        onclick="window.location.href='/api/mark-attendance/${batch.id}/'">
-        ${batch.is_marked ? 'Update' : 'Mark'}
-       </button>`
-            }
-                ${(IS_TRAINER || (typeof IS_HR !== 'undefined' && IS_HR)) ? '' : `
-                    <button class="btn-edit" onclick="editBatch(${batch.id})">
-                        <i class="fa-solid fa-pen"></i> Edit
-                    </button>`}
+                    ${attendanceBtnHtml}
+                    ${editBtnHtml}
                 </div>
 
             </div>

@@ -1,5 +1,5 @@
 // JS for the Attendance Dashboard page: live search refresh, batch grid
-// filter/view toggle, attendance donut chart, custom date calendar and sparklines.
+// filter/view toggle, attendance donut chart (+ hover tooltip), custom date calendar and sparklines.
 
 //================ LIVE SEARCH - DEBOUNCED INPUT LISTENER ==================//
 let timeout = null;
@@ -45,6 +45,8 @@ async function liveSearch(query) {
         document.getElementById("absentCount").innerText = data.absent;
         document.getElementById("lateCount").innerText = data.late;
 
+        updateDonut(data.present, data.absent, data.late);
+
         return;
     }
 
@@ -62,6 +64,8 @@ async function liveSearch(query) {
     document.getElementById("presentCount").innerText = data.present;
     document.getElementById("absentCount").innerText = data.absent;
     document.getElementById("lateCount").innerText = data.late;
+
+    updateDonut(data.present, data.absent, data.late);
 
     batchList.innerHTML = "";
 
@@ -107,11 +111,19 @@ if (batchSearchInput && batchesGrid) {
 
         const q = this.value.trim().toLowerCase();
         const cards = batchesGrid.querySelectorAll(".batch-card");
+        const noResults = document.getElementById("noBatchResults");
+        let visibleCount = 0;
 
         cards.forEach(card => {
-            const text = card.innerText.toLowerCase();
-            card.style.display = text.includes(q) ? "" : "none";
+            const match = card.innerText.toLowerCase().includes(q);
+            card.style.display = match ? "" : "none";
+            if (match) visibleCount++;
         });
+
+        // Cards irundhu, aana ellam hide aanaa mattum "No batches found" kaattum
+        if (noResults) {
+            noResults.style.display = (cards.length > 0 && visibleCount === 0) ? "" : "none";
+        }
     });
 }
 
@@ -140,7 +152,10 @@ viewButtons.forEach((btn, index) => {
     });
 });
 
-//================ ATTENDANCE DONUT CHART (PRESENT/ABSENT/LATE) ==================//
+//================ ATTENDANCE DONUT CHART (PRESENT / LATE / ABSENT - SEPARATE) ==================//
+// Segments stored here so the hover tooltip can use them
+let donutSegments = [];
+
 function updateDonut(present, absent, late) {
 
     const donut = document.getElementById("attendanceDonut");
@@ -154,6 +169,7 @@ function updateDonut(present, absent, late) {
     // No attendance data
     if (attendanceTotal === 0) {
 
+        donutSegments = [];
         donut.style.background = "conic-gradient(#d1d5db 0% 100%)";
 
         if (pct) {
@@ -172,17 +188,30 @@ function updateDonut(present, absent, late) {
         pct.style.display = "block";
     }
 
-    const presentPct = ((present + late) / attendanceTotal) * 100;
+    // Each status gets its own separate segment
+    const presentPct = (present / attendanceTotal) * 100;
+    const latePct = (late / attendanceTotal) * 100;
     const absentPct = (absent / attendanceTotal) * 100;
+
+    const presentEnd = presentPct;
+    const lateEnd = presentPct + latePct;
+    const absentEnd = lateEnd + absentPct;
+
+    donutSegments = [
+        { name: "Present", count: present, pct: presentPct, start: 0,          end: presentEnd, color: "#22c55e" },
+        { name: "Late",    count: late,    pct: latePct,    start: presentEnd, end: lateEnd,    color: "#f59e0b" },
+        { name: "Absent",  count: absent,  pct: absentPct,  start: lateEnd,    end: absentEnd,  color: "#ef4444" }
+    ];
 
     donut.style.background = `
         conic-gradient(
-            #22c55e 0% ${presentPct}%,
-            #ef4444 ${presentPct}% ${presentPct + absentPct}%,
-            #f59e0b ${presentPct + absentPct}% 100%
+            #22c55e 0% ${presentEnd}%,
+            #f59e0b ${presentEnd}% ${lateEnd}%,
+            #ef4444 ${lateEnd}% ${absentEnd}%
         )
     `;
 
+    // Center shows Present only (late is not included)
     if (pct) {
         pct.innerText = `${Math.round(presentPct)}%`;
     }
@@ -201,6 +230,67 @@ document.addEventListener("DOMContentLoaded", function () {
 
     updateDonut(present, absent, late);
 
+});
+
+//================ DONUT HOVER TOOLTIP ==================//
+document.addEventListener("DOMContentLoaded", function () {
+
+    const donut = document.getElementById("attendanceDonut");
+    if (!donut) return;
+
+    const tooltip = document.createElement("div");
+    tooltip.className = "donut-tooltip";
+    document.body.appendChild(tooltip);
+
+    donut.addEventListener("mousemove", function (e) {
+
+        if (!donutSegments.length) {
+            tooltip.style.display = "none";
+            return;
+        }
+
+        const rect = donut.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = e.clientX - cx;
+        const dy = e.clientY - cy;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        const outerR = rect.width / 2;
+        const centerEl = donut.querySelector(".donut-center");
+        const innerR = centerEl ? centerEl.getBoundingClientRect().width / 2 : outerR * 0.65;
+
+        // Mouse is on the center hole (or outside), so no tooltip
+        if (distance < innerR || distance > outerR) {
+            tooltip.style.display = "none";
+            return;
+        }
+
+        // Angle from top, clockwise (same as conic-gradient), as percent
+        let angle = Math.atan2(dx, -dy) * (180 / Math.PI);
+        if (angle < 0) angle += 360;
+        const anglePct = (angle / 360) * 100;
+
+        const seg = donutSegments.find(s => anglePct >= s.start && anglePct < s.end);
+
+        if (!seg) {
+            tooltip.style.display = "none";
+            return;
+        }
+
+        tooltip.innerHTML = `
+            <strong>${seg.name}</strong>
+            <div><span class="donut-tooltip-dot" style="background:${seg.color}"></span>
+            ${seg.name}: ${seg.count} (${seg.pct.toFixed(1)}%)</div>
+        `;
+        tooltip.style.display = "block";
+        tooltip.style.left = (e.clientX + 14) + "px";
+        tooltip.style.top = (e.clientY + 14) + "px";
+    });
+
+    donut.addEventListener("mouseleave", function () {
+        tooltip.style.display = "none";
+    });
 });
 
 

@@ -1260,3 +1260,54 @@
         margin-left: auto;
     }
 }
+
+.donut-tooltip {
+    position: fixed;
+    display: none;
+    z-index: 9999;
+    pointer-events: none;
+    background: rgba(0, 0, 0, 0.85);
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.5;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.donut-tooltip strong {
+    display: block;
+    margin-bottom: 2px;
+}
+
+.donut-tooltip-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    margin-right: 6px;
+}
+
+.no-batches {
+    grid-column: 1 / -1;      
+    text-align: center;
+    padding: 40px 20px;
+    color: #94a3b8;
+}
+
+.no-batches i {
+    font-size: 36px;
+    margin-bottom: 10px;
+    color: #cbd5e1;
+}
+
+.no-batches p {
+    margin: 0 0 4px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.no-batches span {
+    font-size: 13px;
+}

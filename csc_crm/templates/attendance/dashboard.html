@@ -254,13 +254,25 @@ Student Attendance - Dashboard
                     <a href="{% url 'batch_preview' b.id %}" class="view-details-link">
                         View Details <i class="fa-solid fa-arrow-right"></i>
                     </a>
-                
+
                 </div>
-            
+
             </div>
             {% empty %}
-            <p class="no-batches">No batches with enrolled students yet.</p>
+            <!-- DB la batch ve illa na idhu varum -->
+            <div class="no-batches">
+                <i class="fa-solid fa-folder-open"></i>
+                <p>No batches found</p>
+                <span>No batches with enrolled students yet.</span>
+            </div>
             {% endfor %}
+
+            <!-- Search la endha batch um match aagalana idhu varum (JS control pannum) -->
+            <div class="no-batches" id="noBatchResults" style="display:none;">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <p>No batches found</p>
+                <span>Try a different search term.</span>
+            </div>
         </div>
     </div>
 
@@ -271,7 +283,7 @@ Student Attendance - Dashboard
             <h3 class="section-title">Today's Attendance Summary</h3>
 
             <div class="summary-body">
-                <!-- ================= Donut Chart + Legend (Present/Absent/Late) ================= -->
+                <!-- ================= Donut Chart + Legend (Present/Late/Absent) ================= -->
                 <div class="summary-body-left">
                     <div class="donut-wrap">
                         <div class="donut" id="attendanceDonut">
@@ -289,14 +301,14 @@ Student Attendance - Dashboard
                             <span class="legend-value">{{ present }} ({{ present_percentage }}%)</span>
                         </div>
                         <div class="legend-row">
-                            <span class="legend-dot dot-absent"></span>
-                            <span class="legend-name">Absent</span>
-                            <span class="legend-value">{{ absent }} ({{ absent_percentage }}%)</span>
-                        </div>
-                        <div class="legend-row">
                             <span class="legend-dot dot-late"></span>
                             <span class="legend-name">Late</span>
                             <span class="legend-value">{{ late }} ({{ late_percentage }}%)</span>
+                        </div>
+                        <div class="legend-row">
+                            <span class="legend-dot dot-absent"></span>
+                            <span class="legend-name">Absent</span>
+                            <span class="legend-value">{{ absent }} ({{ absent_percentage }}%)</span>
                         </div>
                     </div>
                 </div>

@@ -153,7 +153,7 @@
                 </button>
 
                 <div class="export-menu">
-                    <a href="{% url 'low_attendance_export' %}?type=critical" class="dropdown-item">
+                    <a href="{% url 'low_attendance_export' %}?type=critical&{{ request.GET.urlencode }}" class="dropdown-item">
                         <i class="bi bi-file-earmark-excel"></i>
                         Export Excel
                     </a>
@@ -267,7 +267,7 @@
                 </button>
 
                 <div class="export-menu">
-                    <a href="{% url 'low_attendance_export' %}?type=warning" class="dropdown-item">
+                    <a href="{% url 'low_attendance_export' %}?type=warning&{{ request.GET.urlencode }}" class="dropdown-item">
                         <i class="bi bi-file-earmark-excel"></i>
                         Export Excel
                     </a>

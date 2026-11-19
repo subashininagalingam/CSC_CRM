@@ -70,37 +70,38 @@ const monthlyLate = JSON.parse(
     ).textContent
 );
 
-const batchLabels = JSON.parse(
+// These are `let` because Apply Filter (AJAX) replaces them with fresh data.
+let batchLabels = JSON.parse(
     document.getElementById(
         "batch-labels"
     ).textContent
 );
 
-const batchCounts = JSON.parse(
+let batchCounts = JSON.parse(
     document.getElementById(
         "batch-counts"
     ).textContent
 );
 
-const presentList = JSON.parse(
+let presentList = JSON.parse(
     document.getElementById(
         "batch-present-list"
     ).textContent
 );
 
-const absentList = JSON.parse(
+let absentList = JSON.parse(
     document.getElementById(
         "batch-absent-list"
     ).textContent
 );
 
-const lateList = JSON.parse(
+let lateList = JSON.parse(
     document.getElementById(
         "batch-late-list"
     ).textContent
 );
 
-const percentageList = JSON.parse(
+let percentageList = JSON.parse(
     document.getElementById(
         "batch-percentage-list"
     ).textContent
@@ -210,7 +211,7 @@ const attendanceChartInstance = new Chart(
     }
 );
 
-//================ BATCH-WISE DOUGHNUT CHART (FILTERED SELECTION) - DATA + INIT ==================//
+//================ BATCH-WISE DOUGHNUT CHART - DATA + INIT ==================//
 const batchChart = document.getElementById(
     'batchChart'
 );
@@ -240,11 +241,18 @@ const colors = [
     '#f59e0b'
 ];
 
-const chartColors = batchLabels.map(
-    (_, index) => colors[index % colors.length]
-);
+function buildChartColors(count) {
+    return Array.from({ length: count }, (_, index) => colors[index % colors.length]);
+}
+
+let chartColors = buildChartColors(batchLabels.length);
 
 let batchChartInstance = null;
+
+// "all"    -> one slice per batch (enrollment count)
+// "single" -> Present / Absent / Late slices of ONE selected batch
+let batchChartMode = "all";
+let singleBatchIndex = -1;
 
 if (batchChart) {
     batchChartInstance = new Chart(
@@ -289,6 +297,10 @@ if (batchChart) {
 
                             title: function (context) {
 
+                                if (batchChartMode === "single") {
+                                    return allBatchLabels[singleBatchIndex];
+                                }
+
                                 return batchLabels[
                                     context[0].dataIndex
                                 ];
@@ -296,6 +308,15 @@ if (batchChart) {
                             },
 
                             label: function (context) {
+
+                                // One batch selected: slices are Present / Absent / Late
+                                if (batchChartMode === "single") {
+                                    return [
+                                        context.label + " : " + context.raw,
+                                        "📊 Attendance : " +
+                                        (allBatchPercentageList[singleBatchIndex] || 0) + "%"
+                                    ];
+                                }
 
                                 let index =
                                     context.dataIndex;
@@ -463,26 +484,99 @@ if (distributionChartCanvas) {
 // ---------- Batch-wise Attendance (independent dropdown selector) ----------
 
 //================ BATCH-WISE DROPDOWN SELECTOR - DATA + CHART SWAP LOGIC ==================//
-const allBatchLabels = JSON.parse(
+// `let` because Apply Filter (AJAX) replaces these with fresh data.
+let allBatchLabels = JSON.parse(
     document.getElementById("all-batch-labels").textContent
 );
-const allBatchIds = JSON.parse(
+let allBatchIds = JSON.parse(
     document.getElementById("all-batch-ids").textContent
 );
-const allBatchPresentList = JSON.parse(
+let allBatchPresentList = JSON.parse(
     document.getElementById("all-batch-present-list").textContent
 );
-const allBatchAbsentList = JSON.parse(
+let allBatchAbsentList = JSON.parse(
     document.getElementById("all-batch-absent-list").textContent
 );
-const allBatchLateList = JSON.parse(
+let allBatchLateList = JSON.parse(
     document.getElementById("all-batch-late-list").textContent
 );
-const allBatchPercentageList = JSON.parse(
+let allBatchPercentageList = JSON.parse(
     document.getElementById("all-batch-percentage-list").textContent
 );
 
 const batchWiseSelector = document.getElementById("batchWiseSelector");
+
+// Draws the chart for whatever batch is currently chosen in the dropdown.
+function renderBatchWiseChart() {
+
+    if (!batchChartInstance) return;
+
+    const selectedId = batchWiseSelector ? batchWiseSelector.value : "";
+
+    if (selectedId === "") {
+        // "All Batches" selected - one slice per (filtered) batch.
+        batchChartMode = "all";
+        singleBatchIndex = -1;
+
+        batchChartInstance.data.labels = batchLabels;
+        batchChartInstance.data.datasets[0].data = batchCounts;
+        batchChartInstance.data.datasets[0].backgroundColor = chartColors;
+        batchChartInstance.update();
+
+        toggleBatchChartEmpty(batchCounts);
+        return;
+    }
+
+    const index = allBatchIds.findIndex(
+        id => String(id) === selectedId
+    );
+
+    if (index === -1) return;
+
+    // One batch selected - show ONLY that batch's data.
+    batchChartMode = "single";
+    singleBatchIndex = index;
+
+    const present = allBatchPresentList[index];
+    const absent = allBatchAbsentList[index];
+    const late = allBatchLateList[index];
+
+    batchChartInstance.data.labels = ["Present", "Absent", "Late"];
+    batchChartInstance.data.datasets[0].data = [present, absent, late];
+    batchChartInstance.data.datasets[0].backgroundColor = [
+        "#22c55e", "#ef4444", "#f59e0b"
+    ];
+    batchChartInstance.update();
+
+    toggleBatchChartEmpty([present, absent, late]);
+}
+
+// After Apply Filter: if a batch is chosen in the filter, show that batch
+// in the chart; otherwise go back to "All Batches".
+function syncBatchWiseWithFilter() {
+
+    if (!batchWiseSelector) return;
+
+    const filterBatchEl = document.getElementById("batchFilter");
+    const filterBatchId = filterBatchEl ? filterBatchEl.value : "";
+
+    // Rebuild the dropdown options from the latest data
+    batchWiseSelector.innerHTML = '<option value="">All Batches</option>';
+    allBatchIds.forEach((id, index) => {
+        const option = document.createElement("option");
+        option.value = String(id);
+        option.textContent = allBatchLabels[index];
+        batchWiseSelector.appendChild(option);
+    });
+
+    const optionExists = Array.from(batchWiseSelector.options).some(
+        opt => opt.value === filterBatchId
+    );
+
+    batchWiseSelector.value = (filterBatchId && optionExists) ? filterBatchId : "";
+
+    renderBatchWiseChart();
+}
 
 if (batchWiseSelector) {
 
@@ -493,184 +587,40 @@ if (batchWiseSelector) {
         batchWiseSelector.appendChild(option);
     });
 
-    batchWiseSelector.addEventListener("change", function () {
-
-        const selectedId = this.value;
-
-        if (selectedId === "") {
-            // "All Batches" selected — restore the existing batch chart as-is.
-            if (batchChartInstance) {
-                batchChartInstance.data.labels = batchLabels;
-                batchChartInstance.data.datasets[0].data = batchCounts;
-                batchChartInstance.data.datasets[0].backgroundColor = chartColors;
-                batchChartInstance.update();
-            }
-            toggleBatchChartEmpty(batchCounts);
-            return;
-        }
-
-        const index = allBatchIds.findIndex(
-            id => String(id) === selectedId
-        );
-
-        if (index === -1) return;
-
-        const present = allBatchPresentList[index];
-        const absent = allBatchAbsentList[index];
-        const late = allBatchLateList[index];
-
-        if (batchChartInstance) {
-            batchChartInstance.data.labels = ["Present", "Absent", "Late"];
-            batchChartInstance.data.datasets[0].data = [present, absent, late];
-            batchChartInstance.data.datasets[0].backgroundColor = [
-                "#22c55e", "#ef4444", "#f59e0b"
-            ];
-            batchChartInstance.update();
-        }
-        toggleBatchChartEmpty([present, absent, late]);
-    });
+    batchWiseSelector.addEventListener("change", renderBatchWiseChart);
 }
 
-// filters
+//================ RESTORE FILTERS FROM URL (SURVIVES REFRESH) ==================//
+// Apply Filter pushes the filters into the URL. On refresh, the server already
+// returns filtered data, so we just refill the filter boxes from the URL.
+// The boxes empty out ONLY when the Clear button is clicked.
+(function restoreFiltersFromUrl() {
 
-//================ CLIENT-SIDE TABLE FILTER (LEGACY - UNUSED, SEE applyFiltersLive) ==================//
-function applyFilters() {
+    const params = new URLSearchParams(window.location.search);
+    if (!Array.from(params.keys()).length) return;
 
-    let visibleCount = 0;
+    const fieldMap = {
+        studentNameFilter: "student_name",
+        courseFilter: "course",
+        batchFilter: "batch",
+        statusFilter: "status",
+        attendanceFilter: "attendance",
+        dateFromFilter: "date_from",
+        dateToFilter: "date_to",
+        distributionPercentageFilter: "distribution_percentage",
+    };
 
-    const totalCount =
-        document.querySelectorAll(
-            ".report-row"
-        ).length;
-
-    const name =
-        document.getElementById(
-            "studentNameFilter"
-        ).value.toLowerCase().trim();
-
-    const course =
-        document.getElementById(
-            "courseFilter"
-        ).value.toLowerCase().trim();
-
-    const batch =
-        document.getElementById(
-            "batchFilter"
-        ).value.toLowerCase().trim();
-
-
-    const status =
-        document.getElementById(
-            "statusFilter"
-        ).value.toLowerCase().trim();
-    const student_name =
-        document.getElementById(
-            "studentNameFilter"
-        ).value;
-
-
-
-    const attendance =
-        document.getElementById(
-            "attendanceFilter"
-        ).value.trim();
-
-    document.querySelectorAll(
-        ".report-row"
-    ).forEach(row => {
-
-        const studentName =
-            row.dataset.name.toLowerCase();
-
-        const studentCourse =
-            row.dataset.course.toLowerCase();
-
-        const studentStatus =
-            row.dataset.status.toLowerCase();
-
-        const studentAttendance =
-            parseFloat(
-                row.dataset.attendance
-            );
-
-        let attendanceMatch = true;
-
-        if (attendance !== "") {
-
-            attendanceMatch =
-                Math.floor(studentAttendance) ===
-                parseInt(attendance);
-
+    Object.keys(fieldMap).forEach(function (id) {
+        const el = document.getElementById(id);
+        const value = params.get(fieldMap[id]);
+        if (el && value !== null) {
+            el.value = value;
         }
-
-        const show =
-
-            (name === "" ||
-                studentName.startsWith(name))
-
-            &&
-
-
-            (course === "" ||
-                studentCourse === course)
-
-            &&
-
-            (batch === "" ||
-                row.dataset.batch === batch)
-
-            &&
-
-            (status === "" ||
-                studentStatus === status)
-
-            &&
-
-            attendanceMatch;
-
-        row.style.display =
-            show ? "" : "none";
-
-        if (show) {
-
-            visibleCount++;
-
-        }
-
     });
-    if (visibleCount === 0) {
 
-        document.getElementById(
-            "noResultsMessage"
-        ).style.display = "block";
-
-    } else {
-
-        document.getElementById(
-            "noResultsMessage"
-        ).style.display = "none";
-
-    }
-
-    // document.getElementById("resultsCount").textContent = `Showing ${visibleCount} of ${totalCount} Students`;
-
-}
-
-/* document.querySelectorAll(
-     ".filter-input,.filter-select"
- ).forEach(input => {
- 
-     input.addEventListener(
-         "keyup",
-         applyFilters
-     );
- 
-     input.addEventListener(
-         "change",
-         applyFilters
-     );
- 
- });*/
+    // Batch picked in the filter -> Batch-wise chart shows only that batch
+    syncBatchWiseWithFilter();
+})();
 
 // ---------- Live filtering via AJAX (no full page reload) ----------
 
@@ -764,24 +714,16 @@ function buildFilterParams() {
     return query;
 }
 
-function buildExportUrl(baseUrl) {
-    const query = buildFilterParams();
-    const queryString = query.toString();
-
-    if (queryString) {
-        return `${baseUrl}?${queryString}`;
-    }
-
-    return baseUrl;
-}
-
+//================ EXPORT BUTTONS - USE THE APPLIED FILTERS (URL) ==================//
+// Apply Filter puts the filters in the URL, Clear empties it.
+// So exports always match what the table is showing.
 document.querySelectorAll(".export-btn").forEach(button => {
     button.addEventListener("click", function (event) {
         event.preventDefault();
 
-        const exportUrl = buildExportUrl(this.href);
+        const baseUrl = this.href.split("?")[0];
 
-        window.location.href = exportUrl;
+        window.location.href = baseUrl + window.location.search;
     });
 });
 
@@ -815,7 +757,8 @@ function applyFiltersLive(query) {
         .then(data => {
 
             // Update URL bar without reloading the page.
-            window.history.pushState({}, "", url);
+            // (Clear sends an empty query, so the URL becomes clean again.)
+            window.history.pushState({}, "", query.toString() ? url : window.location.pathname);
 
             // Monthly Attendance Chart
             const sumArr = (arr) => (arr || []).reduce((a, b) => a + b, 0);
@@ -865,6 +808,25 @@ function applyFiltersLive(query) {
             if (distributionChartEmptyEl) {
                 distributionChartEmptyEl.classList.toggle("show", distributionIsEmpty);
             }
+
+            // Batch-wise Attendance chart
+            batchLabels = data.batch_labels || [];
+            batchCounts = data.batch_counts || [];
+            presentList = data.batch_present_list || [];
+            absentList = data.batch_absent_list || [];
+            lateList = data.batch_late_list || [];
+            percentageList = data.batch_percentage_list || [];
+            chartColors = buildChartColors(batchLabels.length);
+
+            allBatchLabels = data.all_batch_labels || [];
+            allBatchIds = data.all_batch_ids || [];
+            allBatchPresentList = data.all_batch_present_list || [];
+            allBatchAbsentList = data.all_batch_absent_list || [];
+            allBatchLateList = data.all_batch_late_list || [];
+            allBatchPercentageList = data.all_batch_percentage_list || [];
+
+            // Batch picked in the filter -> chart shows only that batch's data
+            syncBatchWiseWithFilter();
 
             // Student Performance Report table
             const tbody = document.getElementById("reportTableBody");

@@ -2,13 +2,32 @@ from django.db.models import Q, Count, Max
 from .models import Attendance, Batch
 from csc_crm.apps.admissions.models import Enrollment
 
+
 #=========================== STATUS COLOR MAP (SHARED ACROSS PDF/EXCEL) ==============================#
 STATUS_COLOR_HEX = {
     "Excellent": "00B050",
     "Good": "2563EB",
     "Warning": "F59E0B",
     "Critical": "DC2626",
+    "New": "6B7280",
 }
+
+# Below this many marked classes, percentage is not reliable -> status is "New"
+MIN_CLASSES_FOR_STATUS = 5
+
+#================ STATUS FROM PERCENTAGE (SINGLE SOURCE OF TRUTH) ======================#
+# 90% - 100%  -> Excellent
+# 75% - 89%   -> Good
+# 60% - 74%   -> Warning
+# Below 60%   -> Critical
+def get_status_from_rate(rate):
+    if rate >= 90:
+        return "Excellent"
+    if rate >= 75:
+        return "Good"
+    if rate >= 60:
+        return "Warning"
+    return "Critical"
 
 #================ ATTENDANCE STATUS CALCULATION (EXCELLENT/GOOD/WARNING/CRITICAL) ======================#
 def get_attendance_status(present_count, absent_count, late_count, total_days):
@@ -18,21 +37,10 @@ def get_attendance_status(present_count, absent_count, late_count, total_days):
     effective_present = present_count + late_count
     attendance_rate = round((effective_present / total_days) * 100, 3)
 
-    if attendance_rate >= 100:
-        status = "Excellent"
-    elif attendance_rate >= 75:
-        status = "Good"
-    elif attendance_rate >= 60:
-        status = "Warning"
-    else:
-        status = "Critical"
+    if total_days < MIN_CLASSES_FOR_STATUS:
+        return "New", attendance_rate
 
-    if absent_count >= 5:
-        status = "Critical"
-    elif status == "Critical":
-        status = "Warning"
-
-    return status, attendance_rate
+    return get_status_from_rate(attendance_rate), attendance_rate
 
 # ================= PRESENT / ABSENT / LATE COUNTS - PER ENROLLMENT =================
 def get_attendance_counts(enrollment, date_from=None, date_to=None):
@@ -209,13 +217,13 @@ def get_bulk_batch_stats(batch_ids, date_from=None, date_to=None, enrollment_ids
 
 #==================== STATUS SUMMARY COUNTS (EXCELLENT/GOOD/WARNING/CRITICAL) ==================#
 def get_status_summary_counts(report_students):
-    counts = {"Excellent": 0, "Good": 0, "Warning": 0, "Critical": 0}
+    counts = {"Excellent": 0, "Good": 0, "Warning": 0, "Critical": 0, "New": 0}
     for student in report_students:
         counts[student["status"]] = counts.get(student["status"], 0) + 1
     return counts
 
 #======================== BATCH ANALYTICS TABLE ROWS (PDF/EXCEL EXPORT) =========================#
-def get_batch_analytics_rows(my_staff=None, my_role=None):
+def get_batch_analytics_rows(my_staff=None, my_role=None, course=None, batch_id=None, date_from=None, date_to=None):
     # [course_name, batch_name, students, total_days, present, absent, late, "xx.x%"]
     rows = []
 
@@ -224,10 +232,16 @@ def get_batch_analytics_rows(my_staff=None, my_role=None):
     if my_role == 'Trainer' and my_staff:
         batches = batches.filter(trainer=my_staff)
 
+    if course:
+        batches = batches.filter(course__course_name__iexact=course)
+
+    if batch_id:
+        batches = batches.filter(id=batch_id)
+
     batches = list(batches)
     batch_ids = [b.id for b in batches]
 
-    stats_map = get_bulk_batch_stats(batch_ids)
+    stats_map = get_bulk_batch_stats(batch_ids, date_from=date_from, date_to=date_to)
 
     student_counts = dict(
         Enrollment.objects.filter(batch_id__in=batch_ids)

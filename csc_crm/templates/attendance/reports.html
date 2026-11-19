@@ -118,6 +118,10 @@
                             Critical
                         </option>
 
+                        <option value="new">
+                            New
+                        </option>
+
                     </select>
                 </div>
 
@@ -388,6 +392,12 @@
 
                                 <span class="status-badge excellent-badge">
                                     Excellent
+                                </span>
+
+                                {% elif student.status == "New" %}
+
+                                <span class="status-badge new-badge">
+                                    New
                                 </span>
 
                                 {% else %}

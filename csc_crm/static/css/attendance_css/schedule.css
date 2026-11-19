@@ -424,3 +424,21 @@
         align-items: flex-start;
     }
 }
+
+/* Align title and Show Recent / View All button on the same line */
+.schedule-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.schedule-list-header .form-card-title {
+    margin: 0;
+}
+
+.schedule-list-header .export-btn {
+    margin: 0;
+    white-space: nowrap;
+}

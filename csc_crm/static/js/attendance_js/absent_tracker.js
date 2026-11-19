@@ -99,6 +99,158 @@ document.addEventListener("DOMContentLoaded", function () {
 
 });
 
+//================ FILTER INPUT VALIDATION (NAME / PHONE / EMAIL) ==================//
+// Name  -> letters + spaces only
+// Phone -> Indian mobile number only (10 digits, first digit 6-9, no +91)
+// Email -> only valid email characters while typing; filter applies once the
+//          format is complete (name@example.com)
+const NAME_INVALID_CHARS = /[^\p{L}\s]/gu;
+const EMAIL_INVALID_CHARS = /[^A-Za-z0-9._%+\-@]/g;
+const EMAIL_REGEX = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9\-]+(\.[A-Za-z0-9\-]+)*\.[A-Za-z]{2,}$/;
+
+const PHONE_ERROR_TEXT = "Phone: enter a valid mobile number (10 digits, starts with 6-9)";
+
+const FILTER_MESSAGES = { name: "", phone: "", email: "" };
+
+//================ FILTER ERROR MESSAGE BOX (CREATED ONCE, INSIDE FILTER BAR) ==================//
+// Placed INSIDE .filter-container as a full-width last row, so it sits under the
+// inputs (left aligned with them) and the container's own bottom spacing is used.
+// grid-column + flex-basis make it span the full row for both grid and flex layouts.
+function getFilterErrorBox() {
+
+    let box = document.getElementById("filterError");
+
+    if (!box) {
+        box = document.createElement("div");
+        box.id = "filterError";
+        box.style.cssText =
+            "display:none; grid-column:1 / -1; flex:0 0 100%; width:100%; " +
+            "box-sizing:border-box; margin:0; padding:0 4px; text-align:left; " +
+            "color:#dc2626; font-size:13px; line-height:1.4;";
+
+        const container = document.querySelector(".filter-container");
+        if (container) {
+            container.appendChild(box);
+        }
+    }
+
+    return box;
+}
+
+function renderFilterMessages() {
+
+    const box = getFilterErrorBox();
+    const text = Object.values(FILTER_MESSAGES).filter(Boolean).join("  •  ");
+
+    box.textContent = text;
+    box.style.display = text ? "block" : "none";
+}
+
+//================ MOBILE NUMBER HELPERS ==================//
+// Filter input -> digits only, first digit must be 6-9, max 10 digits.
+// No +91 / country code handling: "+" and any other non-digit is removed.
+function toIndianMobileDigits(raw) {
+
+    let digits = String(raw || "").replace(/\D/g, "");
+
+    // Indian mobile numbers start with 6, 7, 8 or 9 only
+    digits = digits.replace(/^[0-5]+/, "");
+
+    return digits.slice(0, 10);
+}
+
+// Phone saved in the table row -> last 10 digits, so rows stored as
+// "+916380885756" still match what is typed in the filter.
+function normalizeRowPhone(raw) {
+    const digits = String(raw || "").replace(/\D/g, "");
+    return digits.length > 10 ? digits.slice(-10) : digits;
+}
+
+//================ SANITIZERS (RUN ON EVERY TYPE / PASTE) ==================//
+function sanitizeNameFilter(input) {
+    const cleaned = input.value.replace(NAME_INVALID_CHARS, "");
+    FILTER_MESSAGES.name = cleaned !== input.value ? "Name: letters only" : "";
+    input.value = cleaned;
+}
+
+function sanitizePhoneFilter(input) {
+    const cleaned = toIndianMobileDigits(input.value);
+    FILTER_MESSAGES.phone = cleaned !== input.value ? PHONE_ERROR_TEXT : "";
+    input.value = cleaned;
+}
+
+function sanitizeEmailFilter(input) {
+    const cleaned = input.value.replace(EMAIL_INVALID_CHARS, "");
+
+    if (cleaned !== input.value) {
+        FILTER_MESSAGES.email = "Email: invalid character removed";
+    } else if (cleaned && !EMAIL_REGEX.test(cleaned)) {
+        FILTER_MESSAGES.email = "Email: enter a valid email (e.g. name@example.com)";
+    } else {
+        FILTER_MESSAGES.email = "";
+    }
+
+    input.value = cleaned;
+
+    // typed text is clean but still incomplete -> keep showing the format hint
+    if (!FILTER_MESSAGES.email && cleaned && !EMAIL_REGEX.test(cleaned)) {
+        FILTER_MESSAGES.email = "Email: enter a valid email (e.g. name@example.com)";
+    }
+}
+
+//================ SUMMARY CARDS + ALERT BADGE + PROGRESS BAR (FOLLOW THE FILTERS) ==================//
+// Same rules as the backend: a student needs attention / is "at risk"
+// when consecutive absences >= 3. Consecutive count is read from the row's
+// ".absence-pill" text (e.g. "2 Days" -> 2).
+const ATTENTION_THRESHOLD = 3;
+
+function getRowConsecutiveAbsences(row) {
+    const pill = row.querySelector(".absence-pill");
+    return pill ? (parseInt(pill.textContent, 10) || 0) : 0;
+}
+
+function setText(el, value) {
+    if (el) el.textContent = value;
+}
+
+function updateSummaryCards(visibleRows) {
+
+    const total = visibleRows.length;
+
+    let attention = 0;
+    let maxConsecutive = 0;
+
+    visibleRows.forEach(row => {
+        const consecutive = getRowConsecutiveAbsences(row);
+
+        if (consecutive >= ATTENTION_THRESHOLD) attention++;
+        if (consecutive > maxConsecutive) maxConsecutive = consecutive;
+    });
+
+    const percentage = total > 0 ? Math.round((attention / total) * 100) : 0;
+
+    // ---- 4 summary cards (order: Active Alerts, Total Students, Max Consecutive, At Risk %) ----
+    const cardValues = document.querySelectorAll(".tracker-summary .summary-card .summary-content strong");
+
+    setText(cardValues[0], attention);
+    setText(cardValues[1], total);
+    setText(cardValues[2], maxConsecutive);
+    setText(cardValues[3], `${percentage}%`);
+
+    // ---- Header badge: "N Active Alerts" ----
+    setText(document.querySelector(".tracker-header .alert-badge"), `${attention} Active Alerts`);
+
+    // ---- Attention progress bar ----
+    setText(
+        document.querySelector(".attention-progress .progress-header span"),
+        `${attention} of ${total} students require attention`
+    );
+    setText(document.querySelector(".attention-progress .progress-header strong"), `${percentage}%`);
+
+    const fill = document.querySelector(".attention-progress .progress-fill");
+    if (fill) fill.style.width = `${percentage}%`;
+}
+
 //================ TABLE FILTERS (NAME, BATCH, COURSE, PHONE, EMAIL, STATUS) ==================//
 function applyFilters() {
 
@@ -109,11 +261,15 @@ function applyFilters() {
     const courseEl = document.getElementById("courseFilter");
     const course = courseEl ? courseEl.value.toLowerCase() : "";
 
-    const phone = document.getElementById("phoneFilter").value.toLowerCase();
+    const phone = document.getElementById("phoneFilter").value.replace(/\D/g, "");
     const email = document.getElementById("emailFilter").value.toLowerCase();
     const status = document.getElementById("statusFilter").value.toLowerCase();
 
+    // email filter is applied only when the typed email is a valid format
+    const emailIsValid = email !== "" && EMAIL_REGEX.test(email);
+
     let visibleCount = 0;
+    const visibleRows = [];
 
     const totalCount = document.querySelectorAll(".student-row").length;
 
@@ -123,14 +279,15 @@ function applyFilters() {
             (name === "" || row.dataset.name.toLowerCase().startsWith(name)) &&
             (course === "" || row.dataset.course.toLowerCase() === course) &&
             (batch === "" || row.dataset.batch.toLowerCase() === batch) &&
-            (phone === "" || row.dataset.phone.toLowerCase().startsWith(phone)) &&
-            (email === "" || row.dataset.email.toLowerCase().includes(email)) &&
+            (phone === "" || normalizeRowPhone(row.dataset.phone).startsWith(phone)) &&
+            (!emailIsValid || row.dataset.email.toLowerCase().includes(email)) &&
             (status === "" || row.dataset.status.toLowerCase() === status);
 
         row.style.display = show ? "" : "none";
 
         if (show) {
             visibleCount++;
+            visibleRows.push(row);
         }
 
     });
@@ -143,9 +300,47 @@ function applyFilters() {
         noResults.style.display = (visibleCount === 0 && totalCount > 0) ? "block" : "none";
     }
 
+    // keep the 4 cards, badge and progress bar in sync with the filtered rows
+    updateSummaryCards(visibleRows);
+
 }
 
-//================ FILTER INPUT LISTENERS (KEYUP/CHANGE) ==================//
+//================ FILTER INPUT LISTENERS (VALIDATE ON INPUT, FILTER ON KEYUP/CHANGE) ==================//
+const nameFilterInput = document.getElementById("studentNameFilter");
+const phoneFilterInput = document.getElementById("phoneFilter");
+const emailFilterInput = document.getElementById("emailFilter");
+
+if (phoneFilterInput) {
+    phoneFilterInput.setAttribute("maxlength", "10");
+    phoneFilterInput.setAttribute("inputmode", "numeric");
+}
+
+if (emailFilterInput) {
+    emailFilterInput.setAttribute("maxlength", "100");
+}
+
+// "input" fires on typing AND paste, before keyup/change
+if (nameFilterInput) {
+    nameFilterInput.addEventListener("input", () => {
+        sanitizeNameFilter(nameFilterInput);
+        renderFilterMessages();
+    });
+}
+
+if (phoneFilterInput) {
+    phoneFilterInput.addEventListener("input", () => {
+        sanitizePhoneFilter(phoneFilterInput);
+        renderFilterMessages();
+    });
+}
+
+if (emailFilterInput) {
+    emailFilterInput.addEventListener("input", () => {
+        sanitizeEmailFilter(emailFilterInput);
+        renderFilterMessages();
+    });
+}
+
 document.querySelectorAll(".filter-input, .filter-select").forEach(input => {
     input.addEventListener("keyup", applyFilters);
     input.addEventListener("change", applyFilters);
@@ -164,6 +359,12 @@ function clearAllFilters() {
     // courseFilter does not exist for Trainer login
     const courseEl = document.getElementById("courseFilter");
     if (courseEl) courseEl.value = "";
+
+    // clear validation messages too
+    FILTER_MESSAGES.name = "";
+    FILTER_MESSAGES.phone = "";
+    FILTER_MESSAGES.email = "";
+    renderFilterMessages();
 
     applyFilters();
 }

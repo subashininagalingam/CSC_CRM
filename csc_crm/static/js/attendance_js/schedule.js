@@ -44,68 +44,220 @@ function setFieldError(fieldId, errorId, message) {
     if (errorEl) errorEl.textContent = message;
 }
 
+function clearSingleFieldError(fieldId, errorId) {
+    const input = document.getElementById(fieldId);
+    const errorEl = document.getElementById(errorId);
+
+    if (input) input.classList.remove("input-error");
+    if (errorEl) errorEl.textContent = "";
+}
+
+//================ LOCAL DATE / TIME HELPERS ==================//
+// toISOString() is UTC, which gives yesterday's date in India before 5:30 AM,
+// so build yyyy-mm-dd and HH:MM from the local clock instead.
+function getLocalToday() {
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const dd = String(now.getDate()).padStart(2, "0");
+    return `${now.getFullYear()}-${mm}-${dd}`;
+}
+
+function getLocalNowTime() {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mi = String(now.getMinutes()).padStart(2, "0");
+    return `${hh}:${mi}`;
+}
+
 /* ============================================
-   CREATE SCHEDULE FORM - CLIENT-SIDE VALIDATION
+   CREATE SCHEDULE FORM - VALIDATION + SUBMIT LOCK
    (status field removed - always Upcoming, no validation needed for it)
 ============================================ */
+
+const TOPIC_MIN_LENGTH = 3;
+const TOPIC_MAX_LENGTH = 100;
+
+function validateStaffField() {
+    const staff = document.getElementById("assignTrainer");
+    clearSingleFieldError("assignTrainer", "err-staff");
+
+    if (!staff || !staff.value) {
+        setFieldError("assignTrainer", "err-staff", "Please select a trainer.");
+        return false;
+    }
+    return true;
+}
+
+function validateTopicField() {
+    const topic = document.getElementById("scheduleTopic");
+    clearSingleFieldError("scheduleTopic", "err-topic");
+
+    const value = topic ? topic.value.trim() : "";
+
+    if (!value) {
+        setFieldError("scheduleTopic", "err-topic", "Topic is required.");
+        return false;
+    }
+    if (value.length < TOPIC_MIN_LENGTH) {
+        setFieldError("scheduleTopic", "err-topic", `Topic must be at least ${TOPIC_MIN_LENGTH} characters.`);
+        return false;
+    }
+    if (value.length > TOPIC_MAX_LENGTH) {
+        setFieldError("scheduleTopic", "err-topic", `Topic cannot exceed ${TOPIC_MAX_LENGTH} characters.`);
+        return false;
+    }
+    if (!/\p{L}/u.test(value)) {
+        setFieldError("scheduleTopic", "err-topic", "Topic must contain at least one letter.");
+        return false;
+    }
+    return true;
+}
+
+function validateDateField() {
+    const date = document.getElementById("scheduleDate");
+    clearSingleFieldError("scheduleDate", "err-date");
+
+    if (!date || !date.value) {
+        setFieldError("scheduleDate", "err-date", "Date is required.");
+        return false;
+    }
+    if (date.value < getLocalToday()) {
+        setFieldError("scheduleDate", "err-date", "Date cannot be in the past.");
+        return false;
+    }
+    return true;
+}
+
+function validateTimeField() {
+    const date = document.getElementById("scheduleDate");
+    const time = document.getElementById("scheduleTime");
+    clearSingleFieldError("scheduleTime", "err-time");
+
+    if (!time || !time.value) {
+        setFieldError("scheduleTime", "err-time", "Time is required.");
+        return false;
+    }
+
+    // scheduling for today -> time must not already be over
+    if (date && date.value === getLocalToday() && time.value < getLocalNowTime()) {
+        setFieldError("scheduleTime", "err-time", "Time cannot be in the past for today.");
+        return false;
+    }
+    return true;
+}
+
+function validateTypeField() {
+    const type = document.getElementById("scheduleType");
+    clearSingleFieldError("scheduleType", "err-type");
+
+    if (!type || !type.value) {
+        setFieldError("scheduleType", "err-type", "Please select a type.");
+        return false;
+    }
+    return true;
+}
 
 document.addEventListener("DOMContentLoaded", function () {
 
     const scheduleForm = document.getElementById("scheduleForm");
     if (!scheduleForm) return;
 
+    const submitBtn = document.getElementById("addScheduleBtn");
+    const originalBtnHtml = submitBtn ? submitBtn.innerHTML : "";
+    let isSubmitting = false;
+
+    const staff = document.getElementById("assignTrainer");
+    const topic = document.getElementById("scheduleTopic");
+    const date = document.getElementById("scheduleDate");
+    const time = document.getElementById("scheduleTime");
+    const type = document.getElementById("scheduleType");
+
+    // ---- Date can't be picked before today ----
+    if (date) {
+        date.setAttribute("min", getLocalToday());
+    }
+
+    // ---- Open the native picker as soon as the box is clicked ----
+    [date, time].forEach(function (input) {
+        if (!input) return;
+
+        input.addEventListener("click", function () {
+            if (typeof this.showPicker === "function") {
+                try { this.showPicker(); } catch (err) { /* browser blocked it - ignore */ }
+            }
+        });
+    });
+
+    // ---- Live validation (error clears / shows while the user fills the form) ----
+    if (staff) staff.addEventListener("change", validateStaffField);
+    if (type) type.addEventListener("change", validateTypeField);
+
+    if (topic) {
+        topic.addEventListener("input", function () {
+            if (topic.value.trim() !== "") validateTopicField();
+            else clearSingleFieldError("scheduleTopic", "err-topic");
+        });
+        topic.addEventListener("blur", validateTopicField);
+    }
+
+    if (date) {
+        date.addEventListener("change", function () {
+            validateDateField();
+            // date change can make an already-picked time invalid (or valid again)
+            if (time && time.value) validateTimeField();
+        });
+    }
+
+    if (time) {
+        time.addEventListener("change", validateTimeField);
+    }
+
+    // ---- Submit ----
     scheduleForm.addEventListener("submit", function (e) {
+
+        // already submitting -> block any extra click / Enter press
+        if (isSubmitting) {
+            e.preventDefault();
+            return;
+        }
 
         clearFieldErrors();
 
-        let hasError = false;
+        // run every check (no short-circuit) so all errors show together
+        const results = [
+            validateStaffField(),
+            validateTopicField(),
+            validateDateField(),
+            validateTimeField(),
+            validateTypeField()
+        ];
 
-        const staff = document.getElementById("assignTrainer");
-        const topic = document.getElementById("scheduleTopic");
-        const date = document.getElementById("scheduleDate");
-        const time = document.getElementById("scheduleTime");
-        const type = document.getElementById("scheduleType");
-
-        if (!staff || !staff.value) {
-            setFieldError("assignTrainer", "err-staff", "Please select a trainer.");
-            hasError = true;
-        }
-
-        if (!topic || !topic.value.trim()) {
-            setFieldError("scheduleTopic", "err-topic", "Topic is required.");
-            hasError = true;
-        }
-
-        if (!date || !date.value) {
-            setFieldError("scheduleDate", "err-date", "Date is required.");
-            hasError = true;
-        }
-
-        if (!time || !time.value) {
-            setFieldError("scheduleTime", "err-time", "Time is required.");
-            hasError = true;
-        }
-
-        if (!type || !type.value) {
-            setFieldError("scheduleType", "err-type", "Please select a type.");
-            hasError = true;
-        }
-
-        if (hasError) {
+        if (results.includes(false)) {
             e.preventDefault();
-            showScheduleAlert("Please fill in all required fields before creating the schedule.", "error");
+            showScheduleAlert("Please correct the highlighted fields before creating the schedule.", "error");
+            return;
         }
 
+        // valid -> lock the button until the page reloads
+        isSubmitting = true;
+
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Adding...';
+        }
     });
 
-});
+    // coming back with the browser Back button -> unlock the form again
+    window.addEventListener("pageshow", function (event) {
+        if (event.persisted) {
+            isSubmitting = false;
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHtml;
+            }
+        }
+    });
 
-document.addEventListener("DOMContentLoaded", function () {
-    const dateInput = document.getElementById("scheduleDate");
-    if (dateInput) {
-        const today = new Date().toISOString().split("T")[0];   // yyyy-mm-dd
-        dateInput.setAttribute("min", today);
-    }
 });
 
 /* ============================================

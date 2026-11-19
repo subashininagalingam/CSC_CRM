@@ -1,6 +1,8 @@
 from .models import Attendance, AbsentTracker
+from .attendance_utils import get_status_from_rate
 from csc_crm.apps.admissions.models import Enrollment
 from django.utils import timezone
+from .attendance_utils import get_status_from_rate, MIN_CLASSES_FOR_STATUS
 
 # used when an enrollment has no attendance records yet
 NO_ATTENDANCE = {
@@ -172,15 +174,18 @@ def get_low_attendance_data():
         if not data:
             continue
 
+        # not enough classes yet -> percentage is unreliable (Absent Tracker covers early absences)
+        if data['days'] < MIN_CLASSES_FOR_STATUS:
+            continue
+
         # Attendance Percentage
         attendance_percentage = round((data['present'] / data['days']) * 100, 1)
 
-        # Alert Logic
-        if attendance_percentage < 60:
-            alert_level = "Critical"
-        elif attendance_percentage < 75:
-            alert_level = "Warning"
-        else:
+        # Alert Logic (same 90 / 75 / 60 rule as the Reports page)
+        # Only Warning (60-74%) and Critical (below 60%) students are listed here.
+        alert_level = get_status_from_rate(attendance_percentage)
+
+        if alert_level not in ("Warning", "Critical"):
             continue
 
         students_data.append({
