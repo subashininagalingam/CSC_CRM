@@ -13,7 +13,7 @@ STATUS_COLOR_HEX = {
 }
 
 # Below this many marked classes, percentage is not reliable -> status is "New"
-MIN_CLASSES_FOR_STATUS = 5
+MIN_CLASSES_FOR_STATUS = 10
 
 #================ STATUS FROM PERCENTAGE (SINGLE SOURCE OF TRUTH) ======================#
 # 90% - 100%  -> Excellent
