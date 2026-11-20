@@ -22,6 +22,11 @@ body {
 
 /* ========================= PAGE HEADER ========================= */
 .sl-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
     margin-bottom: 18px;
 }
 
@@ -37,6 +42,15 @@ body {
     color: #6b7280;
     margin: 0;
 }
+
+.sl-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-left: auto;
+}
+
 /* ========================= FIELD VALIDATION ========================= */
 
 .text-danger {

@@ -14,15 +14,32 @@ Student List
 <div class="edit-container">
 
     <div class="sl-header">
-        <h6 class="sl-title">Student List</h6>
-        <p class="sl-subtitle">{{ subtitle }}</p>
+        <div class="sl-header-text">
+            <h6 class="sl-title">Student List</h6>
+            <p class="sl-subtitle">{{ subtitle }}</p>
+        </div>
+
+        <div class="sl-actions">
+
+            {% if show_add %}
+            
+            {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" %}
+            <a href="{% url 'course_list' %}">
+                <button type="button" class="btn2"><i class="fa-solid fa-list"></i>Course List</button>
+            </a>
+            <a href="{% url 'student' %}">
+                <button type="button" class="btn2"><i class="fa-solid fa-plus"></i> Add New Student</button>
+            </a>
+            {% endif %}
+            {% endif %}
+        </div>
     </div>
 
     {% if show_cards %}
     {% include 'admissions/_student_stat_cards.html' with show_courses=True %}
     {% endif %}
 
-        <form method="GET" class="top-bar" id="filterForm">
+    <form method="GET" class="top-bar" id="filterForm">
 
         <input type="text" name="q" value="{{ q }}" placeholder="Search batch name">
 
@@ -45,18 +62,6 @@ Student List
         <p id="search-error" class="filter-error"></p>
 
     </form>
-
-    {% if show_add %}
-    {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" %}
-    <div class="table-container">
-        <div>
-            <a href="{% url 'student' %}">
-                <button type="button" class="btn2">+ Add New Student</button>
-            </a>
-        </div>
-    </div>
-    {% endif %}
-    {% endif %}
 
     <div class="table-card">
         <div class="table-wrapper">

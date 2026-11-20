@@ -17,7 +17,7 @@
     <div class="cr-date-range-wrap">
       <div class="cr-date-range" id="crDateToggle">
         <i class="fa-regular fa-calendar"></i>
-        <span id="crDateLabel">{{ range_label|default:"01 May 2026 – 31 May 2026" }}</span>
+        <span id="crDateLabel">{{ range_label }}</span>
         <i class="fa-solid fa-chevron-down"></i>
       </div>
 
@@ -176,12 +176,6 @@
         <p>Performance overview by lead source</p>
       </div>
     </div>
-    <div class="cr-show-select">
-      
-      <select id="crShowRows" onchange="renderTable()">
-        
-      </select>
-    </div>
   </div>
 
   <table class="cr-table">
@@ -324,7 +318,7 @@ donutLabels.forEach((lbl, i)=>{
     </div>`;
 });
 
-/* ─── Table + Pagination ─── */
+/* ─── Source performance table ─── */
 const srcIcons = {
   'Walk-in':'fa-person-walking',
   'Referral':'fa-share-nodes',
@@ -334,18 +328,10 @@ const srcIcons = {
   'Website':'fa-globe'
 };
 
-let crPage = 1;
-
 function renderTable(){
-  const perPage = parseInt(document.getElementById('crShowRows').value)||10;
-  const total   = sourceRows.length;
-  const totalPages = Math.max(1, Math.ceil(total/perPage));
-  crPage = Math.min(crPage, totalPages);
-
-  const slice = sourceRows.slice((crPage-1)*perPage, crPage*perPage);
-
   const tbody = document.getElementById('crTableBody');
-  tbody.innerHTML = slice.map(row=>{
+  if(!tbody) return;
+  tbody.innerHTML = sourceRows.map(row=>{
     const icon  = srcIcons[row.source]||'fa-circle';
     let trendHtml;
     if(row.rate >= 50){
@@ -366,30 +352,6 @@ function renderTable(){
       <td>${trendHtml}</td>
     </tr>`;
   }).join('');
-
-  /* Pagination */
-  const pag = document.getElementById('crPagination');
-  pag.innerHTML='';
-
-  const prev = document.createElement('button');
-  prev.className='cr-page-btn'; prev.innerHTML='&lsaquo;';
-  prev.disabled = (crPage===1);
-  prev.onclick=()=>{ if(crPage>1){crPage--;renderTable();} };
-  pag.appendChild(prev);
-
-  for(let p=1;p<=totalPages;p++){
-    const btn=document.createElement('button');
-    btn.className='cr-page-btn'+(p===crPage?' active':'');
-    btn.textContent=p;
-    btn.onclick=(()=>{const pg=p;return()=>{crPage=pg;renderTable();}})();
-    pag.appendChild(btn);
-  }
-
-  const next=document.createElement('button');
-  next.className='cr-page-btn'; next.innerHTML='&rsaquo;';
-  next.disabled=(crPage===totalPages);
-  next.onclick=()=>{ if(crPage<totalPages){crPage++;renderTable();} };
-  pag.appendChild(next);
 }
 
 renderTable();
@@ -407,8 +369,12 @@ renderTable();
   const endEl    = document.getElementById('crEndDate');
   const applyBtn = document.getElementById('crApplyCustom');
 
+  const pad = n => String(n).padStart(2,'0');
   const fmt = d => d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-  const iso = d => d.toISOString().slice(0,10);
+  /* local YYYY-MM-DD (toISOString() converts to UTC and shifts the date back a day in IST) */
+  const iso = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  /* parse YYYY-MM-DD as a local date */
+  const parseIso = str => { const [y,m,d] = str.split('-').map(Number); return new Date(y, m-1, d); };
 
   function toggleDropdown(e){
     e.stopPropagation();
@@ -504,17 +470,11 @@ renderTable();
   } else if(startParam && endParam){
     startEl.value = startParam;
     endEl.value   = endParam;
-    label.textContent = fmt(new Date(startParam)) + ' – ' + fmt(new Date(endParam));
+    label.textContent = fmt(parseIso(startParam)) + ' – ' + fmt(parseIso(endParam));
   } else {
-    /* Default: highlight "This Month" and use server-rendered label if present */
+    /* Default: the view shows This Month and renders its label */
     const defaultOpt = document.querySelector('.cr-date-opt[data-range="this_month"]');
     if(defaultOpt) defaultOpt.classList.add('active');
-    {% if not range_label %}
-    const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastDay  = new Date(now.getFullYear(), now.getMonth()+1, 0);
-    label.textContent = fmt(firstDay)+' – '+fmt(lastDay);
-    {% endif %}
   }
 })();
 

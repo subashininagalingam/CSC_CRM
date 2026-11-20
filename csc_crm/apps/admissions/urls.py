@@ -2,7 +2,7 @@ from django.urls import path
 from . import views
 from django.conf import settings
 from django.conf.urls.static import static
-from .course_views import course_list, course_create, course_update, course_delete
+from .course_views import course_list, course_create, course_update, course_delete,course_overview
 
 
 urlpatterns = [
@@ -25,6 +25,7 @@ urlpatterns = [
     path('preview_receipt/<int:pk>/', views.preview_receipt, name='preview_receipt'),
     path('courses/', course_list, name='course_list'),
     path('course/create/', course_create, name='course_create'),
+    path('course/<int:pk>/overview/', course_overview, name='course_overview'),
     path('course/<int:pk>/update/', course_update, name='course_update'),
     path('course/<int:pk>/delete/', course_delete, name='course_delete'),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -6,15 +6,6 @@ from ..staff.models import Staff
 # Lead Model
 class LeadCapture(models.Model):
 
-    COURSE_CHOICES  = [
-        ('python', 'Python Full Stack'),
-        ('java', 'Java Full Stack'),
-        ('front_end','Front End'),
-        ('back_end', 'Back End'),
-        ('data_science', 'Data Science'),
-        ('ai', 'Artificial Intelligence')
-    ]
-
     SOURCE_CHOICES = [
         ('walk_in', 'Walk-in'),
         ('referral', 'Referral'),
@@ -33,27 +24,19 @@ class LeadCapture(models.Model):
         ('lost', 'Lost')
     ]
 
-    COURSE_CHOICES = [
-    ('fullstack', 'Full Stack Development'),
-    ('frontend', 'Front-End Development'),
-    ('backend', 'Back-End Development'),
-    ('python', 'Python Programming'),
-    ('java', 'Java Programming'),
-    ('dotnet', '.NET Development'),
-    ('mern', 'MERN Stack Development'),
-    ('mean', 'MEAN Stack Development'),
-    ('data_science', 'Data Science'),
-    ('ai_ml', 'AI & Machine Learning'),
-    ('cyber_security', 'Cyber Security'),
-    ('cloud_computing', 'Cloud Computing'),
-    ('uiux', 'UI/UX Design'),
-]
-
     lead_id = models.CharField(max_length=10, unique=True)
     lead_name = models.CharField(max_length=100,)
     email = models.EmailField(blank=True, null=True, unique=True)
     phone_no = models.CharField(unique=True, max_length=13,)
-    course_interested = models.CharField(max_length=100, choices=COURSE_CHOICES)
+
+    # Courses come from the Course model (admissions app)
+    course_interested = models.ForeignKey(
+        'admissions.Course',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='leads',
+    )
+
     lead_source = models.CharField(max_length=100, choices=SOURCE_CHOICES)
     assigned_to = models.ForeignKey(Staff, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

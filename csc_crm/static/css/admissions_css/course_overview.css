@@ -1,0 +1,110 @@
+/* =====================================================
+   COURSE OVERVIEW (extra styles; base styles come from course_list.css)
+===================================================== */
+
+.course-page .co-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.course-page .co-grid-3 {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    margin-bottom: 20px;
+}
+
+.course-page .co-stat {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+    padding: 18px 20px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: 0 4px 20px rgba(30, 42, 120, .06);
+}
+
+.course-page .co-icon {
+    width: 46px;
+    height: 46px;
+    min-width: 46px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.course-page .co-purple { background: #ede9fe; color: #6d28d9; }
+.course-page .co-green  { background: #dcfce7; color: #16a34a; }
+.course-page .co-orange { background: #ffedd5; color: #ea580c; }
+.course-page .co-blue   { background: #dbeafe; color: #2563eb; }
+.course-page .co-teal   { background: #ccfbf1; color: #0f766e; }
+
+.course-page .co-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    margin-bottom: 2px;
+}
+
+.course-page .co-value {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--navy);
+    white-space: nowrap;
+}
+
+.course-page .co-value-sm {
+    font-size: 16px;
+}
+
+.course-page .co-green-text  { color: #15803d; }
+.course-page .co-orange-text { color: #c2410c; }
+
+.course-page .co-sub {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--muted);
+}
+
+/* ===== sections ===== */
+
+.course-page .co-section {
+    margin-top: 20px;
+}
+
+.course-page .co-section-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.course-page .co-section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--navy);
+}
+
+/* ===== badges ===== */
+
+.course-page .co-badge {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.course-page .co-badge-active,
+.course-page .co-badge-paid       { background: #dcfce7; color: #15803d; }
+.course-page .co-badge-upcoming   { background: #dbeafe; color: #1d4ed8; }
+.course-page .co-badge-completed  { background: #e5e7eb; color: #374151; }
+.course-page .co-badge-cancelled,
+.course-page .co-badge-pending    { background: #fee2e2; color: #b91c1c; }
+.course-page .co-badge-partial    { background: #fef3c7; color: #b45309; }

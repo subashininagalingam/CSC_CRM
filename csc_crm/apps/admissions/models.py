@@ -121,6 +121,8 @@ class Course(models.Model):
     duration = models.PositiveIntegerField(default=3)
     course_fee = models.IntegerField(null=False, blank=False)
 
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+
     def __str__(self):
         return self.course_name
 

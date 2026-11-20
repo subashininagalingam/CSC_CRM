@@ -108,7 +108,10 @@
                     </div>
                 </div>
 
-                <div class="field">
+                
+            </div>
+
+            <div class="field">
                     <label class="label">Call Outcome</label>
                     <div class="input-box">
                         <i class="fa-solid fa-list"></i>
@@ -120,9 +123,6 @@
                         </select>
                     </div>
                 </div>
-            </div>
-
-
 
             <div class="section-title">
             <i class="fa-solid fa-note-sticky"></i>
@@ -207,7 +207,12 @@ const searchLeadNameUrl = "{% url 'leads:search_lead_by_name' %}";
        </div>
         
         <span class="time">
-                {{ log.call_date }} • {% if log.is_connected %}{{ log.duration_display }}{% else %}Did not connect{% endif %}
+            <span class="time-date">{{ log.call_date }}</span>
+            {% if log.is_connected %}
+            <span class="time-duration"><i class="fa-regular fa-clock"></i>{{ log.duration_display }}</span>
+            {% else %}
+            <span class="time-duration time-duration-none">Did not connect</span>
+            {% endif %}
         </span>
        </div>
         

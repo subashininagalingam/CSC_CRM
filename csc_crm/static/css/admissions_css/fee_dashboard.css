@@ -1427,3 +1427,12 @@ body {
     .ph-summary { grid-template-columns: 1fr; }
     .ph-result-count { margin-left: 0; width: 100%; }
 }
+
+/* ---- student photo inside the avatar circle ---- */
+.student-avatar { overflow: hidden; }
+.student-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}

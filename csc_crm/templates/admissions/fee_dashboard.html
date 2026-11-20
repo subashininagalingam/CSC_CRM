@@ -274,7 +274,7 @@
                             <td>
                                 <div class="student-info">
                                     <div class="student-avatar">
-                                        {{ p.student.first_name|slice:":1" }}
+                                        {% if p.student.photo %}<img src="{{ p.student.photo.url }}" alt="{{ p.student.first_name }}">{% else %}{{ p.student.first_name|slice:":1" }}{% endif %}
                                     </div>
                                     <div>
                                         <strong>{{ p.student.first_name }} {{ p.student.last_name }}</strong>
@@ -375,7 +375,7 @@
                             <td>
                                 <div class="student-info">
                                     <div class="student-avatar">
-                                        {{ item.student.first_name|slice:":1" }}
+                                        {% if item.student.photo %}<img src="{{ item.student.photo.url }}" alt="{{ item.student.first_name }}">{% else %}{{ item.student.first_name|slice:":1" }}{% endif %}
                                     </div>
                                     <div>
                                         <strong>{{ item.student.first_name }} {{ item.student.last_name }}</strong>

@@ -93,8 +93,8 @@
                     <tr>
                         <td>
                             <div class="member-info">
-                                <span class="member-icon-avatar">
-                                    <i class="fa-solid fa-user"></i>
+                                <span class="member-icon-avatar" style="overflow:hidden;">
+                                    {% if target.assigned_to.profile_photo %}<img src="{{ target.assigned_to.profile_photo.url }}" alt="{{ target.assigned_to.full_name }}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;">{% else %}<i class="fa-solid fa-user"></i>{% endif %}
                                 </span>
                                 <div class="member-details">
                                     <div class="member-name"> {{ target.assigned_to.full_name }} </div>

@@ -1,0 +1,197 @@
+{% extends 'admissions/base.html' %}
+{% load static %}
+
+{% block title %}
+<title>Course Overview</title>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admissions_css/course_list.css' %}">
+<link rel="stylesheet" href="{% static 'css/admissions_css/course_overview.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="course-page">
+
+    <!-- BREADCRUMB -->
+    <div class="cp-breadcrumb">
+        <span>Admissions</span>
+        <span class="cp-sep">&gt;</span>
+        <a href="{% url 'course_list' %}">Courses</a>
+        <span class="cp-sep">&gt;</span>
+        <span class="cp-active">Overview</span>
+    </div>
+
+    <!-- PAGE HEADER -->
+    <div class="cp-header">
+        <div>
+            <h1 class="cp-title">{{ course.course_name }}</h1>
+            <p class="cp-subtitle">
+                Course overview
+                {% if course.created_at %}
+                · Created on {{ course.created_at|date:"d M Y, h:i A" }}
+                {% endif %}
+            </p>
+        </div>
+
+        <a href="{% url 'course_list' %}" class="cp-btn cp-btn-light">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 12H5m0 0l7 7m-7-7l7-7"/>
+            </svg>
+            Back to Courses
+        </a>
+    </div>
+
+    <!-- COURSE DETAILS -->
+    <div class="co-grid">
+
+        <div class="co-stat">
+            <div class="co-icon co-purple">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            </div>
+            <div>
+                <div class="co-label">Duration</div>
+                <div class="co-value">{{ course.duration }} month{{ course.duration|pluralize }}</div>
+            </div>
+        </div>
+
+        <div class="co-stat">
+            <div class="co-icon co-blue">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
+            </div>
+            <div>
+                <div class="co-label">Course Fee</div>
+                <div class="co-value">₹{{ course.course_fee }}</div>
+            </div>
+        </div>
+
+        <div class="co-stat">
+            <div class="co-icon co-orange">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            </div>
+            <div>
+                <div class="co-label">Created On</div>
+                <div class="co-value co-value-sm">
+                    {% if course.created_at %}
+                    {{ course.created_at|date:"d M Y" }}
+                    <span class="co-sub">{{ course.created_at|date:"h:i A" }}</span>
+                    {% else %}
+                    -
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="co-stat">
+            <div class="co-icon co-green">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
+            </div>
+            <div>
+                <div class="co-label">Batches</div>
+                <div class="co-value">{{ stats.total_batches }}</div>
+                <div class="co-sub">{{ stats.active_batches }} active</div>
+            </div>
+        </div>
+
+        <div class="co-stat">
+            <div class="co-icon co-teal">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div>
+                <div class="co-label">Students</div>
+                <div class="co-value">{{ stats.total_students }}</div>
+                <div class="co-sub">Enrolled</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- FEE SUMMARY -->
+    <div class="co-grid co-grid-3">
+
+        <div class="co-stat">
+            <div class="co-icon co-blue">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
+            </div>
+            <div>
+                <div class="co-label">Expected Fee</div>
+                <div class="co-value">₹{{ stats.expected|floatformat:0 }}</div>
+                <div class="co-sub">{{ stats.total_students }} student{{ stats.total_students|pluralize }} × ₹{{ course.course_fee }}</div>
+            </div>
+        </div>
+
+        <div class="co-stat">
+            <div class="co-icon co-green">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>
+            </div>
+            <div>
+                <div class="co-label">Collected</div>
+                <div class="co-value co-green-text">₹{{ stats.collected|floatformat:0 }}</div>
+                <div class="co-sub">{{ stats.collection_pct }}% collected</div>
+            </div>
+        </div>
+
+        <div class="co-stat">
+            <div class="co-icon co-orange">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            </div>
+            <div>
+                <div class="co-label">Pending</div>
+                <div class="co-value co-orange-text">₹{{ stats.pending|floatformat:0 }}</div>
+                <div class="co-sub">Outstanding</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- BATCHES -->
+    <div class="cp-card co-section">
+        <div class="co-section-head">
+            <h2 class="co-section-title">Batches</h2>
+            <span class="cp-pill">{{ stats.total_batches }}</span>
+        </div>
+
+        <div class="cp-table-wrap">
+            <table class="cp-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Batch Name</th>
+                        <th>Trainer</th>
+                        <th>Timing</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Students</th>
+                        <th>Seats Left</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in batches %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td class="cp-name">{{ b.batch_name }}</td>
+                        <td>{% if b.trainer %}{{ b.trainer }}{% else %}-{% endif %}</td>
+                        <td>{{ b.timing }}</td>
+                        <td>{{ b.start_date|date:"d M Y" }}</td>
+                        <td>{% if b.end_date %}{{ b.end_date|date:"d M Y" }}{% else %}-{% endif %}</td>
+                        <td>{{ b.enrolled }} / {{ b.max_students }}</td>
+                        <td>{{ b.seats_left }}</td>
+                        <td>
+                            <span class="co-badge co-badge-{{ b.status_label|lower }}">{{ b.status_label }}</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr class="cp-empty-row">
+                        <td colspan="9">No batches for this course yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

@@ -51,46 +51,47 @@
 
             <div class="student-identity">
                 <div class="avatar-circle">
-                    {% if payment.student.photo %}
-                    <img src="{{ payment.student.photo.url }}" alt="{{ payment.student.first_name }}">
-                    {% else %}
                     {{ payment.student.first_name|slice:":1" }}{{ payment.student.last_name|slice:":1" }}
-                    {% endif %}
                 </div>
-                <div class="student-name">
-                    {{ payment.student.first_name }} {{ payment.student.last_name }}
+                <div>
+                    <div class="student-name">
+                        {{ payment.student.first_name }} {{ payment.student.last_name }}
+                    </div>
                 </div>
+                <span class="status-badge">Active Student</span>
             </div>
 
-            <span class="status-badge">Active Student</span>
+            <div class="student-info-inline">
+
+                <div class="info-item">
+                    <div class="info-icon">👤</div>
+                    <div>
+                        <div class="info-label">Student ID</div>
+                        <div class="info-value">STU{{ payment.student.id }}</div>
+                    </div>
+                </div>
+
+                <div class="info-item">
+                    <div class="info-icon">📅</div>
+                    <div>
+                        <div class="info-label">Batch</div>
+                        <div class="info-value">{{ payment.student.admissions.first.enrollment.batch }}</div>
+                    </div>
+                </div>
+
+                <div class="info-item">
+                    <div class="info-icon">✉️</div>
+                    <div>
+                        <div class="info-label">Email</div>
+                        <div class="info-value">{{ payment.student.email }}</div>
+                    </div>
+                </div>
+
+            </div>
 
         </div>
 
-        <div class="student-info-grid">
-
-            <div class="info-item">
-                <div class="info-icon">👤</div>
-                <div>
-                    <div class="info-label">Student ID</div>
-                    <div class="info-value">STU{{ payment.student.id }}</div>
-                </div>
-            </div>
-
-            <div class="info-item">
-                <div class="info-icon">📅</div>
-                <div>
-                    <div class="info-label">Batch</div>
-                    <div class="info-value">{{ payment.student.admissions.first.enrollment.batch }}</div>
-                </div>
-            </div>
-
-            <div class="info-item">
-                <div class="info-icon">✉️</div>
-                <div>
-                    <div class="info-label">Email</div>
-                    <div class="info-value">{{ payment.student.email }}</div>
-                </div>
-            </div>
+        <div class="student-info-inline student-info-bottom">
 
             <div class="info-item">
                 <div class="info-icon">📖</div>
@@ -177,8 +178,8 @@
                         <th>Transaction ID</th>
                         <th>Payment Date</th>
                         <th>Payment Mode</th>
-                        <th class="col-amount">Amount</th>
-                        <th class="col-status">Status</th>
+                        <th>Amount</th>
+                        <th>Status</th>
                     </tr>
                 </thead>
 
@@ -189,8 +190,8 @@
                         <td>TXN{{ pay.id|stringformat:"06d" }}</td>
                         <td>{{ pay.date }}</td>
                         <td>{{ pay.mode }}</td>
-                        <td class="col-amount">₹{{ pay.amount }}</td>
-                        <td class="col-status"><span class="status-paid">Paid</span></td>
+                        <td>₹{{ pay.amount }}</td>
+                        <td><span class="status-paid">Paid</span></td>
                     </tr>
                     {% endfor %}
 

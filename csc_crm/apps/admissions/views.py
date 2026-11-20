@@ -91,9 +91,12 @@ def search_lead_for_admission(request):
     results = []
  
     if len(query) >= 2:
-        leads = LeadCapture.objects.filter(
-            lead_name__icontains=query
-        ).order_by('lead_name')[:10]
+        leads = (
+            LeadCapture.objects
+            .select_related('course_interested')
+            .filter(lead_name__icontains=query)
+            .order_by('lead_name')[:10]
+        )
  
         results = [
             {
@@ -101,13 +104,52 @@ def search_lead_for_admission(request):
                 'lead_name': lead.lead_name,
                 'email': lead.email,
                 'phone_no': lead.phone_no,
-                'course_interested': lead.course_interested,
-                'course_interested_label': lead.get_course_interested_display(),
+                # Course id: matches the Course dropdown option value directly
+                'course_interested': lead.course_interested_id,       # CHANGED
+                'course_interested_label': (                          # CHANGED
+                    lead.course_interested.course_name
+                    if lead.course_interested else ''
+                ),
             }
             for lead in leads
         ]
  
     return JsonResponse({'leads': results})
+
+
+def _mark_lead_enrolled(request, student_obj):                         # NEW
+    """
+    Once a student is registered, the matching lead becomes 'Enrolled'.
+    Matches: the lead picked in the autofill (posted lead_id) and any lead
+    with the same phone number or email as the new student.
+    """
+    lead_ids = set()
+
+    posted = request.POST.get('lead_id', '').strip()
+    if posted.isdigit():
+        lead_ids.add(int(posted))
+
+    match = Q(phone_no__endswith=student_obj.phone_no)
+    if student_obj.email:
+        match |= Q(email__iexact=student_obj.email)
+
+    lead_ids.update(
+        LeadCapture.objects.filter(match).values_list('id', flat=True)
+    )
+
+    if not lead_ids:
+        return
+
+    leads = (
+        LeadCapture.objects
+        .filter(id__in=lead_ids)
+        .exclude(initial_status='enrolled')
+    )
+
+    for lead in leads:
+        lead.initial_status = 'enrolled'
+        lead.save(update_fields=['initial_status', 'updated_at'])
+
 
 def student(request):
     if not (is_admin_manager(request) or is_sales_team(request)):
@@ -182,6 +224,9 @@ def student(request):
                     enrollment = enrollment_form.save(commit=False)
                     enrollment.admission = admission
                     enrollment.save()
+
+                    # the lead of this student becomes "Enrolled"
+                    _mark_lead_enrolled(request, student_obj)          # NEW
 
                 if is_ajax:
                     return JsonResponse({

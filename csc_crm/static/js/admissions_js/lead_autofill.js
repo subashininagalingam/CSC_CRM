@@ -2,6 +2,8 @@
 // STUDENT REGISTER - LEAD AUTOFILL
 // Type in First Name -> matching leads appear -> click one ->
 // first name, last name, email, phone and course are filled in.
+// The chosen lead id is posted with the form (hidden "lead_id"),
+// so that lead becomes "Enrolled" once the student is saved.
 // No match -> "No leads found".
 // Load this file AFTER register.js
 // ============================================================
@@ -23,6 +25,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
     firstNameInput.setAttribute("autocomplete", "off");
 
+    // ---------- hidden field: which lead was picked ----------
+    let leadIdInput = form.querySelector('input[name="lead_id"]');
+
+    if (!leadIdInput) {
+        leadIdInput = document.createElement("input");
+        leadIdInput.type = "hidden";
+        leadIdInput.name = "lead_id";
+        leadIdInput.id = "id_lead_id";
+        form.appendChild(leadIdInput);
+    }
+
+    // typing in First Name by hand removes the link to the picked lead
+    // (isTrusted = a real keystroke, not the autofill setting the value)
+    firstNameInput.addEventListener("input", e => {
+        if (e.isTrusted) leadIdInput.value = "";
+    });
+
     // ---------- suggestion box ----------
     const wrapper = firstNameInput.closest(".input-wrapper") || firstNameInput.parentElement;
     wrapper.classList.add("lead-autofill-wrapper");
@@ -43,27 +62,15 @@ document.addEventListener("DOMContentLoaded", () => {
         input.dispatchEvent(new Event("input", { bubbles: true }));
     }
 
-    // ---------- course matching ----------
-    // lead.course_interested is a choice value, the Course select holds
-    // Course ids, so match on the visible course name.
+    // ---------- course ----------
+    // lead.course_interested is the Course id, the same value the
+    // Course dropdown options use, so it can be selected directly.
     function selectCourse(lead) {
 
-        if (!courseInput) return;
+        if (!courseInput || !lead.course_interested) return;
 
-        const wanted = [lead.course_interested_label, lead.course_interested]
-            .filter(Boolean)
-            .map(v => String(v).trim().toLowerCase());
-
-        if (wanted.length === 0) return;
-
-        const options = Array.from(courseInput.options).filter(o => o.value);
-
-        const match =
-            options.find(o => wanted.includes(o.textContent.trim().toLowerCase())) ||
-            options.find(o => {
-                const text = o.textContent.trim().toLowerCase();
-                return wanted.some(w => text.includes(w) || w.includes(text));
-            });
+        const wanted = String(lead.course_interested);
+        const match = Array.from(courseInput.options).find(o => o.value === wanted);
 
         if (match) {
             courseInput.value = match.value;
@@ -89,6 +96,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         selectCourse(lead);
+
+        // remember which lead this student came from
+        leadIdInput.value = lead.id;
+
         hideBox();
     }
 
@@ -180,5 +191,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // "Clear Form" button
-    form.addEventListener("reset", hideBox);
+    form.addEventListener("reset", () => {
+        hideBox();
+        leadIdInput.value = "";
+    });
 });

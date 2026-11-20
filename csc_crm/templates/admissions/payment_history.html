@@ -95,7 +95,7 @@
                         <tr>
                             <td>
                                 <div class="student-info">
-                                    <div class="student-avatar">{{ p.student.first_name|slice:":1" }}</div>
+                                    <div class="student-avatar">{% if p.student.photo %}<img src="{{ p.student.photo.url }}" alt="{{ p.student.first_name }}">{% else %}{{ p.student.first_name|slice:":1" }}{% endif %}</div>
                                     <div><strong>{{ p.student.first_name }} {{ p.student.last_name }}</strong></div>
                                 </div>
                             </td>

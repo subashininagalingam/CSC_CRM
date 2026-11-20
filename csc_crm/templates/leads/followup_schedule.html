@@ -335,10 +335,8 @@
 
                                 <div class="assigned-info">
 
-                                    <span class="staff-initials">
-
-                                        {{ lead.assigned_to.first_name|slice:":1"|upper }}{{ lead.assigned_to.last_name|slice:":1"|upper }}
-
+                                    <span class="staff-initials" style="overflow:hidden;">
+                                        {% if lead.assigned_to.profile_photo %}<img src="{{ lead.assigned_to.profile_photo.url }}" alt="{{ lead.assigned_to.full_name }}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;">{% else %}{{ lead.assigned_to.first_name|slice:":1"|upper }}{{ lead.assigned_to.last_name|slice:":1"|upper }}{% endif %}
                                     </span>
 
                                     <div class="staff-details">

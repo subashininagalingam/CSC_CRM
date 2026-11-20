@@ -10,35 +10,33 @@ import csv
 from django.http import HttpResponse
 from django.http import JsonResponse
 from django.core.paginator import Paginator
-from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from csc_crm.apps.staff.views import (lead_roles_required,LEAD_FULL_ROLES,LEAD_ALL_ROLES,LEAD_CALL_ROLES,role_required,block_roles,MARKETING_TARGET_ROLES,MARKETING_LEAD_ROLES,DELETE_TARGET_ROLES,VIEW_ALL_TARGET_ROLES,MARKETING_ONLY_ROLES,)
-
-
-def _my_role(request):
-    staff = getattr(request.user, 'staff_profile', None)
-    return (staff.role.role_name if staff and staff.role else None), staff
-
-
-def _ensure_lead_access(request, lead):
-    """A Sales Exec may only open / edit / download leads assigned to them."""
-    role, staff = _my_role(request)
-    if role == 'Sales Exec' and lead.assigned_to_id != staff.id:
-        raise PermissionDenied
+from .permissions import (
+    leads_permission,
+    has_permission,
+    get_group,
+    group_of_user,
+    is_sales_exec,          # CHANGED
+    PERMISSIONS,
+    scope_leads,
+    scope_calls,
+    ensure_lead_access,
+    ui_flags,
+)
 
 
 def _after_save_redirect(request, lead):
-    """Details page, unless a Sales Exec just assigned the lead to someone else."""
-    role, staff = _my_role(request)
-    if role == 'Sales Exec' and lead.assigned_to_id != staff.id:
-        return redirect('leads:lead_pipeline_view')
+    """After create / update, open the lead details page."""
     return redirect('leads:lead_capture_details', id=lead.id)
 
 
-@lead_roles_required(LEAD_FULL_ROLES)
+@leads_permission('lead_view')
 def lead_capture_list(request):
 
-    leads = LeadCapture.objects.all().order_by('-created_at')
+    # Sales Exec -> only their own leads (everyone else sees all)
+    all_leads = scope_leads(request, LeadCapture.objects.all())
+
+    leads = all_leads.order_by('-created_at')
 
     # Filter by status if provided
     status = request.GET.get('status')
@@ -61,10 +59,10 @@ def lead_capture_list(request):
 
     # Get recent Leads for Today
     today = timezone.localdate()
-    recent_leads = LeadCapture.objects.filter(enquiry_date=today).order_by('-created_at')[:5]
+    recent_leads = all_leads.filter(enquiry_date=today).order_by('-created_at')[:5]
 
     # Get Status Counts
-    status_counts = LeadCapture.objects.values('initial_status').annotate(count=Count('id'))
+    status_counts = all_leads.values('initial_status').annotate(count=Count('id'))
 
     form = LeadCaptureForm()
 
@@ -75,12 +73,13 @@ def lead_capture_list(request):
         'recent_leads': recent_leads,
         'status_counts': status_counts,
         'search_query': search_query,
-        'page_title': 'New Lead Entry'
+        'page_title': 'New Lead Entry',
+        **ui_flags(request),
     }
 
     return render(request, 'leads/lead_list.html', context)
 
-@lead_roles_required(LEAD_ALL_ROLES)
+@leads_permission('lead_create', json=True)
 def check_lead_exists(request):
 
     email = request.GET.get('email')
@@ -114,21 +113,22 @@ def check_lead_exists(request):
     return JsonResponse(data)
 
 # Get Lead in Leads and Their Information
-@lead_roles_required(LEAD_ALL_ROLES)
+@leads_permission('lead_view')
 def lead_capture_details(request, id):
 
     lead = get_object_or_404(LeadCapture, id=id)
-    _ensure_lead_access(request, lead)
+    ensure_lead_access(request, lead)
 
     context = {
-        'lead':lead
+        'lead':lead,
+        **ui_flags(request),
     }
     return render(request, 'leads/lead_details.html', context)
 
-@lead_roles_required(LEAD_ALL_ROLES)
+@leads_permission('lead_view')
 def lead_capture_download_pdf(request, id):
     lead = get_object_or_404(LeadCapture, id=id)
-    _ensure_lead_access(request, lead)
+    ensure_lead_access(request, lead)
 
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="lead_{lead.lead_id}.csv"'
@@ -146,7 +146,7 @@ def lead_capture_download_pdf(request, id):
         lead.lead_name,
         lead.phone_no,
         lead.email,
-        lead.course_interested,
+        lead.course_interested.course_name if lead.course_interested else '',
         lead.enquiry_date.strftime('%Y-%m-%d') if lead.enquiry_date else '',
         lead.next_followup_date.strftime('%Y-%m-%d') if lead.next_followup_date else '',
         lead.initial_status,
@@ -157,7 +157,7 @@ def lead_capture_download_pdf(request, id):
 
 
 #Create Leads
-@lead_roles_required(LEAD_ALL_ROLES)
+@leads_permission('lead_create')
 @require_http_methods(["GET", "POST"])
 def lead_capture_create(request):
     if request.method == 'POST':
@@ -192,16 +192,17 @@ def lead_capture_create(request):
         'leads': leads,
         'recent_leads': recent_leads,
         'status_counts': status_counts,
+        **ui_flags(request),
     }
 
     return render(request, 'leads/lead_list.html', context)
 
 # Update leads
-@lead_roles_required(LEAD_ALL_ROLES)
+@leads_permission('lead_edit')
 @require_http_methods(['GET','POST'])
 def lead_capture_update(request, id):
     lead = get_object_or_404(LeadCapture, id=id)
-    _ensure_lead_access(request, lead)
+    ensure_lead_access(request, lead)
 
     if request.method == 'POST':
         form = LeadCaptureForm(request.POST, instance=lead)
@@ -241,6 +242,7 @@ def lead_capture_update(request, id):
         'page_title': f'Edit Lead - {lead.lead_name}',
         'recent_leads': recent_leads,
         'status_counts': status_counts,
+        **ui_flags(request),
     }
 
     return render(request, 'leads/lead_list.html', context)
@@ -248,16 +250,11 @@ def lead_capture_update(request, id):
 
 
 # PIPELINE VIEW
-@lead_roles_required(LEAD_ALL_ROLES)
+@leads_permission('lead_view')
 def lead_pipeline_view(request):
 
-    leads = LeadCapture.objects.all().order_by('created_at')
-
-    my_staff = getattr(request.user, 'staff_profile', None)
-    my_role = my_staff.role.role_name if my_staff and my_staff.role else None
-
-    if my_role == 'Sales Exec':
-        leads = leads.filter(assigned_to=my_staff)
+    # Sales Exec -> only their own leads
+    leads = scope_leads(request, LeadCapture.objects.all()).order_by('created_at')
 
     search_query = request.GET.get('search', '').strip()
     assigned_to = request.GET.get('assigned_to', '').strip()
@@ -269,10 +266,10 @@ def lead_pipeline_view(request):
 
     if search_query:
        leads = leads.filter(
-          Q(course_interested__icontains=search_query)
+          Q(course_interested__course_name__icontains=search_query)
     )
 
-    if assigned_to and my_role != 'Sales Exec lead':
+    if assigned_to:
         leads = leads.filter(assigned_to__id=assigned_to)
 
     staffs = Staff.objects.filter(role__role_name__in=['BDE', 'Telecall', 'Sales Exec lead'], status='active')
@@ -322,21 +319,17 @@ def lead_pipeline_view(request):
         'leads': leads,
         'no_results': no_results,
         'page_size': page_size,
+        **ui_flags(request),
     }
 
     return render(request, 'leads/pipeline_view.html', context)
 
 # csv download
-@lead_roles_required(LEAD_ALL_ROLES)
+@leads_permission('lead_view')
 def export_leads_csv(request):
 
-    leads = LeadCapture.objects.all().order_by('created_at')
-
-    my_staff = getattr(request.user, 'staff_profile', None)
-    my_role = my_staff.role.role_name if my_staff and my_staff.role else None
-
-    if my_role == 'Sales Exec':
-        leads = leads.filter(assigned_to=my_staff)
+    # Sales Exec -> only their own leads
+    leads = scope_leads(request, LeadCapture.objects.all()).order_by('created_at')
 
     # Clean inputs
     search_query = request.GET.get('search', '').strip()
@@ -348,16 +341,14 @@ def export_leads_csv(request):
         leads = leads.filter(
             Q(email__icontains=search_query) |
             Q(phone_no__icontains=search_query) |
-            Q(course_interested__icontains=search_query)
+            Q(course_interested__course_name__icontains=search_query)
         )
 
-    if assigned_to and my_role != 'Sales Exec''Sales Exec leads':
+    if assigned_to:
         leads = leads.filter(assigned_to__id=assigned_to)
 
     if status:
         leads = leads.filter(initial_status=status)
-
-    print("EXPORT COUNT:", leads.count())  # DEBUG
 
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="leads.csv"'
@@ -375,7 +366,7 @@ def export_leads_csv(request):
             lead.lead_name,
             lead.email,
             lead.phone_no,
-            lead.course_interested,
+            lead.course_interested.course_name if lead.course_interested else '',
             lead.lead_source,
             lead.initial_status,
             lead.assigned_to if lead.assigned_to else 'Unassigned',
@@ -384,18 +375,92 @@ def export_leads_csv(request):
 
     return response
 
+# ---- Conversion report date range (drives the date dropdown) ----
+def _month_start(d, offset=0):
+    """First day of the month `offset` months from d's month."""
+    import datetime as _dt
+    idx = d.year * 12 + (d.month - 1) + offset
+    return _dt.date(idx // 12, idx % 12 + 1, 1)
+
+
+def _month_end(d, offset=0):
+    import calendar
+    import datetime as _dt
+    first = _month_start(d, offset)
+    return _dt.date(first.year, first.month, calendar.monthrange(first.year, first.month)[1])
+
+
+CONVERSION_RANGE_LABELS = {
+    'this_month': 'This Month',
+    'last_month': 'Last Month',
+    'last_3_months': 'Last 3 Months',
+    'last_6_months': 'Last 6 Months',
+    'this_year': 'This Year',
+    'all_time': 'All Time',
+}
+
+
+def _conversion_report_range(request):
+    """
+    Work out (start_date, end_date, range_key, label) from ?range= or ?start=&end=.
+    Falls back to the current month, which is what the dropdown shows by default.
+    start/end are None for 'All Time'.
+    """
+    import datetime as _dt
+    today = timezone.localdate()
+
+    def fmt(d):
+        return d.strftime('%d %b %Y')
+
+    key = request.GET.get('range', '').strip()
+    if key in CONVERSION_RANGE_LABELS:
+        if key == 'this_month':
+            start, end = _month_start(today), _month_end(today)
+        elif key == 'last_month':
+            start, end = _month_start(today, -1), _month_end(today, -1)
+        elif key == 'last_3_months':
+            start, end = _month_start(today, -2), _month_end(today)
+        elif key == 'last_6_months':
+            start, end = _month_start(today, -5), _month_end(today)
+        elif key == 'this_year':
+            start, end = _dt.date(today.year, 1, 1), _dt.date(today.year, 12, 31)
+        else:  # all_time
+            return None, None, key, CONVERSION_RANGE_LABELS[key]
+        return start, end, key, CONVERSION_RANGE_LABELS[key]
+
+    start_raw = request.GET.get('start', '').strip()
+    end_raw = request.GET.get('end', '').strip()
+    if start_raw and end_raw:
+        try:
+            start = _dt.date.fromisoformat(start_raw)
+            end = _dt.date.fromisoformat(end_raw)
+            if start > end:
+                start, end = end, start
+            return start, end, '', f'{fmt(start)} \u2013 {fmt(end)}'
+        except ValueError:
+            pass  # bad dates -> fall through to the default
+
+    start, end = _month_start(today), _month_end(today)
+    return start, end, 'this_month', f'{fmt(start)} \u2013 {fmt(end)}'
+
+
 # Lead Conversion 
-@lead_roles_required(LEAD_ALL_ROLES)
+@leads_permission('lead_view')
 def lead_conversion_report(request):
 
-    my_staff = getattr(request.user, 'staff_profile', None)
-    my_role = my_staff.role.role_name if my_staff and my_staff.role else None
-
-    leads_qs = LeadCapture.objects.all()
-
     # Sales Exec -> own assigned leads only
-    if my_role == 'Sales Exec''Sales Exec leads':
-        leads_qs = leads_qs.filter(assigned_to=my_staff)
+    leads_qs = scope_leads(request, LeadCapture.objects.all())
+
+    # Date range from the dropdown (?range=... or ?start=...&end=...)
+    range_start, range_end, range_key, range_label = _conversion_report_range(request)
+    if range_start and range_end:
+        import datetime as _dt
+        tz = timezone.get_current_timezone()
+        start_dt = timezone.make_aware(_dt.datetime.combine(range_start, _dt.time.min), tz)
+        end_dt = timezone.make_aware(
+            _dt.datetime.combine(range_end + _dt.timedelta(days=1), _dt.time.min), tz
+        )
+        leads_qs = leads_qs.filter(created_at__gte=start_dt, created_at__lt=end_dt)
 
     total_leads = leads_qs.count()
     enrolled_leads = leads_qs.filter(initial_status='enrolled').count()
@@ -433,23 +498,21 @@ def lead_conversion_report(request):
         'contacted_leads': contacted_leads,
         'demo_leads': demo_leads,
         'source_performance': source_performance,
+        'range_label': range_label,
+        'range_key': range_key,
+        'range_start': range_start.isoformat() if range_start else '',
+        'range_end': range_end.isoformat() if range_end else '',
     }
 
     return render(request, 'leads/conversion_report.html', context)
 
 # ============================= FOLLOW UP =============================
-@lead_roles_required(LEAD_ALL_ROLES)
+@leads_permission('lead_view')
 def followup_shedule(request):
     today = timezone.localdate()
 
-    my_staff = getattr(request.user, 'staff_profile', None)
-    my_role = my_staff.role.role_name if my_staff and my_staff.role else None
-
-    followups = LeadCapture.objects.all()
-
     # Sales Exec -> own assigned leads only
-    if my_role == 'Sales Exec':
-        followups = followups.filter(assigned_to=my_staff)
+    followups = scope_leads(request, LeadCapture.objects.all())
 
     search_query = request.GET.get('search', '').strip()
 
@@ -457,7 +520,7 @@ def followup_shedule(request):
         followups = followups.filter(
             Q(lead_name__icontains=search_query) |
             Q(lead_id__icontains=search_query) |
-            Q(course_interested__icontains=search_query) |
+            Q(course_interested__course_name__icontains=search_query) |
             Q(assigned_to__first_name__icontains=search_query) |
             Q(assigned_to__last_name__icontains=search_query) |
             Q(assigned_to__employee_id__icontains=search_query)
@@ -547,6 +610,8 @@ def followup_shedule(request):
 
         'today': today,
 
+        **ui_flags(request),
+
     }
 
     return render(
@@ -555,12 +620,13 @@ def followup_shedule(request):
         context
     )
 
-@lead_roles_required(LEAD_ALL_ROLES)
+@leads_permission('followup')
 def mark_followup_completed(request, id):
 
     if request.method == 'POST':
 
         lead = get_object_or_404( LeadCapture, id=id)
+        ensure_lead_access(request, lead)
 
         lead.followup_completed = True
         lead.followup_completed_at = timezone.now()
@@ -578,7 +644,7 @@ def mark_followup_completed(request, id):
     return redirect('leads:followup_shedule')
 
 # Search Leads by Name (for Call-Log "Contact Name" autocomplete)
-@lead_roles_required(LEAD_CALL_ROLES)
+@leads_permission('call_write', json=True)
 def search_lead_by_name(request):
 
     query = request.GET.get('q', '').strip()
@@ -586,7 +652,7 @@ def search_lead_by_name(request):
     results = []
 
     if query:
-        leads = LeadCapture.objects.filter(
+        leads = scope_leads(request, LeadCapture.objects.all()).filter(
             lead_name__icontains=query
         ).order_by('lead_name')[:10]
 
@@ -595,7 +661,7 @@ def search_lead_by_name(request):
                 'id': lead.id,
                 'lead_name': lead.lead_name,
                 'phone_no': lead.phone_no,
-                'course_interested': lead.get_course_interested_display(),
+                'course_interested': lead.course_interested.course_name if lead.course_interested else '',
             }
             for lead in leads
         ]
@@ -603,29 +669,55 @@ def search_lead_by_name(request):
     return JsonResponse({'leads': results})
 
 # Call-log View
-@lead_roles_required(LEAD_CALL_ROLES)
+@leads_permission('call_view')
 def call_log_view(request):
+
+    # the leads this user may log calls for (Sales Exec -> own leads only)    # CHANGED
+    my_leads = scope_leads(request, LeadCapture.objects.all())                 # CHANGED
+
     if request.method == 'POST':
+
+        # viewing is allowed for HR, saving a call is not
+        if not has_permission(request, 'call_write'):
+            messages.error(request, 'You do not have permission to add call logs.')
+            return redirect('leads:call_logs')
+
         form = CallLogForm(request.POST)
+        form.fields['lead'].queryset = my_leads                                # CHANGED
+
         if form.is_valid():
-            log = form.save()
-            messages.success(request, 'Call saved!')
-            # After "Save Call" go straight to the contact's call-log page
-            return redirect('leads:contact_calls', log_id=log.id)
-        messages.error(request, 'Please correct the errors in the call form.')
+            log = form.save(commit=False)                                      # CHANGED
+
+            # Sales Exec: the call must be linked to one of their own leads   # CHANGED
+            if is_sales_exec(request) and not (                                # CHANGED
+                log.lead_id and my_leads.filter(id=log.lead_id).exists()       # CHANGED
+            ):                                                                 # CHANGED
+                messages.error(                                                # CHANGED
+                    request,                                                   # CHANGED
+                    'Select one of your own leads for this call.'              # CHANGED
+                )                                                              # CHANGED
+            else:                                                              # CHANGED
+                log.save()                                                     # CHANGED
+                messages.success(request, 'Call saved!')
+                # After "Save Call" go straight to the contact's call-log page
+                return redirect('leads:contact_calls', log_id=log.id)
+        else:
+            messages.error(request, 'Please correct the errors in the call form.')
     else:
         form = CallLogForm()
+        form.fields['lead'].queryset = my_leads                                # CHANGED
 
-    logs = CallLog.objects.all().order_by('-created_at')
+    logs = scope_calls(request, CallLog.objects.all()).order_by('-created_at')
 
     return render(request, 'leads/call_logs.html', {
         'form': form,
-        'logs': logs
+        'logs': logs,
+        **ui_flags(request),
     })
 
 
 # Contact details + mobile-style call log for one contact
-@lead_roles_required(LEAD_CALL_ROLES)
+@leads_permission('call_view')
 def contact_calls(request, log_id):
     log = get_object_or_404(CallLog, id=log_id)
 
@@ -634,6 +726,9 @@ def contact_calls(request, log_id):
         matches = list(LeadCapture.objects.filter(lead_name__iexact=log.lead_name.strip())[:2])
         if len(matches) == 1:
             lead = matches[0]
+
+    # Sales Exec -> only the calls of their own leads
+    ensure_lead_access(request, lead)
 
     if lead:
         calls = CallLog.objects.filter(Q(lead=lead) | Q(lead__isnull=True, lead_name__iexact=lead.lead_name))
@@ -661,83 +756,65 @@ def contact_calls(request, log_id):
         'connected_calls': connected,
         'not_connected_calls': total - connected,
         'talk_time': talk_time,
+        **ui_flags(request),
     })
 
-@lead_roles_required(LEAD_CALL_ROLES)
+@leads_permission('call_write')
 def delete_call_log(request, id):
-    
-    log = get_object_or_404(CallLog, id=id)
+
+    # Sales Exec can delete only the calls of their own leads                  # CHANGED
+    log = get_object_or_404(scope_calls(request, CallLog.objects.all()), id=id)  # CHANGED
     log.delete()
     messages.success(request, f'Call-Log Deleted!')
     return redirect('leads:call_logs')
 
-@lead_roles_required(LEAD_CALL_ROLES)
+@leads_permission('call_view')
 def call_history(request):
     outcome = request.GET.get("outcome")
 
-    logs = CallLog.objects.all().order_by("-call_date", "-call_time")
+    logs = scope_calls(request, CallLog.objects.all()).order_by("-call_date", "-call_time")
 
     if outcome and outcome != "All":
         logs = logs.filter(call_outcome=outcome)
 
     return render(request, "leads/call_history.html", {
         "logs": logs,
-        "selected": outcome or "All"
+        "selected": outcome or "All",
+        **ui_flags(request),
     })
 
 # ============================= LEAD CAPTURE TARGET (MARKETING) =============================
 
 def is_target_assigner(user):
     """
-    Only Admin / Manager / Marketing Lead can assign targets.
-    Django superuser is always allowed.
+    Admin / Manager / Marketing Lead can assign targets
+    (Django superuser is always allowed).
     """
-
-    if user.is_superuser:
-        return True
-
-    staff = getattr(user, 'staff_profile', None)
-
-    if not staff or not staff.role:
-        return False
-
-    role_name = staff.role.role_name.strip()
-
-    return role_name in [
-        'Admin',
-        'Manager',
-        'Marketing Lead',
-    ]
+    return group_of_user(user) in PERMISSIONS['target_manage']
 
 
 # ==========================================================
 # PERMISSION HELPER
-# ADMIN -> ANY TARGET
-# LEAD  -> ONLY TARGETS ASSIGNED BY THEM
+# ADMIN / MANAGER -> ANY TARGET
+# MARKETING LEAD  -> ONLY TARGETS ASSIGNED BY THEM
+# EVERYONE ELSE   -> NONE
 # ==========================================================
 
 def can_manage_target(request, target):
 
-    staff = getattr(
-        request.user,
-        'staff_profile',
-        None
-    )
+    group = get_group(request)
 
-    # Admin: full access
-    if request.user.is_superuser:
+    if group == 'admin':
         return True
 
-    if staff and staff.role and staff.role.role_name.strip() == "Admin":
-        return True
+    if group == 'marketing_lead':
+        staff = getattr(request.user, 'staff_profile', None)
+        return bool(staff and target.assigned_by_id == staff.id)
 
-    # Lead: only the targets they assigned
-    return bool(
-        staff and target.assigned_by_id == staff.id
-    )
+    return False
 
 
-@role_required(MARKETING_TARGET_ROLES, marketing_only=True)
+@leads_permission('target_page')
 def lead_capture_target(request):
 
     # ==========================================================
@@ -759,6 +836,8 @@ def lead_capture_target(request):
         else ''
     )
 
+    group = get_group(request)
+
     # ==========================================================
     # ROLE FLAGS
     # ==========================================================
@@ -772,42 +851,38 @@ def lead_capture_target(request):
         current_role == 'Manager'
     )
 
+    is_hr = (
+        group == 'hr'
+    )
+
     is_marketing_lead = (
-        current_role == 'Marketing Lead'
+        group == 'marketing_lead'
     )
 
     is_marketing_member = (
-        current_role in [
-            'Marketing Member',
-            'Digital Marketing',
-            'Content Creator',
-        ]
+        group == 'marketing_emp'
     )
 
     # ==========================================================
-    # ASSIGN PERMISSION
+    # ASSIGN PERMISSION (Admin / Manager / Marketing Lead)
     # ==========================================================
 
-    can_assign = (
-        is_admin
-        or is_manager
-        or is_marketing_lead
-    )
+    can_assign = group in PERMISSIONS['target_manage']
 
     # ==========================================================
     # MARKETING MEMBERS DON'T MANAGE THE LIST
     # ==========================================================
 
-    if is_marketing_member and not can_assign:
+    if is_marketing_member:
         return redirect('leads:my_lead_capture_target')
 
     # ==========================================================
     # TARGET VISIBILITY
     # ==========================================================
 
-    if is_admin or is_manager:
+    if group in ('admin', 'hr'):
 
-        # Admin / Manager
+        # Admin / Manager / HR (HR is view only)
         # Can see every target except their own
 
         targets = LeadCaptureTarget.objects.select_related(
@@ -855,8 +930,9 @@ def lead_capture_target(request):
 
     # ==========================================================
     # EDIT / DELETE PERMISSION
-    # ADMIN -> ANY TARGET
-    # LEAD  -> ONLY TARGETS ASSIGNED BY THEM
+    # ADMIN / MANAGER -> ANY TARGET
+    # MARKETING LEAD  -> ONLY TARGETS ASSIGNED BY THEM
+    # HR              -> VIEW ONLY
     # COMPLETED TARGET -> BOTH BUTTONS DISABLED
     # ==========================================================
 
@@ -915,6 +991,7 @@ def lead_capture_target(request):
 
         'is_admin': is_admin,
         'is_manager': is_manager,
+        'is_hr': is_hr,
         'is_marketing_lead': is_marketing_lead,
         'is_marketing_member': is_marketing_member,
 
@@ -935,18 +1012,12 @@ def lead_capture_target(request):
 
 # ==========================================================
 # ASSIGN TARGET
+# ADMIN + MANAGER + MARKETING LEAD ONLY
 # ==========================================================
 
-@login_required
+@leads_permission('target_manage')
 @require_http_methods(['GET', 'POST'])
 def lead_capture_target_assign(request):
-
-    # ==========================================
-    # ADMIN + MANAGER + MARKETING LEAD ONLY
-    # ==========================================
-
-    if not is_target_assigner(request.user):
-        raise PermissionDenied
 
     if request.method == 'POST':
 
@@ -1024,10 +1095,10 @@ def lead_capture_target_assign(request):
 
 # ==========================================================
 # UPDATE TARGET
-# ADMIN: ANY TARGET | LEAD: ONLY TARGETS ASSIGNED BY THEM
+# ADMIN / MANAGER: ANY TARGET | MARKETING LEAD: ONLY TARGETS ASSIGNED BY THEM
 # ==========================================================
 
-@role_required(MARKETING_TARGET_ROLES, marketing_only=True)
+@leads_permission('target_manage')
 @require_http_methods(['POST'])
 def lead_capture_target_update(request, pk):
 
@@ -1081,10 +1152,10 @@ def lead_capture_target_update(request, pk):
 
 # ==========================================================
 # DELETE TARGET
-# ADMIN: ANY TARGET | LEAD: ONLY TARGETS ASSIGNED BY THEM
+# ADMIN / MANAGER: ANY TARGET | MARKETING LEAD: ONLY TARGETS ASSIGNED BY THEM
 # ==========================================================
 
-@role_required(MARKETING_TARGET_ROLES, marketing_only=True)
+@leads_permission('target_manage')
 @require_http_methods(['POST'])
 def lead_capture_target_delete(request, pk):
 
@@ -1121,20 +1192,19 @@ def lead_capture_target_delete(request, pk):
 
 # ==========================================================
 # UPDATE PROGRESS (SELF REPORT)
+# MARKETING LEAD / MARKETING EMP -> ONLY THEIR OWN TARGET
 # ==========================================================
 
+@leads_permission('target_progress')
 @require_http_methods(['POST'])
 def lead_capture_target_progress(request, pk):
     """Team member self-reports how many leads they captured against
     their own target — they never touch the Lead Management page."""
 
-    if not request.user.is_authenticated:
-        return redirect('staff_login')
-
     staff = getattr(request.user, 'staff_profile', None)
     if staff is None:
         messages.error(request, 'No staff profile found.')
-        return redirect('leads:lead_capture_target')
+        return redirect('leads:my_lead_capture_target')
 
     target = get_object_or_404(LeadCaptureTarget, pk=pk)
 
@@ -1144,11 +1214,11 @@ def lead_capture_target_progress(request, pk):
 
     if target.is_completed:
         messages.error(request, 'This target is already completed.')
-        return redirect('leads:lead_capture_target')
+        return redirect('leads:my_lead_capture_target')
 
     if target.is_expired:
         messages.error(request, 'This target has expired and can no longer be updated.')
-        return redirect('leads:lead_capture_target')
+        return redirect('leads:my_lead_capture_target')
 
     form = LeadCaptureTargetProgressForm(request.POST)
 
@@ -1173,14 +1243,14 @@ def lead_capture_target_progress(request, pk):
             for error in errors:
                 messages.error(request, f'{field}: {error}')
 
-    return redirect('leads:lead_capture_target')
+    return redirect('leads:my_lead_capture_target')
 
 
 # ============================= MY LEAD CAPTURE TARGET (SELF VIEW) =============================
-@role_required(MARKETING_ONLY_ROLES)
+@leads_permission('target_progress')
 def my_lead_capture_target(request):
     """
-    Marketing Member's own Lead Capture Target page.
+    Marketing member's own Lead Capture Target page.
     Shows only their own target(s) + self-report progress.
     """
 

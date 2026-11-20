@@ -2,6 +2,7 @@ from csc_crm.apps.staff.validators import clean_person_name
 import re
 from django import forms
 from django.db.models import Q
+from csc_crm.apps.admissions.models import Course
 from .models import *
 
 
@@ -46,6 +47,12 @@ class LeadCaptureForm(forms.ModelForm):
         # for old records, so the limit is applied here, on the form).
         self.fields['lead_name'].max_length = 20
         self.fields['lead_name'].widget.attrs['maxlength'] = '20'
+
+        # Course list comes from the Course model (managed on the Courses page)
+        self.fields['course_interested'].queryset = Course.objects.order_by('course_name')
+        self.fields['course_interested'].empty_label = 'Select Course'
+        self.fields['course_interested'].required = True
+        self.fields['course_interested'].label = 'Course Interested'
 
         # Only active staff in these roles (BDE, Telecalling, Sales Executive,
         # Sales Lead). Matching is case-insensitive and covers the role-name

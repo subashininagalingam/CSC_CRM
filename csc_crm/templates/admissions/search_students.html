@@ -165,7 +165,7 @@
                 <td><input type="checkbox" class="row-checkbox" value="{{ student.id }}"></td>
 
                 <td class="student-cell">
-                    <span class="avatar-circle">{{ student.first_name|first|upper }}</span>
+                    <span class="avatar-circle">{% if student.photo %}<img src="{{ student.photo.url }}" alt="{{ student.first_name }}">{% else %}{{ student.first_name|first|upper }}{% endif %}</span>
                     <a href="{% url 'view_student' student.id %}" class="student-link">{{ student.first_name }} {{ student.last_name }}</a>
                 </td>
 
