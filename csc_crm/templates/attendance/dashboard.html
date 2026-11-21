@@ -355,13 +355,13 @@ Student Attendance - Dashboard
                     Reports
                 </a>
 
-                {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager" or request.user.staff_profile.role.role_name == "HR"  %}
+                {% if request.user.staff_profile.role.role_name == "Admin" or request.user.staff_profile.role.role_name == "Manager"  %}
                 <a href="{% url 'schedule_page' %}" class="quick-action">
                     <span class="quick-icon icon-shedule"><i class="fa-solid fa-calendar-plus"></i></span>
                      Create Schedule
                 </a>
                 {% endif %}
-                {% if request.user.staff_profile.role.role_name == "Trainer"%}
+                {% if request.user.staff_profile.role.role_name == "Trainer" or request.user.staff_profile.role.role_name == "HR" %}
                 <a href="{% url 'schedule_page' %}" class="quick-action">
                     <span class="quick-icon icon-shedule"><i class="fa-solid fa-calendar-plus"></i></span>
                         View Schedule
