@@ -17,6 +17,7 @@
 // 13. Automatic scroll to first error
 // 14. AJAX form submit
 // 15. Educational Qualification - letters, space, "." and "," only
+// 16. Email - maximum 40 characters
 // ============================================================
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -57,6 +58,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const MAX_FILE_SIZE = 5 * 1024 * 1024;
     const MAX_PHOTO_SIZE = 2 * 1024 * 1024;
+
+    // Email maximum length
+    const EMAIL_MAX_LENGTH = 40;
 
     const photoProgressBar =
         document.getElementById("photoProgressBar");
@@ -117,6 +121,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (emailInput) {
         emailInput.placeholder = "e.g. name@example.com";
+        emailInput.setAttribute("maxlength", String(EMAIL_MAX_LENGTH));
     }
 
     if (phoneInput) {
@@ -705,6 +710,16 @@ document.addEventListener("DOMContentLoaded", () => {
             showError(
                 emailInput,
                 "Email is required."
+            );
+
+            return false;
+        }
+
+        if (email.length > EMAIL_MAX_LENGTH) {
+
+            showError(
+                emailInput,
+                `Email must not exceed ${EMAIL_MAX_LENGTH} characters.`
             );
 
             return false;
