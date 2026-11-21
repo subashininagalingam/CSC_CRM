@@ -16,6 +16,7 @@
 // 12. Server-side error mapping
 // 13. Automatic scroll to first error
 // 14. AJAX form submit
+// 15. Educational Qualification - letters, space, "." and "," only
 // ============================================================
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -136,6 +137,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // ============================================================
 
     const nameRegex = /^[A-Za-z ]+$/;
+
+    // Educational Qualification: letters, space, "." and ","
+    const qualificationRegex = /^[A-Za-z .,]+$/;
 
     const basicEmailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
@@ -571,7 +575,12 @@ document.addEventListener("DOMContentLoaded", () => {
     // NAME VALIDATION
     // ============================================================
 
-    function validateName(input, label) {
+    function validateName(
+        input,
+        label,
+        regex = nameRegex,
+        invalidMessage = null
+    ) {
 
         if (!input) return true;
 
@@ -588,10 +597,11 @@ document.addEventListener("DOMContentLoaded", () => {
             return false;
         }
 
-        if (!nameRegex.test(value)) {
+        if (!regex.test(value)) {
 
             showError(
                 input,
+                invalidMessage ||
                 `${label} should contain only alphabets.`
             );
 
@@ -606,9 +616,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // ============================================================
     // LETTER ONLY INPUT
+    // (optional: custom allowed characters + regex + message)
     // ============================================================
 
-    function bindLetterOnly(input, label) {
+    function bindLetterOnly(
+        input,
+        label,
+        stripPattern = /[^A-Za-z ]/g,
+        regex = nameRegex,
+        invalidMessage = null
+    ) {
 
         if (!input) return;
 
@@ -618,13 +635,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 input.value =
                     input.value.replace(
-                        /[^A-Za-z ]/g,
+                        stripPattern,
                         ""
                     );
 
                 validateName(
                     input,
-                    label
+                    label,
+                    regex,
+                    invalidMessage
                 );
             }
         );
@@ -632,7 +651,12 @@ document.addEventListener("DOMContentLoaded", () => {
         input.addEventListener(
             "blur",
             () => {
-                validateName(input, label);
+                validateName(
+                    input,
+                    label,
+                    regex,
+                    invalidMessage
+                );
             }
         );
     }
@@ -653,9 +677,13 @@ document.addEventListener("DOMContentLoaded", () => {
         "Guardian Name"
     );
 
+    // Educational Qualification -> letters, space, "." and ","
     bindLetterOnly(
         educationalQualificationInput,
-        "Educational Qualification"
+        "Educational Qualification",
+        /[^A-Za-z .,]/g,
+        qualificationRegex,
+        "Educational Qualification should contain only alphabets, '.' and ','."
     );
 
 

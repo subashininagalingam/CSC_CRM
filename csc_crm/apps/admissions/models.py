@@ -14,13 +14,13 @@ email_validator = RegexValidator(regex=r'^[\w\.-]+@[\w\.-]+\.\w+$', message="Ent
 
 #==============================Student Model=======================================
 class Student(models.Model):
-    first_name = models.CharField(max_length=20, blank=False, validators=[name_validator])
-    last_name = models.CharField(max_length=20, blank=False, validators=[name_validator])
+    first_name = models.CharField(max_length=30, blank=False, validators=[name_validator])
+    last_name = models.CharField(max_length=30, blank=False, validators=[name_validator])
     dob = models.DateField()
     phone_no = models.CharField(max_length=10, blank=False, validators=[phone_validator], unique=True)
     gender_choice = [('', 'Select Gender'),('M','Male'),('F','Female'),('O','Others')]
     gender = models.CharField(max_length=10, choices=gender_choice)
-    email = models.EmailField(validators=[email_validator],unique=True)
+    email = models.EmailField(max_length=40, validators=[email_validator], unique=True)
     address = models.TextField(max_length=250, blank=False)
     educational_qualification = models.CharField(max_length=100, blank=False, validators=[name_validator])
     guardian_name = models.CharField(max_length=100, blank=False, validators=[name_validator])
